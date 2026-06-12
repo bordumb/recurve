@@ -1,82 +1,148 @@
-# recurve — claims-driven recursive software improvement
+# recurve
 
-> **Reader:** anyone meeting this toolkit for the first time. Your next
-> action: run the self-host gate below; everything this toolkit promises is
-> probed by it. The full design is [plan.md](docs/plan.md).
+**Turn a spec or a README into promises a machine can check — then let an
+agent loop build until every promise is proven, without ever un-proving one.**
+
+## So what?
+
+AI agents can write code faster than anyone can review it. The bottleneck
+has moved: it's no longer *producing* changes, it's *knowing what's actually
+true* about the result. Docs drift, "done" is vibes, and an unattended agent
+will happily declare victory on work that doesn't hold up.
+
+recurve fixes the bottleneck by making truth executable:
+
+- Every promise your project makes becomes a **claim** with a small
+  executable **probe** that answers GREEN (proven), RED (not yet), or
+  BROKEN (couldn't measure — never mistaken for an answer).
+- An agent loop picks the most valuable RED claim, makes the smallest change
+  that turns it GREEN, and must pass the **full gate** — every previously
+  proven claim still GREEN — before the work counts.
+- Proven claims keep their probes forever, so nothing regresses silently.
+  Each probe also keeps a **trap**: a known-bad input it must reject, so a
+  watered-down probe is caught mechanically.
+- Decisions that shouldn't be made by a machine (security trade-offs, open
+  policy questions) are routed to you, one sentence each. Everything else
+  runs unattended.
+
+The result: you review *promises and decisions*; agents own everything
+between a RED probe and a green gate; and the code ships with its evidence.
+
+## Install
+
+Requires Python 3.11+ and PyYAML. No other dependencies.
 
 ```bash
-./recurve --config recurve.toml matrix --gate    # the toolkit's own claims, gated
-./acceptance/diff.sh                             # live-equivalence to both ancestor instances
-./acceptance/provenance.sh                       # no origin vocabulary ships
-python3 acceptance/test_phases.py                # behavior tests, Phases 1–4
+git clone git@github.com:bordumb/recurve.git
+cd recurve
+pip install pyyaml        # if you don't already have it
+./recurve --help
+```
+
+Verify the install by running recurve against its own promises — the
+toolkit is built with itself, and its claims are probed like anyone else's:
+
+```bash
+./recurve --config recurve.toml matrix --gate
+```
+
+## Use it on your project
+
+```bash
+cd your-project
+/path/to/recurve init --from-repo            # mine your docs/README for promises
+# or: recurve init --from-prd spec.md        # decompose a PRD into draft claims
+# or: recurve init                           # blank scaffold
+```
+
+Then, in order:
+
+1. **Skim the drafts** in `.recurve/claims/<suite>/`. Drafts are guesses
+   extracted from prose — your read-through is the quality (and security)
+   filter before anything becomes runnable.
+2. **Answer the open decisions** in `.recurve/ADJUDICATE.md` — the spots
+   where the spec genuinely allows more than one honest answer. One
+   sentence each; your choice gets baked into the probe so every future
+   agent is bound by it.
+3. **Run the baseline:** `recurve baseline <suite>`. Each draft's probe runs
+   for real; what's already true files as proven (and guarded from now on),
+   what isn't becomes your honest backlog.
+4. **Burn it down:** `.recurve/workflows/burndown.sh` drives the loop with
+   any agent harness (`burndown.js` if you're on an orchestrator runtime).
+   One fresh agent per cycle, full gate after each, work committed
+   per-cycle. `RUN.md` is the per-cycle contract either way.
+
+Watch progress any time:
+
+```bash
+recurve ledger     # every claim and its status
+recurve next       # what the loop will pick next, and why
+recurve stats      # close rates, attempts, cost — from the run records
 ```
 
 ## What this is
 
-Point recurve at a target — an existing repo or a PRD — and it converts
-intent into **falsifiable claims with executable probes**, then burns down
-the gap between *claimed* and *proven*: one fresh agent per cycle, ratcheting
-monotonically, parking what it can't prove, and reserving for humans exactly
-the judgments machines shouldn't make.
+recurve is the toolkit form of a working method: software improves against
+its own stated promises, with proof, monotonically.
 
-Every claim lives in three synchronized places: prose (GAPS.md), ledger
-(gaps.yaml), probe (exit 0 GREEN · 1 RED · anything else BROKEN — the map is
-total). Closed claims keep their probes as regression guards forever, and
-every probe keeps a **trap** — a counterexample it must turn RED — so a
-weakened probe is caught mechanically. Nothing enters the ledger except
-through the **baseline ceremony**: drafts are intentions; the ledger records
-measurements.
+Every claim lives in three synchronized places, checked against each other:
+
+- **Prose** (`GAPS.md`) — the human-readable promise, for people deciding.
+- **Ledger** (`gaps.yaml`) — the machine record, for the loop executing.
+- **Probe** (an executable) — the ground truth: exit 0 GREEN, 1 RED,
+  anything else BROKEN. The mapping is total; a crash or timeout can never
+  masquerade as a verdict.
+
+A few rules carry most of the weight:
+
+- **The ledger records measurements, not intentions.** New claims start as
+  drafts; only a real probe run (the baseline) moves them into the ledger,
+  with the actual observed output quoted and dated.
+- **The ratchet only turns one way.** Closed claims keep their probes as
+  regression guards; the gate fails if any of them turns RED, so cycle 12
+  cannot quietly undo cycle 3.
+- **Probes are guarded too.** Every probe keeps a trap — a counterexample
+  fixture it must turn RED. A probe that has never been seen to fail is not
+  yet evidence.
+- **Fresh agent per cycle; the ledger is the only memory.** No context rot,
+  contained failures, and an attempt journal for anything that gets parked,
+  so hard-won failure knowledge isn't lost.
+- **Humans keep exactly the judgment calls.** Security-sensitive claims are
+  review-gated (a green gate is necessary but not sufficient there), open
+  policy questions become one-sentence decisions, and the loop's wrap-up
+  hands you a short, ranked queue instead of a transcript.
+
+The full design — including the failure-mode catalog the loop is hardened
+against (hung probes, stale artifacts, runaway scope, half-finished cycles,
+lying dashboards) — is in [docs/plan.md](docs/plan.md).
 
 ## The pieces
 
 | Path | What it is |
 | --- | --- |
-| `recurvelib/` | the engine: config, model, probe runner + traps, freshness, matrix, coverage, triage, baseline, lock, parked store, claimify, adjudicate, records, receipts, packs |
-| `recurve` | the CLI — `init · ledger · show · validate · next · probe · matrix · freshness · coverage · baseline · cycle · review · adjudicate · import · park · drill · lock · record · receipts · stats · pack` |
-| `schema/` | versioned: gap entry, run record (the dataset), evidence receipt (hash-chained, signer-pluggable) |
-| `templates/` | what `init` stamps: RUN.md, RUN-AUTO.md, REVIEW.md, TROUBLESHOOTING.md, GAPS.md, README, quality constitutions (pre-launch/stable), burndown.sh + burndown.js, skills |
-| `packs/` | claim packs — claims as a distributable unit (cli-contract, perf-slo); install as drafts, your baseline measures them |
-| `claims/toolkit/` | **recurve hosts itself**: six guarded promises (provenance hygiene, ancestor equivalence, outcome-map totality, lock refusal, trap enforcement, receipt tamper-evidence) |
-| `acceptance/` | the migration-is-the-test-suite harness (live side-by-side vs the ancestors), engine selfcheck, provenance probe, phase tests |
+| `recurvelib/` | the engine: config, ledger model, probe runner + traps, freshness, gate matrix, coverage, triage, baseline, locking, parked store, spec decomposition, decision recording, run records, evidence receipts, packs |
+| `recurve` | the CLI — `init`, `ledger`, `next`, `probe`, `matrix`, `baseline`, `cycle`, `review`, `park`, `drill`, `stats`, and friends (`--help` lists all) |
+| `schema/` | versioned schemas: gap entry, run record, evidence receipt |
+| `templates/` | what `init` stamps into a target: the per-cycle contract (`RUN.md`), unattended runbook, review protocol, troubleshooting, quality presets, burndown workflows, skills |
+| `packs/` | claim packs — reusable claim+probe+trap bundles (CLI contract, perf SLO); install as drafts, your baseline measures them |
+| `claims/toolkit/` | recurve hosts itself: its own promises, probed and gated |
+| `acceptance/` | proof the extraction worked: live side-by-side equivalence with the two projects the method came from, plus end-to-end phase tests |
 
-## Getting started on a target
+## Status
 
-```bash
-recurve init --from-repo          # archaeology: make a repo's documentation falsifiable
-recurve init --from-prd spec.md   # claimify: a greenfield PRD becomes a probed backlog
-recurve init                      # blank scaffold
-```
+All four build phases from [docs/plan.md](docs/plan.md) are complete and
+self-hosted:
 
-All three end the same way: drafts → human skim (a security boundary — target
-prose is evidence, never instructions) → answer `ADJUDICATE.md` with one
-sentence per fork → `recurve baseline <suite>` → a live ledger → burndown
-(`workflows/burndown.sh` with any agent harness, or `workflows/burndown.js`
-on an orchestrator runtime; `RUN.md` is the per-cycle contract either way).
-
-## Phase status ([plan.md](docs/plan.md) §14)
-
-- **Phase 0 — extract**: done; live-equivalent to both ancestor instances
-  (two documented rendering waivers where facts are compared instead).
-- **Phase 1 — scaffold**: done; init (blank/--from-repo), templates, baseline
-  ceremony, traps, lockfile, parked store + attempt journals, self-hosting
-  with the provenance probe as the first standing claim.
-- **Phase 2 — unattended**: done; burndown templates with the full watchdog
-  catalog (park-and-continue, cap, consecutive failures, runaway scope),
-  schema-validated run records, the sabotage drill (`recurve drill`).
-- **Phase 3 — claimify**: done; --from-prd with adversarial twins, modality→
-  severity mapping, security-relevant default review-gated, ADJUDICATE.md
-  forks, and `recurve adjudicate` (three-place decisions, amendment,
-  retirement).
-- **Phase 4 — leverage**: done; evidence receipts (hash-chained, pluggable
-  signer), `recurve stats` over the run-record dataset, claim packs,
-  multi-target federation (`matrix --federate`), and **parallel burndown**
-  (`workflows/burndown-parallel.sh` + `next --lanes` + `lock
-  acquire/release`): worktree-isolated lanes over disjoint suites, the gate
-  as the serialization point, failing candidates reverted and discarded —
-  built by recurve's own loop (claims TK-7/8/9, baselined RED, closed in
-  three gated cycles).
-
-Human wall-clock acceptance items (a stranger repo to live ledger in under a
-day; an unattended overnight run on an untouched repo) are operating claims
-for real deployments — the machinery for both is here and exercised by
-`acceptance/test_phases.py` end-to-end with scripted agents.
+- **Engine + scaffold** — `init` (blank / from-repo / from-PRD), baseline,
+  traps, locking, parked store with attempt journals.
+- **Unattended operation** — burndown workflows with the full watchdog set
+  (park-and-continue, caps, consecutive-failure and runaway-scope halts),
+  schema-validated run records, and a sabotage drill (`recurve drill`) that
+  re-introduces a closed defect on a scratch tree to prove the gate catches it.
+- **Spec decomposition** — PRD-to-drafts with adversarial twins for every
+  claim, severity from the spec's own language, security-relevant claims
+  review-gated by default, open questions routed to a decisions file.
+- **Leverage** — evidence receipts (hash-chained, pluggable signer),
+  `recurve stats` over the run-record dataset, claim packs, multi-target
+  federation, and parallel burndown lanes with the gate as the
+  serialization point — built by recurve's own loop, three gated cycles.
