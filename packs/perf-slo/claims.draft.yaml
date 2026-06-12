@@ -1,0 +1,12 @@
+# perf-slo pack — drafts; YOUR baseline measures them (set PACK_CMD/PACK_P99_MS).
+- id: PS-1
+  title: 'command p99 latency stays under the SLO'
+  class: friction
+  status: open
+  severity: feature
+  reads: none
+  covers: ["1"]
+  observed: 'UNBASELINED — pack claim; measure locally with PACK_CMD/PACK_P99_MS set'
+  smallest_fix: make the command meet its p99 SLO on the pinned rig
+  probe: probes/ps-1.sh
+  unlocks: 'a latency promise users can quote'

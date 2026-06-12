@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "gaps.yaml entry",
+  "version": "1.0.0",
+  "description": "One gap: a falsifiable claim whose probe is not yet (or no longer) GREEN. The machine layer beside a suite's GAPS.md prose. Enforced at parse time by recurvelib/model.py (parse, don't validate).",
+  "type": "object",
+  "required": ["id", "title", "class", "status", "severity", "smallest_fix"],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]*-[A-Za-z0-9]+$",
+      "description": "Stable id matching GAPS.md numbering: <PREFIX>-<num> or a token id."
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "class": {
+      "enum": ["missing-surface", "broken-route", "wire-mismatch", "security-tradeoff", "staging", "friction"],
+      "description": "The closed six. New domains map onto these via a Conventions section in their GAPS.md prose — never new enum values."
+    },
+    "status": {
+      "enum": ["open", "sculpting", "closed", "permanent"],
+      "description": "open/sculpting → probe expected RED; closed → expected GREEN; permanent → no probe."
+    },
+    "severity": { "enum": ["headline", "feature", "friction", "cosmetic"] },
+    "reads": {
+      "type": "string",
+      "description": "Which built artifact the probe reads — the freshness axis. Must name a reads rule configured in recurve.toml so the runner can refuse to run the probe against stale artifacts."
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "file:line pointers into the target tree proving the gap is real."
+    },
+    "observed": { "type": "string", "description": "The exact string/behavior observed today (actual dated output, never a prediction)." },
+    "smallest_fix": { "type": "string", "minLength": 1, "description": "The minimal honest change that closes it. Adjudicated policy decisions are recorded here (DECIDED <date>: ...)." },
+    "probe": {
+      "type": ["string", "null"],
+      "description": "Path (relative to the suite dir) to the executable probe. REQUIRED unless status=permanent."
+    },
+    "unlocks": { "type": "string", "description": "What gets STRONGER when this closes (the sculptor's compass)." },
+    "covers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "GAPS.md section anchor(s) this entry addresses. The prose↔ledger link `coverage` checks so no documented gap stays invisible to the loop."
+    },
+    "trap_waiver": {
+      "type": "string",
+      "description": "Reason this probe carries no trap fixture (see the probe contract). Counted and listed by `validate` as visible debt."
+    },
+    "needs_authoring": {
+      "type": "boolean",
+      "description": "Set by `import`; delete once class/severity/probe are real."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "not": { "const": "permanent" } } } },
+      "then": { "required": ["probe"], "properties": { "probe": { "type": "string" } } }
+    }
+  ]
+}

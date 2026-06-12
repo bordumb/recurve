@@ -1,0 +1,4 @@
+Counterexample fixture: its presence makes the probe run the same scenario
+with [gate] traps = "off" — the trap-less guard then passes validate, and the
+probe must exit RED, proving the enforcement (not the scenario) is what the
+claim guards.

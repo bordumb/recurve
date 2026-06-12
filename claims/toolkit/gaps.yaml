@@ -1,0 +1,146 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: TK-1
+  title: no origin vocabulary ships in the engine, CLI, schemas, templates, or packs
+  class: staging
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-1
+  evidence:
+  - acceptance/provenance.sh:1
+  observed: 'GREEN at baseline 2026-06-12: shipped surface carries no origin vocabulary'
+  smallest_fix: keep provenance confined to plan.md's designated zones and the acceptance
+    dir
+  probe: probes/tk-1.sh
+  unlocks: installing recurve anywhere without importing its first customer
+
+- id: TK-2
+  title: live-equivalent to both ancestor instances on every shared command
+  class: wire-mismatch
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - TK-2
+  evidence:
+  - acceptance/diff.sh:1
+  observed: 'GREEN at baseline 2026-06-12: live-equivalent to both ancestors (fast subset)'
+  smallest_fix: (already conformant at extraction) — guard the equivalence forever
+  probe: probes/tk-2.sh
+  unlocks: the migration IS the test suite; if this breaks, the engine generalized wrong
+
+- id: TK-3
+  title: 'the verdict map is total: crash/signal/timeout coerce to BROKEN, never a verdict'
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-3
+  evidence:
+  - recurvelib/probe.py:1
+  observed: 'GREEN at baseline 2026-06-12: verdict map total; records and receipts validate'
+  smallest_fix: keep the {0,1}→verdict map closed; everything else is BROKEN
+  probe: probes/tk-3.sh
+  unlocks: no fourth state — a segfault can never bless or damn a claim
+
+- id: TK-4
+  title: a second loop on a locked tree is refused, never admitted
+  class: staging
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-4
+  evidence:
+  - recurvelib/lock.py:1
+  observed: 'GREEN at baseline 2026-06-12: second loop refused while the first holds the tree'
+  smallest_fix: O_EXCL lock keyed by resolved tree path; steal is human-only
+  probe: probes/tk-4.sh
+  unlocks: suites sharing a tree federate into one gate instead of corrupting each other
+
+- id: TK-5
+  title: validate refuses an unfalsified probe (no trap fixture, no waiver)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-5
+  evidence:
+  - recurvelib/cli.py:1
+  observed: 'GREEN at baseline 2026-06-12: unfalsified probe rejected by validate'
+  smallest_fix: trap discipline enforced at validate; waivers are counted, listed debt
+  probe: probes/tk-5.sh
+  unlocks: a probe that has never been seen RED can never silently guard nothing
+
+- id: TK-6
+  title: a receipt edited after the fact fails validation loudly
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-6
+  evidence:
+  - recurvelib/records.py:1
+  observed: 'GREEN at baseline 2026-06-12: tampered receipt rejected — the evidence is tamper-evident'
+  smallest_fix: self-hash over canonical content; the chain breaks visibly or it is not a
+    chain
+  probe: probes/tk-6.sh
+  unlocks: code accompanied by its evidence, checkable by someone who was not there
+
+- id: TK-7
+  title: triage deals N parallel lanes from pairwise-disjoint suites
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-7
+  evidence:
+  - recurvelib/triage.py:1
+  observed: 'GREEN at cycle triage-deals-n-parallel 2026-06-12: lanes dealt from disjoint suites, value-first within each'
+  smallest_fix: add lanes() to triage (top gap per suite, value-first) and `next --json --lanes
+    N`
+  probe: probes/tk-7.sh
+  unlocks: parallel lanes that can never sculpt the same ledger or prose
+
+- id: TK-8
+  title: an orchestrator can hold the tree lock across CLI invocations
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-8
+  evidence:
+  - recurvelib/cli.py:1
+  observed: 'RED at baseline 2026-06-12: ours=no acquire surface oracle=lock acquire/release
+    for orchestrators'
+  smallest_fix: add `lock acquire` (refused while held) and `lock release` beside status/steal
+  probe: probes/tk-8.sh
+  unlocks: a shell orchestrator that spans many commands can still be the single loop on the
+    tree
+
+- id: TK-9
+  title: parallel lanes land through one gated serialization point
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-9
+  evidence:
+  - templates/workflows/burndown.js:1
+  observed: 'RED at baseline 2026-06-12: ours=no parallel loop oracle=worktree lanes + gated
+    serialization (plan §15.9)'
+  smallest_fix: ship workflows/burndown-parallel.sh — worktree lanes over disjoint suites;
+    per-landing gap-GREEN + fleet-gate check; revert-and-discard on failure; per-landing commit
+  probe: probes/tk-9.sh
+  unlocks: wall-clock scales with lanes while the ratchet stays single-file — the v2 contract,
+    proven

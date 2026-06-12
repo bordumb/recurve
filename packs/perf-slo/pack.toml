@@ -1,0 +1,10 @@
+[pack]
+name = "perf-slo"
+version = "1.0.0"
+exported_at = "2026-06-12"
+origin_project = "recurve"
+entries = 1
+# Parameterize via environment before baselining:
+#   PACK_CMD    = the command whose latency is the claim
+#   PACK_P99_MS = the SLO threshold in milliseconds
+#   PACK_N      = sample count (default 200; keep ≥100 for a meaningful p99)

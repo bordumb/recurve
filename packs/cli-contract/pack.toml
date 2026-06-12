@@ -1,0 +1,8 @@
+[pack]
+name = "cli-contract"
+version = "1.0.0"
+exported_at = "2026-06-12"
+origin_project = "recurve"
+entries = 3
+# Parameterize via environment before baselining:
+#   PACK_CLI = the command under test (e.g. "mytool")

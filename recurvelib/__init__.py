@@ -1,0 +1,20 @@
+"""recurvelib — the engine for claims-driven recursive software improvement.
+
+A *claim* is a falsifiable statement about a target, recorded in three
+synchronized layers: prose (GAPS.md), ledger (gaps.yaml), and an executable
+probe. The engine burns down the gap between claimed and proven: probes emit
+GREEN/RED/BROKEN verdicts, a fleet-wide matrix gates promotion, freshness
+checks refuse to trust stale artifacts, and coverage keeps prose and ledger
+from drifting apart.
+
+Everything that varies between targets lives in `recurve.toml` (see config).
+Everything else — the gap schema, the probe exit-code contract, status
+semantics, the gate conjunction — is frozen core. Do not make it configurable.
+"""
+
+ENGINE_VERSION = "0.1.0"
+
+# The gap-schema version this engine ships and enforces. Targets may pin a
+# major version in recurve.toml ([project] schema = "1"); a mismatch is a
+# validation failure, never a silent reinterpretation.
+SCHEMA_VERSION = "1.0.0"

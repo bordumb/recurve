@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+
+# run state (parked gaps, run records, receipts) — each install accumulates
+# its own; commit it per-project if you want the dataset in history
+.recurve/
+
+# mkdocs build output
+site/
+
+# ancestor-facing acceptance fixtures are LOCAL-ONLY (see acceptance/LOCAL.md)
+acceptance/ancestors.env
+acceptance/configs/
+acceptance/golden/
+acceptance/originals/

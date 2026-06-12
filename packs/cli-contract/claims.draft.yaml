@@ -1,0 +1,36 @@
+# cli-contract pack — drafts; YOUR baseline measures them (set PACK_CLI first).
+- id: CC-1
+  title: '--help prints usage and exits 0'
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers: ["1"]
+  observed: 'UNBASELINED — pack claim; measure locally with PACK_CLI set'
+  smallest_fix: implement a --help that prints a usage/options section and exits 0
+  probe: probes/cc-1.sh
+  unlocks: 'every script and human that discovers the tool by asking it'
+
+- id: CC-2
+  title: 'an unknown flag is rejected: nonzero exit + error on stderr'
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers: ["2"]
+  observed: 'UNBASELINED — pack claim; measure locally with PACK_CLI set'
+  smallest_fix: reject unknown flags loudly instead of silently accepting them
+  probe: probes/cc-2.sh
+  unlocks: 'typo safety — a CLI that accepts anything confirms nothing'
+
+- id: CC-3
+  title: '--version prints a dotted version and exits 0'
+  class: missing-surface
+  status: open
+  severity: friction
+  reads: none
+  covers: ["3"]
+  observed: 'UNBASELINED — pack claim; measure locally with PACK_CLI set'
+  smallest_fix: print <name> <major.minor[.patch]> on --version
+  probe: probes/cc-3.sh
+  unlocks: 'bug reports that say which build they are about'

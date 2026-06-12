@@ -1,0 +1,28 @@
+# recurve hosts itself — a claims tool whose own claims aren't probed is a
+# joke at its own expense. This suite guards the toolkit's machine-probeable
+# promises; human wall-clock promises live in plan.md §14's acceptance
+# criteria, where humans verify them.
+
+[project]
+name = "recurve"
+label = "suite"
+default_reads = "none"
+cycles_dir = "claims/toolkit/cycles"
+schema = "1"
+
+[target]
+tree = "."
+sacred = []
+forbidden_strings = []
+
+[gate]
+traps = "required"
+quality = "pre-launch"
+
+[reads.none]
+method = "none"
+
+[suites.toolkit]
+dir = "claims/toolkit"
+rebuild = ""               # the engine runs from source; nothing to copy
+harness = []

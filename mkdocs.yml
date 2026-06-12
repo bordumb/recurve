@@ -1,0 +1,67 @@
+site_name: recurve
+site_description: Claims-driven recursive software improvement — point it at a repo or a PRD and burn down the gap between claimed and proven.
+
+# Internal repo documents that must NOT be published or indexed on the site.
+# plan.md is the design spec and the designated provenance zone.
+exclude_docs: |
+  plan.md
+
+theme:
+  name: material
+  palette:
+    # Dark Mode (default)
+    - scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+    # Light Mode
+    - scheme: default
+      primary: white
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.path
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+nav:
+  - Home: index.md
+  - About: about.md
+  - Architecture: architecture.md
+  - Installation: install.md
+  - How to Use: usage.md

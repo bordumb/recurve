@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "cycle run record",
+  "version": "1.0.0",
+  "description": "One cycle's structured result — the dataset the loop emits. Defined in Phase 0 and never broken: triage priors, cost prediction, agent comparison, and dashboards are all consumers of this one table. Each (tree snapshot, RED probe) pair is a self-grading task; the gate is the oracle reward.",
+  "type": "object",
+  "required": ["schema_version", "project", "cycle", "status", "attempts", "wall_clock_s", "verdicts_before", "verdicts_after"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "description": "Version of this record schema." },
+    "project": { "type": "string", "description": "[project] name from recurve.toml." },
+    "run_id": { "type": "string", "description": "Orchestrator run this cycle belonged to (empty for a lone agent)." },
+    "cycle": { "type": "string", "description": "Cycle name (cycles/<name>/)." },
+    "gap": { "type": "string", "description": "Primary gap id worked (empty for no-work-left)." },
+    "suite": { "type": "string" },
+    "class": { "type": "string" },
+    "severity": { "type": "string" },
+    "status": {
+      "enum": ["closed", "parked", "no-work-left", "failed"],
+      "description": "The cycle's outcome — never free text the orchestrator must interpret."
+    },
+    "attempts": { "type": "integer", "minimum": 0, "description": "Honest attempts made on the gap this cycle." },
+    "wall_clock_s": { "type": "number", "minimum": 0 },
+    "tokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input": { "type": "integer", "minimum": 0 },
+        "output": { "type": "integer", "minimum": 0 }
+      },
+      "description": "Agent token spend, when the orchestrator knows it."
+    },
+    "files_touched": { "type": "array", "items": { "type": "string" } },
+    "net_new_gaps": { "type": "integer", "description": "Gaps filed minus gaps closed beyond the primary (runaway-scope watchdog input)." },
+    "verdicts_before": { "$ref": "#/$defs/verdict_counts" },
+    "verdicts_after": { "$ref": "#/$defs/verdict_counts" },
+    "regressions_caught": { "type": "integer", "minimum": 0, "description": "Closed-gap probes the gate caught going RED during this cycle (and that the cycle then repaired before promoting)." },
+    "parked_reason": { "type": "string", "description": "Required when status=parked: what was tried, why it failed — observations, never conclusions." },
+    "summary": { "type": "string", "description": "One paragraph, human-facing." },
+    "started_at": { "type": "string", "description": "ISO 8601." },
+    "finished_at": { "type": "string", "description": "ISO 8601." },
+    "receipts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "self_sha256 of each evidence receipt emitted at this cycle's gate run."
+    }
+  },
+  "$defs": {
+    "verdict_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["green", "red"],
+      "properties": {
+        "green": { "type": "integer", "minimum": 0 },
+        "red": { "type": "integer", "minimum": 0 },
+        "broken": { "type": "integer", "minimum": 0 },
+        "stale": { "type": "integer", "minimum": 0 },
+        "missing": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
