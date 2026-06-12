@@ -30,20 +30,44 @@ between a RED probe and a green gate; and the code ships with its evidence.
 
 ## Install
 
-Requires Python 3.11+ and PyYAML. No other dependencies.
+Requires Python 3.11+. The only dependency (PyYAML) installs automatically.
 
-```bash
-git clone git@github.com:bordumb/recurve.git
-cd recurve
-pip install pyyaml        # if you don't already have it
-./recurve --help
-```
+=== "uv"
+
+    ```bash
+    uv tool install git+https://github.com/bordumb/recurve.git
+    recurve --help
+    ```
+
+    Working from a clone (e.g. to hack on it):
+
+    ```bash
+    git clone https://github.com/bordumb/recurve.git
+    cd recurve
+    uv tool install --editable .
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install git+https://github.com/bordumb/recurve.git
+    recurve --help
+    ```
+
+    Working from a clone (e.g. to hack on it):
+
+    ```bash
+    git clone https://github.com/bordumb/recurve.git
+    cd recurve
+    pip install --editable .
+    ```
 
 Verify the install by running recurve against its own promises — the
 toolkit is built with itself, and its claims are probed like anyone else's:
 
 ```bash
-./recurve --config recurve.toml matrix --gate
+git clone https://github.com/bordumb/recurve.git && cd recurve
+recurve --config recurve.toml matrix --gate
 ```
 
 ## Use it on your project

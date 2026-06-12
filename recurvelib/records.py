@@ -19,10 +19,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+from . import resource_dir
+
 RECORD_SCHEMA_VERSION = "1.0.0"
 RECEIPT_SCHEMA_VERSION = "1.0.0"
 
-_SCHEMA_DIR = Path(__file__).resolve().parent.parent / "schema"
+_SCHEMA_DIR = resource_dir("schema")
 
 
 class RecordError(ValueError):

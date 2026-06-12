@@ -24,7 +24,9 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-_TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
+from . import resource_dir
+
+_TEMPLATES = resource_dir("templates")
 
 _ASSERTIVE = re.compile(
     r"(?i)\b(supports?|provides?|guarantees?|ensures?|validates?|verifies|verify|"
