@@ -32,35 +32,41 @@ between a RED probe and a green gate; and the code ships with its evidence.
 
 Requires Python 3.11+. The only dependency (PyYAML) installs automatically.
 
-=== "uv"
+<details open>
+<summary><b>uv</b></summary>
 
-    ```bash
-    uv tool install git+https://github.com/bordumb/recurve.git
-    recurve --help
-    ```
+```bash
+uv tool install git+https://github.com/bordumb/recurve.git
+recurve --help
+```
 
-    Working from a clone (e.g. to hack on it):
+Working from a clone (e.g. to hack on it):
 
-    ```bash
-    git clone https://github.com/bordumb/recurve.git
-    cd recurve
-    uv tool install --editable .
-    ```
+```bash
+git clone https://github.com/bordumb/recurve.git
+cd recurve
+uv tool install --editable .
+```
 
-=== "pip"
+</details>
 
-    ```bash
-    pip install git+https://github.com/bordumb/recurve.git
-    recurve --help
-    ```
+<details>
+<summary><b>pip</b></summary>
 
-    Working from a clone (e.g. to hack on it):
+```bash
+pip install git+https://github.com/bordumb/recurve.git
+recurve --help
+```
 
-    ```bash
-    git clone https://github.com/bordumb/recurve.git
-    cd recurve
-    pip install --editable .
-    ```
+Working from a clone (e.g. to hack on it):
+
+```bash
+git clone https://github.com/bordumb/recurve.git
+cd recurve
+pip install --editable .
+```
+
+</details>
 
 Verify the install by running recurve against its own promises — the
 toolkit is built with itself, and its claims are probed like anyone else's:
