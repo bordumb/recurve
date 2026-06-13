@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Known-bad engine: appends every record unconditionally (the pre-idempotency
+# behavior). A probe that blesses this has never measured the claim.
+if [ "${1:-}" = "record" ] && [ "${2:-}" = "append" ]; then
+  shift 2
+  FILE=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --file) FILE="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+  mkdir -p .recurve/state
+  { tr -d '\n' < "$FILE"; echo; } >> .recurve/state/records.jsonl
+  exit 0
+fi
+exit 0

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Known-bad engine: --narrate hands everything to the narrator and prints
+# ONLY what comes back, succeeding unconditionally — when the narrator says
+# little or dies, the deterministic report is gone with it.
+echo "NARRATIVE-OK"
+exit 0

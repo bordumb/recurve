@@ -87,3 +87,65 @@ a lane. Watchdogs: round cap; two consecutive landing-less rounds halt the
 run. Negative space (guarded by the trap): a gateless lander that corrupts a
 guarded tree is caught by the post-landing fleet-gate invariant.
 
+
+## TK-10 — the unarmed backlog is visible to orchestrators
+
+`next --json` reports, beside the strict-ledger triage, a `drafts` list
+(per-suite pending counts from `gaps.draft.yaml`) and an
+`adjudications_pending` count (unresolved `DECIDED: (pending` forks in
+ADJUDICATE.md). An empty `recommended` therefore has two distinguishable
+readings — "the spec is burned down" versus "the next wave is unarmed" —
+and a loop can act on the difference. The human rendering prints the same
+backlog hint. Negative space (guarded by the trap): a triage output without
+these fields reads as done while most of the spec sits unprobed.
+
+## TK-11 — record append is idempotent
+
+One cycle's record lands in `records.jsonl` exactly once, however many
+times it is appended: RUN.md tells the agent to append, burndown.sh appends
+the same result file on the agent's behalf, and the journal must not
+double-count the cycle. `record append` skips a record whose canonical
+serialization already exists in the journal. Negative space (guarded by the
+trap): a blind appender writes two lines and every downstream consumer
+(triage priors, cost prediction) counts each cycle twice.
+
+## TK-12 — the burndown loops arm the next wave
+
+The serial loop (`workflows/burndown.sh`) no longer halts at "no work left"
+while drafts pend: an arming stage sends one agent to author probes + traps
+for the next draft batch (never product code), runs the `baseline` ceremony
+for real, and continues sculpting — bounded by `ARM_WAVES`/`WAVE`, refusing
+to arm while ADJUDICATE.md holds a pending fork (a probe encodes a decision,
+never a guess), and halting loudly when an arming opens no work. The
+parallel and orchestrator twins surface the unarmed backlog at halt instead
+of reporting plain "no work left". Negative space (guarded by the trap): the
+pre-wave template strands the bulk of a spec in `gaps.draft.yaml` after the
+first wave closes.
+
+## TK-13 — report renders the deterministic run dataset
+
+`report` turns what the loop already wrote down into one reviewable page,
+deterministically — no narrator, no network: progress (closed/open/parked
+counts by suite, class, and severity, plus the remaining workable count),
+per-cycle durations with mean/median and the last-5 trend, an ETA projection
+from the last closed cycles (optimistic/pessimistic bounds, assumptions
+stated, "insufficient data" under two closed cycles), and — when the target
+tree is a git repo — a diff analysis over the range the records cover:
+lines added/removed, files touched, top directories, an honesty scan
+counting ADDED lines that match the configured suppression patterns, and a
+"review before signing" list for the largest diffs touching `[report]
+sensitive_paths`. Negative space (guarded by the traps): a report that
+omits the honesty section, or counts zero on a seeded TODO addition, reads
+complete while a suppressed check sails through.
+
+## TK-14 — --narrate appends prose without ever owning the report
+
+`report --narrate` pipes the rendered report plus a JSON array of the cycle
+records to the `[report] narrator` command from recurve.toml and appends
+its stdout under `## Narrative`. Without a configured narrator the flag is
+a clean one-line usage error (exit 2); without the flag the deterministic
+report renders as always. A narrator that fails or times out costs only
+the prose: the deterministic report still prints (or appends) and the exit
+is 1 — narration may editorialize over the numbers, never replace them.
+Negative space (guarded by the trap): an engine that prints only what the
+narrator returns loses the entire report to a quiet narrator.

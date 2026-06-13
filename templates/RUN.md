@@ -91,6 +91,9 @@ diffs. Commit policy: **{{COMMIT_POLICY}}**.
 
 Emit one structured run record (see `schema/run-record.schema.json`):
 status `closed | parked | no-work-left | failed`, the gap, attempts, files
-touched, verdict deltas, one-paragraph summary. Append it with
-`{{PROG}} record append --file <record.json>`. Then stop. One cycle = one
-agent. The ledger is the only memory the next agent gets.
+touched, verdict deltas, one-paragraph summary. If `$RECURVE_RESULT_FILE`
+is set you are inside the loop: write the record THERE — the loop validates
+and appends it for you (append is idempotent, so an extra
+`{{PROG}} record append --file <record.json>` is harmless). Running
+standalone, append it yourself with that command. Then stop. One cycle =
+one agent. The ledger is the only memory the next agent gets.

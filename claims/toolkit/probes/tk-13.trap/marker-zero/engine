@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Known-bad engine: ships an honesty-markers section but never actually scans
+# the diff — every pattern counts 0, including the seeded TODO addition. A
+# scanner that cannot see a planted marker is decoration, not evidence.
+cat <<'MD'
+# run report — fixture
+
+## Progress
+
+| suite | closed | open | parked |
+| --- | ---: | ---: | ---: |
+| x | 2 | 2 | 0 |
+
+## Cycles
+
+| cycle | gap | status | wall-clock | net new gaps |
+| --- | --- | --- | ---: | ---: |
+| c1 | X-1 | closed | 5m | 0 |
+| c2 | X-2 | closed | 10m | 1 |
+| c3 | X-3 | parked | 2m | 0 |
+
+## ETA
+
+remaining workable: 1 gap(s) — expected 1 × 7m 30s ≈ 7m 30s
+
+### Honesty markers (added lines)
+
+| pattern | hits |
+| --- | ---: |
+| `\.unwrap\(\)` | 0 |
+| `#\[allow` | 0 |
+| `TODO\|FIXME\|XXX` | 0 |
+| `#\[ignore` | 0 |
+MD
+exit 0

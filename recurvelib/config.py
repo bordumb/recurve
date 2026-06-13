@@ -14,6 +14,7 @@ re-checks a field.
 
 from __future__ import annotations
 
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -25,6 +26,10 @@ class ConfigError(ValueError):
 
 # Directory names never treated as source when scanning for mtimes.
 _DEFAULT_SKIP_DIRS = ("target", ".git", "node_modules", "site", "docs", "examples")
+
+# Patterns the report's honesty scan counts in ADDED diff lines — cheap tells
+# that a change suppressed a check instead of meeting it.
+_DEFAULT_SUPPRESSION_PATTERNS = (r"\.unwrap\(\)", r"#\[allow", r"TODO|FIXME|XXX", r"#\[ignore")
 
 
 @dataclass(frozen=True)
@@ -90,6 +95,13 @@ class Config:
     # its stdout is stored as the signature. recurve defines the receipt,
     # never the signature scheme.
     receipts_signer: str = ""
+    # [report] — the deterministic run report. narrator: optional command fed
+    # the rendered report + the cycle records on stdin; its stdout becomes the
+    # Narrative section. recurve defines the report, never the narration.
+    report_narrator: str = ""
+    report_narrator_timeout: int = 120
+    report_suppression_patterns: tuple[str, ...] = _DEFAULT_SUPPRESSION_PATTERNS
+    report_sensitive_paths: tuple[str, ...] = ()
     # True when the config lives at <root>/.recurve/recurve.toml — the
     # contained layout, where the loop's whole footprint sits in one dotdir
     # and the target's root stays the product's own domain.
@@ -205,6 +217,16 @@ def load(path: Path) -> Config:
     burndown = doc.get("burndown", {})
     receipts = doc.get("receipts", {})
 
+    report = doc.get("report", {})
+    suppression = tuple(str(p) for p in report.get("suppression_patterns",
+                                                   _DEFAULT_SUPPRESSION_PATTERNS))
+    for pat in suppression:
+        try:
+            re.compile(pat)
+        except re.error as e:
+            raise ConfigError(f"{path}: [report] suppression_patterns {pat!r} "
+                              f"is not a valid regex: {e}")
+
     return Config(
         name=str(project.get("name", root.name)),
         label=str(project.get("label", "suite")),
@@ -226,6 +248,10 @@ def load(path: Path) -> Config:
         burndown_max_consecutive_failures=int(burndown.get("max_consecutive_failures", 3)),
         burndown_runaway_net_positive_cycles=int(burndown.get("runaway_net_positive_cycles", 2)),
         receipts_signer=str(receipts.get("signer", "")),
+        report_narrator=str(report.get("narrator", "")),
+        report_narrator_timeout=int(report.get("narrator_timeout", 120)),
+        report_suppression_patterns=suppression,
+        report_sensitive_paths=tuple(str(p) for p in report.get("sensitive_paths", [])),
         contained=contained,
         source_file=path,
     )

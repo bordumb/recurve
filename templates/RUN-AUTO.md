@@ -19,13 +19,24 @@ loop with `.recurve/workflows/burndown.sh` (any agent harness) or
 - Commit policy is **{{COMMIT_POLICY}}** — verify the loop can commit without
   any prompt (signing prompts hang headless agents; that is why unsigned
   per-cycle commits exist).
+- **Skim the drafts before launching.** The loop arms successive waves from
+  `gaps.draft.yaml` on its own; starting it IS your sign-off that every
+  pending draft deserves a probe. Forks are still respected: while
+  ADJUDICATE.md has a pending DECIDED line, the loop refuses to arm and
+  halts for you instead.
 
 ## The loop's own guarantees (you do not babysit these)
 
+- **Wave arming:** when the strict ledger empties but drafts pend, an
+  arming agent authors probes + traps for the next batch (`WAVE` per round,
+  `ARM_WAVES` rounds max, security-tradeoff drafts always skipped), then
+  `baseline` measures them for real and promotes RED ones as open work.
+  The run continues until spec exhaustion, not wave exhaustion.
 - **Park-and-continue:** an un-greenable gap is parked with an attempt
-  journal; the loop moves on. It halts only on: no work left, the cycle cap,
-  {{MAX_FAILS}} consecutive failures, or {{RUNAWAY}} consecutive
-  net-gap-positive cycles (runaway scope).
+  journal; the loop moves on. It halts only on: backlog and drafts both
+  empty, pending adjudications, the cycle cap, the wave limit, an arming
+  that opens no work, {{MAX_FAILS}} consecutive failures, or {{RUNAWAY}}
+  consecutive net-gap-positive cycles (runaway scope).
 - **Per-cycle commits** mean a dead run loses at most one cycle's work.
 - **Timed-out agents count as failed cycles**, not hangs.
 
@@ -40,6 +51,10 @@ loop with `.recurve/workflows/burndown.sh` (any agent harness) or
 
 ## When it finishes
 
-Read the wrap-up record (`.recurve/records.jsonl`): ledger delta, parked
-list with reasons, the review queue. The human queue is ranked: adjudications
-first, then review-gated promotions, then parked triage.
+Read the wrap-up record (`.recurve/state/records.jsonl`): ledger delta, parked
+list with reasons, the review queue. Each cycle also appended a deterministic
+run report to `.recurve/state/reports/<run-id>.md` — progress, durations, the
+ETA projection, and the diff honesty scan; read it before signing anything
+(`{{PROG}} report --narrate` adds narrator prose, if one is configured). The
+human queue is ranked: adjudications first, then review-gated promotions, then
+parked triage.

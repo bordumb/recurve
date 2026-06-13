@@ -144,3 +144,89 @@
   probe: probes/tk-9.sh
   unlocks: wall-clock scales with lanes while the ratchet stays single-file — the v2 contract,
     proven
+
+- id: TK-10
+  title: 'the unarmed backlog is visible: next --json reports drafts and pending adjudications'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-10
+  evidence:
+  - recurvelib/cli.py:1
+  observed: 'GREEN at baseline 2026-06-13: drafts and pending adjudications visible to orchestrators'
+  smallest_fix: next --json carries a drafts list (suite, pending count) and an adjudications_pending
+    count read from gaps.draft.yaml and ADJUDICATE.md
+  probe: probes/tk-10.sh
+  unlocks: loops that arm their own next wave instead of stranding the draft backlog
+
+- id: TK-11
+  title: 'record append is idempotent: one cycle, one journal line, however many appenders'
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-11
+  evidence:
+  - recurvelib/cli.py:1
+  observed: 'GREEN at baseline 2026-06-13: one record appended twice lands once'
+  smallest_fix: cmd_record skips an append whose canonical serialization already exists in
+    records.jsonl
+  probe: probes/tk-11.sh
+  unlocks: triage priors and cost prediction that do not double-count cycles
+
+- id: TK-12
+  title: the burndown loops arm the next wave instead of stranding a draft backlog
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - TK-12
+  evidence:
+  - templates/workflows/burndown.sh:1
+  observed: 'GREEN at baseline 2026-06-13: burndown templates arm or surface the draft backlog'
+  smallest_fix: serial loop gains an arm_wave stage (author probes for a draft batch, run
+    baseline, continue; bounded by ARM_WAVES, refused while forks pend); parallel and orchestrator
+    twins surface the unarmed backlog at halt
+  probe: probes/tk-12.sh
+  unlocks: one launch burns down the whole spec, wave after wave, with humans only at forks
+    and review gates
+
+- id: TK-13
+  title: report renders the deterministic run dataset with no narrator and no network
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-13
+  evidence:
+  - recurvelib/report.py:1
+  observed: 'GREEN at baseline 2026-06-13: deterministic run dataset rendered from records+ledger+git;
+    the seeded TODO was counted'
+  smallest_fix: add recurvelib/report.py + a `report` subcommand — progress from the ledger,
+    cycle durations and an ETA projection from records.jsonl, and a diff honesty scan over
+    the git range the records cover
+  probe: probes/tk-13.sh
+  unlocks: a run dataset a maintainer reads before signing, free with every cycle
+
+- id: TK-14
+  title: --narrate appends narrator prose without ever owning the report
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-14
+  evidence:
+  - recurvelib/report.py:1
+  observed: 'GREEN at baseline 2026-06-13: narrator prose appended; missing config fails clean;
+    a dying narrator never costs the report'
+  smallest_fix: '`report --narrate` pipes the rendered report + a JSON array of the cycle
+    records to [report] narrator on stdin and appends its stdout; no narrator configured is
+    a clean exit 2; a failing/timed-out narrator costs the prose only (exit 1)'
+  probe: probes/tk-14.sh
+  unlocks: LLM judgment over the run, priced by the narrator, with the numbers always free

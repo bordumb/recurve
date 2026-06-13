@@ -10,6 +10,8 @@ probed, gated, burn-downable gaps.
     recurve probe [--suite S|--gap ID]   run gap probes, report RED/GREEN/BROKEN
     recurve matrix [--gate]        the conformance matrix; --gate exits nonzero on
                                    any regression, broken probe, or stale suite
+    recurve report [--narrate]     the run report: progress, durations, ETA,
+                                   diff honesty — deterministic; --narrate adds prose
     recurve freshness [--gate]     are suite artifacts current with the tree?
     recurve coverage [--gate]      does the ledger mirror every GAPS.md gap?
     recurve review <gap-id>        adversarial-review brief for review-gated gaps
@@ -224,6 +226,27 @@ def cmd_freshness(args):
         raise SystemExit(1)
 
 
+def _draft_backlog(cfg) -> tuple[list[dict], int]:
+    """What the strict ledger cannot see: per-suite pending draft counts and
+    unresolved adjudication forks. Orchestrators consult this to decide
+    whether an empty backlog means 'done' or 'the next wave is unarmed'."""
+    import yaml
+    drafts = []
+    for s in cfg.suites.values():
+        p = s.dir / "gaps.draft.yaml"
+        if not p.exists():
+            continue
+        try:
+            doc = yaml.safe_load(p.read_text()) or []
+        except yaml.YAMLError:
+            doc = []
+        if isinstance(doc, list) and doc:
+            drafts.append({"suite": s.name, "pending": len(doc)})
+    adj = cfg.assets_dir / "ADJUDICATE.md"
+    forks = adj.read_text().count("DECIDED: (pending") if adj.exists() else 0
+    return drafts, forks
+
+
 def cmd_next(args):
     import json as _json
     from . import render
@@ -238,6 +261,7 @@ def cmd_next(args):
     auto = [g for g in auto if g.id not in parked_ids]
     gated = [g for g in gated if g.id not in parked_ids]
     open_gaps = auto + gated
+    drafts, forks_pending = _draft_backlog(cfg)
 
     if getattr(args, "lanes", None):
         from .triage import lanes as deal_lanes
@@ -264,6 +288,8 @@ def cmd_next(args):
             "then": [g.id for g in auto[1:]],
             "review_gated": [g.id for g in gated],
             "parked": [{"gap": p.gap, "reason": p.reason} for p in parked],
+            "drafts": drafts,
+            "adjudications_pending": forks_pending,
         }))
         return
 
@@ -295,6 +321,15 @@ def cmd_next(args):
 
     if not open_gaps:
         print(f"{C['green']}✓ no open gaps — the backlog is clear for this ledger.{C['reset']}")
+    if drafts:
+        total = sum(d["pending"] for d in drafts)
+        where = ", ".join(f"{d['suite']} ({d['pending']})" for d in drafts)
+        print(f"\n{C['amber']}{total} draft claim(s) await the next wave:{C['reset']} {where}")
+        if forks_pending:
+            print(f"  {C['amber']}⚠ {forks_pending} fork(s) pending in ADJUDICATE.md — "
+                  f"one human sentence each, before any baseline.{C['reset']}")
+        print(render.dim(f"  arm them: author probes + traps, then ./{prog} baseline <suite> "
+                         f"(the burndown loop arms waves itself)"))
 
 
 def cmd_review(args):
@@ -485,8 +520,15 @@ def cmd_record(args):
         except RecordError as e:
             _fail(f"record rejected (the dataset stays clean or it is worthless): {e}", 1)
         path.parent.mkdir(parents=True, exist_ok=True)
+        line = _json.dumps(record, sort_keys=True)
+        # Idempotent: both the agent (per RUN.md) and the loop (per burndown)
+        # may append the same record — one observation lands once.
+        if path.exists() and line in set(path.read_text().splitlines()):
+            print(f"cycle {record.get('cycle', '?')} already recorded — skipped "
+                  f"(append is idempotent)")
+            return
         with path.open("a") as f:
-            f.write(_json.dumps(record, sort_keys=True) + "\n")
+            f.write(line + "\n")
         print(f"recorded cycle {record.get('cycle', '?')} status={record.get('status')}")
     else:  # list
         if not path.exists():
@@ -595,6 +637,44 @@ def cmd_stats(args):
         f"\n{len(records)} cycle records · {total_closed} self-grading tasks accumulated "
         f"(snapshot + RED probe + gate-as-oracle) · {regressions} regression(s) caught at the gate"))
     print(render.dim("close-rate by class is triage prior material; the dataset is the product."))
+
+
+def cmd_report(args):
+    import json as _json
+    from .report import NarratorError, gather, load_records, run_narrator, to_markdown
+    cfg = _config(args)
+    if args.suite and args.suite not in cfg.suites:
+        _fail(f"unknown {cfg.label} {args.suite!r}; configured: {', '.join(cfg.suites)}")
+    if args.narrate and not cfg.report_narrator:
+        _fail(f"--narrate needs [report] narrator in {cfg.source_file.name} — none is configured")
+    gaps = [g for g in _load(cfg).gaps if not args.suite or g.suite == args.suite]
+    records = load_records(cfg, args.suite)
+    data = gather(cfg, gaps, records, suite=args.suite)
+    md = to_markdown(data)
+    narrator_err = ""
+    if args.narrate:
+        try:
+            prose = run_narrator(cfg.report_narrator, cfg.report_narrator_timeout,
+                                 md, records)
+            md += f"\n\n## Narrative\n\n{prose}"
+            data["narrative"] = prose
+        except NarratorError as e:
+            narrator_err = str(e)
+    text = _json.dumps(data, indent=2, sort_keys=True) if args.format == "json" else md
+    if args.out:
+        out = Path(args.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with out.open("a") as f:
+            f.write(text + "\n")
+        print(f"appended report to {out}")
+    else:
+        print(text)
+    # A narrator failure costs the prose, never the report: the deterministic
+    # output above was already emitted in full before we say so.
+    if narrator_err:
+        print(f"\033[31m✗ narrator failed:\033[0m {narrator_err} — "
+              f"the deterministic report stands", file=sys.stderr)
+        raise SystemExit(1)
 
 
 def cmd_pack(args):
@@ -769,6 +849,14 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.set_defaults(fn=cmd_receipts)
 
     sub.add_parser("stats", help="the run-record dataset: close rates, attempts, cost by class").set_defaults(fn=cmd_stats)
+
+    s = sub.add_parser("report", help="the run report: progress, durations, ETA, diff honesty (deterministic; --narrate adds prose)")
+    s.add_argument("--suite")
+    s.add_argument("--format", choices=["md", "json"], default="md")
+    s.add_argument("--out", metavar="FILE", help="append the report to FILE (parents created) instead of stdout")
+    s.add_argument("--narrate", action="store_true",
+                   help="pipe the report + cycle records to [report] narrator and append its prose")
+    s.set_defaults(fn=cmd_report)
 
     s = sub.add_parser("pack", help="claim packs: export a suite / install one (drafts only)")
     psub = s.add_subparsers(dest="action", required=True)

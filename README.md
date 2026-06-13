@@ -110,6 +110,16 @@ recurve next       # what the loop will pick next, and why
 recurve stats      # close rates, attempts, cost — from the run records
 ```
 
+## Reports
+
+After every cycle the loop appends a free, deterministic report to
+`.recurve/state/reports/<run-id>.md` (also on demand: `recurve report`):
+progress by suite, cycle durations with an ETA projection, and an honesty
+scan of the diff — suppression markers, sensitive paths to review before
+signing. Add `--narrate` to pipe it through any LLM command configured as
+`[report] narrator`; the judgment costs whatever your narrator costs, the
+numbers stay free.
+
 ## What this is
 
 recurve is the toolkit form of a working method: software improves against
@@ -151,7 +161,7 @@ lying dashboards) — is in [docs/plan.md](docs/plan.md).
 | Path | What it is |
 | --- | --- |
 | `recurvelib/` | the engine: config, ledger model, probe runner + traps, freshness, gate matrix, coverage, triage, baseline, locking, parked store, spec decomposition, decision recording, run records, evidence receipts, packs |
-| `recurve` | the CLI — `init`, `ledger`, `next`, `probe`, `matrix`, `baseline`, `cycle`, `review`, `park`, `drill`, `stats`, and friends (`--help` lists all) |
+| `recurve` | the CLI — `init`, `ledger`, `next`, `probe`, `matrix`, `baseline`, `cycle`, `review`, `park`, `drill`, `stats`, `report`, and friends (`--help` lists all) |
 | `schema/` | versioned schemas: gap entry, run record, evidence receipt |
 | `templates/` | what `init` stamps into a target: the per-cycle contract (`RUN.md`), unattended runbook, review protocol, troubleshooting, quality presets, burndown workflows, skills |
 | `packs/` | claim packs — reusable claim+probe+trap bundles (CLI contract, perf SLO); install as drafts, your baseline measures them |
