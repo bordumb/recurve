@@ -1,0 +1,29 @@
+# Known-bad fixture for TK-16: a config whose sculpt gate FAILS (gate = "false")
+# while the companion `federated-verdict` file claims the federated gate came
+# back GREEN (exit 0). That pairing is the counterexample — an engine that
+# reported GREEN here would not have federated the sculpt gate at all. TK-16's
+# probe MUST go RED against it (the real engine returns non-zero, contradicting
+# the claimed 0).
+[project]
+name = "fixture"
+label = "suite"
+default_reads = "none"
+cycles_dir = "claims/s/cycles"
+schema = "1"
+
+[target]
+tree = "."
+
+[gate]
+traps = "off"
+quality = "pre-launch"
+
+[reads.none]
+method = "none"
+
+[suites.s]
+dir = "claims/s"
+
+[sculpts.x]
+tree = "."
+gate = "false"

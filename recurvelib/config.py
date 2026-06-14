@@ -65,6 +65,37 @@ class SuiteConfig:
 
 
 @dataclass(frozen=True)
+class SculptConfig:
+    """A secondary tree the loop may sculpt when a claim's fix requires it
+    (FR-C). The PRIMARY tree is `[target]`; each `[sculpts.<name>]` is another
+    tree, in a possibly-other repo, with its OWN forbidden vocabulary, commit
+    branch, freshness/rebuild command, and gate. The federated gate is green
+    only when the target's probes AND every sculpt's own gate pass.
+
+    `tree` resolves against the config root (like `[target] tree`);
+    `tree_display` is what messages call it. With no `[sculpts.*]` tables the
+    parser produces none of these and the Config is byte-identical to today's
+    single-tree shape.
+    """
+
+    name: str
+    tree: Path                    # resolved against the config root
+    tree_display: str             # verbatim tree string, for messages
+    kind: str = "generic"         # frontend | platform | ... (advisory taxonomy)
+    branch: str = ""              # the branch a sculpt commit lands on (FR-C2)
+    # FR-C4: this tree's OWN leak vocabulary, parallel to `Config.forbidden_strings`
+    # for the target. Enforcement is the same as the target's: advisory in the
+    # engine today (config carries it; nothing greps the tree), with the standing
+    # source-grep probe per tree as the active guard (docs/plan.md §11.14). When
+    # that grep becomes a built-in (a `recurve leakcheck`), it would scan THIS
+    # sculpt's `tree` for THESE strings, attributing any hit to this sculpt — the
+    # model already separates each tree's vocabulary so that attribution is exact.
+    forbidden_strings: tuple[str, ...] = ()
+    rebuild: str = ""             # how fresh artifacts reach this tree's checks
+    gate: str = ""                # the sculpt's own gate command (FR-C3); empty = no gate
+
+
+@dataclass(frozen=True)
 class Config:
     name: str
     label: str                    # what a suite is called in human output
@@ -107,6 +138,10 @@ class Config:
     # and the target's root stays the product's own domain.
     contained: bool = False
     source_file: Path = Path("recurve.toml")
+    # [sculpts.<name>] — zero-or-more secondary trees the loop may sculpt
+    # (FR-C). EMPTY for a single-tree config, which keeps that config (and
+    # every command's output) byte-identical to today.
+    sculpts: dict = field(default_factory=dict)
 
     @property
     def state_dir(self) -> Path:
@@ -217,6 +252,22 @@ def load(path: Path) -> Config:
     burndown = doc.get("burndown", {})
     receipts = doc.get("receipts", {})
 
+    # [sculpts.<name>] — secondary trees (FR-C). No tables → empty dict →
+    # byte-identical single-tree Config.
+    sculpts: dict[str, SculptConfig] = {}
+    for sname, sraw in (doc.get("sculpts") or {}).items():
+        s_tree_raw = str(sraw.get("tree", "."))
+        sculpts[sname] = SculptConfig(
+            name=sname,
+            tree=(root / s_tree_raw).resolve(),
+            tree_display=str(sraw.get("display", s_tree_raw)),
+            kind=str(sraw.get("kind", "generic")),
+            branch=str(sraw.get("branch", "")),
+            forbidden_strings=tuple(str(s) for s in sraw.get("forbidden_strings", [])),
+            rebuild=str(sraw.get("rebuild", "")),
+            gate=str(sraw.get("gate", "")),
+        )
+
     report = doc.get("report", {})
     suppression = tuple(str(p) for p in report.get("suppression_patterns",
                                                    _DEFAULT_SUPPRESSION_PATTERNS))
@@ -254,6 +305,7 @@ def load(path: Path) -> Config:
         report_sensitive_paths=tuple(str(p) for p in report.get("sensitive_paths", [])),
         contained=contained,
         source_file=path,
+        sculpts=sculpts,
     )
 
 

@@ -180,6 +180,27 @@ def cmd_matrix(args):
         if getattr(args, "receipts", False):
             from .receipts import emit_for_matrix
             emit_for_matrix(fcfg, fmatrix)
+    # FR-C3: federate each sculpt's OWN gate into the verdict. A sculpt is a
+    # secondary tree (frontend, platform) the loop may sculpt; its gate is run
+    # in its own tree and AND-ed in — `matrix --gate` is green only when the
+    # target probes AND every sculpt's gate pass. With no [sculpts.*] this loop
+    # has no iterations, so behavior and output are byte-identical to today.
+    if args.gate:
+        import subprocess
+        for sname, sc in cfg.sculpts.items():
+            if not sc.gate:
+                continue
+            cwd = sc.tree if sc.tree.is_dir() else cfg.root
+            try:
+                r = subprocess.run(sc.gate, shell=True, cwd=str(cwd),
+                                   capture_output=True, text=True, timeout=args.timeout)
+                rc = r.returncode
+            except subprocess.TimeoutExpired:
+                rc = 124
+            ok = rc == 0
+            mark = "OK" if ok else "FAILED"
+            print(f"sculpt {sname}: gate {mark} (exit {rc})")
+            gate_ok = gate_ok and ok
     if args.gate and not gate_ok:
         raise SystemExit(1)
 
@@ -502,6 +523,31 @@ def cmd_init(args):
           f"author probes + traps, then `{args.prog} baseline {suite}`.")
 
 
+def cmd_install(args):
+    """Symlink the recurve entrypoint onto PATH — one idempotent step, no
+    package install. The entrypoint resolves recurvelib relative to its own
+    real path, so a symlink anywhere runs the engine from this clone."""
+    import os
+    entry = (Path(__file__).resolve().parent.parent / "recurve")
+    if not entry.exists():
+        _fail(f"recurve entrypoint not found at {entry} — run install from a recurve checkout")
+    bin_dir = Path(args.bin_dir).expanduser().resolve()
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    link = bin_dir / "recurve"
+    # Idempotent: replace an existing symlink (to recurve or anything) but never
+    # clobber a real file we did not place.
+    if link.is_symlink():
+        link.unlink()
+    elif link.exists():
+        _fail(f"{link} exists and is not a symlink — refusing to overwrite a real file", 1)
+    link.symlink_to(entry)
+    print(f"linked {link} → {entry}")
+    path_dirs = (os.environ.get("PATH", "")).split(os.pathsep)
+    if str(bin_dir) not in path_dirs:
+        print(f"\033[33m⚠ {bin_dir} is not on $PATH — add it, e.g. "
+              f"export PATH=\"{bin_dir}:$PATH\"\033[0m")
+
+
 def cmd_record(args):
     import json as _json
     from .records import RecordError, validate_run_record
@@ -820,6 +866,11 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.add_argument("--no-review", action="store_true",
                    help="skip the human draft review (NOT recommended — the skim is a security boundary)")
     s.set_defaults(fn=cmd_init)
+
+    s = sub.add_parser("install", help="symlink the recurve entrypoint onto PATH (idempotent)")
+    s.add_argument("--bin-dir", default="~/.local/bin",
+                   help="directory to link recurve into (default: ~/.local/bin)")
+    s.set_defaults(fn=cmd_install)
 
     s = sub.add_parser("record", help="run records: append (schema-validated) / list")
     s.add_argument("action", choices=["append", "list"])

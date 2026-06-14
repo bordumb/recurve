@@ -20,7 +20,7 @@ recurve next        # the highest-value gap to work on right now
 | [About](about.md) | What this is, and the bet behind it |
 | [Architecture](architecture.md) | The vocabulary, the loop, and the engine |
 | [Installation](install.md) | Getting `recurve` onto your PATH |
-| [How to Use](usage.md) | Initialize → design → kick off the loop (and how to stop it) |
+| [How to Use](usage.md) | Initialize → design → kick off the loop — single- or multi-tree (and how to stop it) |
 
 !!! tip "The one command to trust"
     `recurve matrix --gate` exits non-zero on any regression, broken probe,

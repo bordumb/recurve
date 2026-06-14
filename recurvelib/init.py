@@ -208,6 +208,9 @@ def run_init(target: Path, name: str, suite: str, tree: str, label: str,
 
     subs = {
         "PROJECT": name, "SUITE": suite, "LABEL": label, "PROG": prog,
+        # Absolute project root, so the stamped workflow's agent prompts resolve
+        # .recurve/* paths regardless of the orchestrator's launching cwd.
+        "ROOT": str(target),
         "TREE": tree, "COMMIT_POLICY": policy,
         "COMMIT_NOTE": policy_note if policy != "signed" else "",
         "CAP": "12", "MAX_FAILS": "3", "RUNAWAY": "2", "PARALLEL": "2",
@@ -259,6 +262,21 @@ method = "none"
 dir = ".recurve/claims/{{SUITE}}"
 rebuild = ""                # the command that copies fresh artifacts into this suite
 harness = []                # behavioral end-to-end checks beyond the probes
+
+# A scaffold that hardens a PLATFORM in another repo? Declare that repo as a
+# sculpt tree. `[target]` above is what the loop BUILDS; each `[sculpts.<name>]`
+# is what it FEEDS — a secondary tree the cycle may sculpt when a claim's honest
+# fix lives there, with its OWN leak vocabulary, commit branch, rebuild, and
+# gate. `recurve matrix --gate` then federates: green only when the target's
+# probes AND every sculpt's own gate pass. Uncomment and edit to opt in; a fresh
+# init stays single-tree.
+# [sculpts.platform]
+# tree = "../platform"                         # resolved against this config's root
+# kind = "rust"                                # advisory taxonomy (frontend|platform|...)
+# branch = "dev-platform"                      # the branch a sculpt commit lands on
+# forbidden_strings = ["GAP-", "recurve"]      # THIS tree's leak vocabulary (FR-C4)
+# rebuild = "cargo build --release"            # how fresh artifacts reach its checks
+# gate = "cargo test && ./check.sh"            # its OWN gate, AND-ed into matrix --gate
 
 [burndown]
 cap = {{CAP}}

@@ -149,3 +149,31 @@ the prose: the deterministic report still prints (or appends) and the exit
 is 1 — narration may editorialize over the numbers, never replace them.
 Negative space (guarded by the trap): an engine that prints only what the
 narrator returns loses the entire report to a quiet narrator.
+
+## TK-15 — the stamped burndown workflow is sandbox-clean and root-absolute
+
+The `burndown.js` that `init` stamps into a target carries no
+sandbox-forbidden runtime call — no `Date.now()`, `Math.random()`, or
+`new Date()` (the orchestrator sandbox rejects wall-clock and RNG because
+they break resume) — and resolves every path it hands an agent from an
+absolute `const ROOT = '/...'`, stamped in at init time: the cycle prompt
+reads `${ROOT}/.recurve/RUN.md` and writes
+`${ROOT}/.recurve/state/reports/...`, never a cwd-relative `.recurve/RUN.md`
+that breaks when the orchestrator launches from another directory. The probe
+asserts against a FRESHLY STAMPED file, so a template that mis-interpolates
+at stamp time is caught too. Negative space (guarded by the trap): a
+regressed workflow that reintroduces a wall-clock `Date.now()` RUN_ID or a
+bare-relative `.recurve/RUN.md` read turns the probe RED.
+
+## TK-16 — matrix --gate federates each sculpt's own gate command
+
+A config may declare secondary trees as `[sculpts.<name>]` tables (FR-C); the
+PRIMARY tree is `[target]`. `recurve matrix --gate` FEDERATES across them: it
+is green only when the target's probes AND every declared sculpt's own `gate`
+command (run in that sculpt's tree dir) pass. A sculpt whose gate exits
+non-zero turns the federated gate RED even when the target probe is GREEN; one
+line per sculpt is printed (`sculpt <name>: gate OK/FAILED (exit N)`). A
+single-tree config — no `[sculpts.*]` — has no sculpt iterations, so it gates
+exactly as it did before. Negative space (guarded by the trap): an engine that
+reports the federated gate GREEN while a sculpt's gate fails has not federated
+at all, and the probe turns RED.

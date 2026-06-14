@@ -68,6 +68,10 @@ pip install --editable .
 
 </details>
 
+Working from a clone without a package install? Install: `python3 recurve
+install` puts `recurve` on PATH (symlinks the entrypoint into `~/.local/bin`
+by default; `--bin-dir DIR` to choose another, idempotent).
+
 Verify the install by running recurve against its own promises — the
 toolkit is built with itself, and its claims are probed like anyone else's:
 

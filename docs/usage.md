@@ -146,6 +146,44 @@ The human queue, in order: adjudications first (one sentence unblocks the
 most agent-work), then review-gated promotions (see `.recurve/REVIEW.md`),
 then parked triage.
 
+## Multi-tree: build one tree, sculpt another
+
+Some loops live in two repos: a **scaffold** you build — a frontend, a demo, a
+conformance suite — that *exercises* a **platform** in another repo, where the
+honest fix for a gap the scaffold reveals is to harden the platform. recurve
+models this directly. A config declares one primary `[target]` (the tree the
+loop builds) plus zero or more `[sculpts.<name>]` (secondary trees, in other
+repos, the loop may sculpt when a claim demands it):
+
+```toml
+[target]                                  # the PRIMARY tree the loop BUILDS
+tree = "web"
+forbidden_strings = ["GAP-", "FE-", "recurve"]
+rebuild = "npm ci && npm run build"
+
+[sculpts.platform]                        # a SECONDARY tree in another repo
+tree = "../auths"
+branch = "dev-platform"                   # its commits land here
+forbidden_strings = ["GAP-", "recurve"]   # its OWN leak vocabulary
+rebuild = "cargo build --release"
+gate = "cargo test && ../demos/rictl matrix --gate"   # its OWN gate, federated
+```
+
+**`[target]` is what you build; `[sculpts.*]` is what you feed.** When a claim's
+honest fix is in a sculpt tree, the cycle sculpts there and commits to that repo
+on its own branch — one commit per repo touched, never a cross-tree change in
+one commit. Each tree carries its own `forbidden_strings`, so loop vocabulary is
+kept out of every product the loop touches.
+
+The gate **federates**: `recurve matrix --gate` is green only when the target's
+probes pass **and** every declared sculpt's own `gate` command exits zero. A
+sculpt that breaks the platform's gate turns the federated gate red even if the
+scaffold's own probes are green — so a scaffold can never "pass" by hardening
+itself while regressing the platform it feeds.
+
+With no `[sculpts.*]`, a config is exactly single-tree; federation is opt-in and
+costs nothing until you declare a sculpt.
+
 ## Cancel and resume
 
 **Cancel: `Ctrl-C` in the loop's terminal, any time.**

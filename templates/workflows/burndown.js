@@ -34,8 +34,16 @@ const RUNAWAY = (args && args.runawayNetPositive) || {{RUNAWAY}}
 const ARM_WAVES = (args && args.armWaves != null) ? args.armWaves : 4
 const WAVE = (args && args.wave) || 8
 const PARKED_SEED = (args && args.parked) || []
-const PROG = '{{PROG}}'
-const RUN_ID = (args && args.runId) || 'burndown-' + Date.now()
+// Absolute project root, stamped in at init time: every path the agents are
+// told to read resolves regardless of the launching cwd (the orchestrator does
+// not guarantee a cwd at the project root).
+const ROOT = '{{ROOT}}'
+// The control binary. An explicit recurveBin arg wins (the RECURVE_BIN escape
+// hatch); otherwise the init-resolved name. Never silently assume bare PATH.
+const PROG = (args && args.recurveBin) || '{{PROG}}'
+// Deterministic run id — the orchestrator sandbox rejects wall-clock and RNG
+// calls (they break resume), so never stamp time here. Pass args.runId to vary.
+const RUN_ID = (args && args.runId) || '{{PROJECT}}-burndown'
 
 const ARM_SCHEMA = {
   type: 'object',
@@ -93,10 +101,10 @@ const cycles = []
 for (let i = 1; i <= CAP; i++) {
   const result = await agent(
     `You are running EXACTLY ONE improvement cycle for {{PROJECT}} (cycle ${i}/${CAP}).\n` +
-    `Read .recurve/RUN.md and obey it exactly. Triage with \`${PROG} next\`; if it reports no ` +
+    `Read \`${ROOT}/.recurve/RUN.md\` and obey it exactly. Triage with \`${PROG} next\`; if it reports no ` +
     `green-gate-sufficient open gaps, return status "no-work-left".\n${HARD_RULES}\n` +
     `When the cycle's work is done, post its report — observability, never control flow: ` +
-    `\`${PROG} report --out .recurve/state/reports/${RUN_ID}.md || true\` (a report failure ` +
+    `\`${PROG} report --out ${ROOT}/.recurve/state/reports/${RUN_ID}.md || true\` (a report failure ` +
     `must never change your status).\n` +
     `Finish by returning the structured run record — never prose.`,
     { label: `cycle-${i}`, schema: RESULT_SCHEMA }
@@ -115,7 +123,7 @@ for (let i = 1; i <= CAP; i++) {
       `If adjudications_pending > 0 OR no drafts pend, change NOTHING and report what you saw.\n` +
       `Otherwise, per suite with pending drafts: pick up to ${WAVE} drafts from gaps.draft.yaml, highest ` +
       `severity first, skipping security-tradeoff drafts (those wait for a human). For each: author ` +
-      `probes/<id>.sh per the frozen probe contract in .recurve/RUN.md, author a known-bad trap fixture ` +
+      `probes/<id>.sh per the frozen probe contract in \`${ROOT}/.recurve/RUN.md\`, author a known-bad trap fixture ` +
       `under probes/<id>.trap/<name>/, replace the smallest_fix TODO, set "probe:" and delete ` +
       `"needs_authoring". Touch ONLY gaps.draft.yaml, probes/, and GAPS.md prose. Then run ` +
       `\`${PROG} baseline <suite>\` per touched suite, then \`${PROG} next --json\` again.\n` +

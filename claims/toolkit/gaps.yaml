@@ -230,3 +230,46 @@
     a clean exit 2; a failing/timed-out narrator costs the prose only (exit 1)'
   probe: probes/tk-14.sh
   unlocks: LLM judgment over the run, priced by the narrator, with the numbers always free
+
+- id: TK-15
+  title: the stamped burndown workflow carries no sandbox-forbidden runtime call
+    and resolves its paths from an absolute root
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-15
+  evidence:
+  - templates/workflows/burndown.js:1
+  - recurvelib/init.py:1
+  observed: 'GREEN at baseline 2026-06-14: a freshly stamped burndown.js carries no Date.now/Math.random/new
+    Date call and reads ${ROOT}/.recurve/RUN.md from an absolute const ROOT'
+  smallest_fix: burndown.js uses a deterministic RUN_ID (no Date.now), stamps an absolute
+    `const ROOT = '{{ROOT}}'`, and its agent prompts read ${ROOT}/.recurve/RUN.md + write
+    ${ROOT}/.recurve/state/reports/...; init.py adds ROOT=str(target) to the template subs
+  probe: probes/tk-15.sh
+  unlocks: an unattended burndown that resumes deterministically and resolves its paths
+    regardless of the orchestrator's launching cwd
+
+- id: TK-16
+  title: matrix --gate federates each sculpt's own gate command; a single-tree config
+    is unchanged
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-16
+  evidence:
+  - recurvelib/cli.py:188
+  - recurvelib/config.py:67
+  observed: 'GREEN at baseline 2026-06-14: a config with [sculpts.x] gate = "false" makes
+    matrix --gate exit non-zero, gate = "true" passes, and a no-[sculpts.*] config gates
+    as before'
+  smallest_fix: cmd_matrix's --gate path iterates cfg.sculpts, runs each non-empty gate
+    via subprocess (cwd = sculpt tree dir), prints one line per sculpt, and ANDs each
+    exit==0 into gate_ok; config.py parses [sculpts.<name>] into SculptConfig
+  probe: probes/tk-16.sh
+  unlocks: the first-class scaffold-sculpts-platform feedback loop — one loop gates a
+    target's probes AND every secondary tree's own gate

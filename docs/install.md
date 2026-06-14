@@ -30,7 +30,20 @@ python3 ~/tools/recurve/recurve --help
 
 ## Put it on your PATH
 
-=== "Shim script (recommended)"
+=== "`recurve install` (recommended)"
+
+    The built-in installer symlinks the entrypoint onto your PATH — idempotent,
+    and it warns if the target dir isn't on `PATH`:
+
+    ```bash
+    python3 ~/tools/recurve/recurve install        # → ~/.local/bin/recurve
+    # or pick the dir: ... install --bin-dir ~/bin
+    ```
+
+    The unattended loop and agents spawn `recurve` as a *command*, so a real
+    PATH entry (this, or the shim below) beats an alias.
+
+=== "Shim script"
 
     A two-line wrapper works from anywhere and survives shell changes:
 
