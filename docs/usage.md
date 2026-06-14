@@ -148,6 +148,12 @@ then parked triage.
 
 ## Multi-tree: build one tree, sculpt another
 
+To give an analogy: You have a car with a working engine, but you need to rebuild 
+the transmission. You would rebuilt the transmission, then check that it integrates
+and works properly with the engine. If you find an issue in the transmission, you
+use the working model from the engine as a feedback loop to inform your work on 
+the transmission. Multi-tree workflows work the same.
+
 Some loops live in two repos: a **scaffold** you build — a frontend, a demo, a
 conformance suite — that *exercises* a **platform** in another repo, where the
 honest fix for a gap the scaffold reveals is to harden the platform. recurve
