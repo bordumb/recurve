@@ -95,3 +95,85 @@
     '
   probe: probes/st-6.sh
   unlocks: a stalled best item is escalated to a REVERT decision, not churned by a self-pivot
+
+- id: ST-7
+  title: a cycle that is not truly green never stops with success
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/st-7.sh:1
+  observed: 'GREEN at baseline 2026-06-30: broken/regressed/divergent cycles all refuse STOP-SUCCESS
+    (no false ''done'')'
+  smallest_fix: 'decide() requires broken==0, regressed==0, and not divergent (as well as
+    open==uncovered==0) for STOP-SUCCESS.
+
+    '
+  probe: probes/st-7.sh
+  unlocks: the loop cannot declare done on unmeasured, regressing, or diverged work (found
+    by adversarial review)
+
+- id: ST-8
+  title: oscillating remaining-work reverts
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-8.sh:1
+  observed: 'GREEN at baseline 2026-06-30: oscillation [5,1,5] -> STOP-REVERT (no net progress
+    is non-progress)'
+  smallest_fix: 'the flat-progress revert compares the window''s last remaining value to its
+    first (rem[-1] >= rem[0]), catching dip-and-return oscillation.
+
+    '
+  probe: probes/st-8.sh
+  unlocks: a net-zero oscillation cannot loop forever (found by adversarial review)
+
+- id: ST-9
+  title: an empty frontier is a clean no-op, not a crash
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-9.sh:1
+  observed: 'GREEN at baseline 2026-06-30: empty frontier -> (CONTINUE, None): a clean no-op
+    at frontier exhaustion'
+  smallest_fix: 'pick_next guards the empty frontier and returns (CONTINUE, None).
+
+    '
+  probe: probes/st-9.sh
+  unlocks: frontier exhaustion yields a clean signal instead of crashing the loop (found by
+    adversarial review)
+
+- id: ST-10
+  title: a non-stalled item is not pivoted away
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-10.sh:1
+  observed: 'GREEN at baseline 2026-06-30: non-stalled ''low'' kept despite higher-value ''high''
+    (pivot is for stuck items, not a re-sort)'
+  smallest_fix: 'pick_next only pivots when stalled is true; a non-stalled item stays even
+    if outranked.
+
+    '
+  probe: probes/st-10.sh
+  unlocks: healthy in-flight work is not thrashed by a per-cycle re-sort (found by adversarial
+    review)
+
+- id: ST-11
+  title: a stale current item is reconciled, not echoed
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-11.sh:1
+  observed: 'GREEN at baseline 2026-06-30: stale ''ghost'' reconciled to the real frontier
+    -> (PIVOT, ''high'')'
+  smallest_fix: 'pick_next returns (PIVOT, best) when current_id is not present in the frontier.
+
+    '
+  probe: probes/st-11.sh
+  unlocks: the loop never keeps working an item that is no longer on the frontier (found by
+    adversarial review)
