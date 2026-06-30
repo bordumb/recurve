@@ -101,3 +101,34 @@ un-probe-able set is decreasing must turn the probe RED.
 `admitted` is true only for an ADMIT report; a REFUSE-AND-INTERVIEW or REFUSE-NOT-GATEABLE goal never reaches
 synthesis (G4) — letting one through would bypass the entire gate. Negative space: an `admitted` that returns
 true for a non-ADMIT verdict must turn the probe RED.
+
+> AD-15..18 were found by an adversarial review of AD-11..14 (`docs/plans/separation-of-refereeing.md`). The
+> four interview fixtures only pin flat `[2,2,2]`, monotone `[3,2,1]`, and a 2-round admit — leaving
+> oscillation, long histories, the ADMIT/ESCALATE tie, and a non-enum `admitted` input unexercised. The real
+> `interview_step`/`admitted` already handled each correctly (endpoint window, ADMIT-first, identity check);
+> these pin them so no variant can pass.
+
+## AD-15 — an oscillating stuck history escalates
+
+When the un-probe-able set returns to its window-start size after dipping (`remaining` over the last
+`max_rounds` ends ≥ where it began), the interview escalates — dip-and-return is not progress. Negative
+space: an interview that escalates only on a strictly non-decreasing window, and so loops forever on
+`[2,1,2,1,…]`, must turn the probe RED.
+
+## AD-16 — the no-progress window is the most recent rounds
+
+For a history longer than `max_rounds`, the escalation test compares the *last* `max_rounds` endpoints; an
+early stuck stretch that has since converged does not escalate. Negative space: a window taken from the front
+of the history that escalates `[3,3,3,2,1]` while it is actively converging must turn the probe RED.
+
+## AD-17 — ADMIT wins over ESCALATE at the round limit
+
+If the latest round is fully probe-able, the verdict is ADMIT regardless of whether the window shows no net
+progress. Negative space: a precedence that checks ESCALATE before ADMIT and so escalates `[0,2,0]` (a goal
+that just re-gated) must turn the probe RED.
+
+## AD-18 — `admitted` fails closed on an unknown verdict
+
+`admitted` is true only when the verdict *is* ADMIT (by identity); a `None` or unrecognized verdict does not
+proceed. Negative space: an `admitted` defined as "not a REFUSE verdict" — failing open on any unknown
+verdict — must turn the probe RED.

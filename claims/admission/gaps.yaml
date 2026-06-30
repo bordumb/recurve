@@ -223,3 +223,69 @@
     '
   probe: probes/ad-14.sh
   unlocks: a REFUSE goal can never bypass the gate into synthesis
+
+- id: AD-15
+  title: an oscillating stuck history escalates
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-15.sh:1
+  observed: 'GREEN at baseline 2026-07-01: oscillating [2,1,2] -> ESCALATE (dip-and-return
+    is not progress; never loops forever)'
+  smallest_fix: 'interview_step escalates on window[-1] >= window[0] (endpoints), catching
+    dip-and-return oscillation.
+
+    '
+  probe: probes/ad-15.sh
+  unlocks: an interview cannot loop forever on a [2,1,2,1,...] history (found by adversarial
+    review)
+
+- id: AD-16
+  title: the no-progress window is the most recent rounds
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-16.sh:1
+  observed: 'GREEN at baseline 2026-07-01: [3,3,3,2,1] -> CONTINUE (the recent window is converging;
+    an old stuck stretch does not escalate)'
+  smallest_fix: 'the escalation window is remaining[-max_rounds:], not remaining[:max_rounds].
+
+    '
+  probe: probes/ad-16.sh
+  unlocks: an old stuck stretch that has since converged is not escalated (found by adversarial
+    review)
+
+- id: AD-17
+  title: ADMIT wins over ESCALATE at the round limit
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-17.sh:1
+  observed: 'GREEN at baseline 2026-07-01: [0,2,0] -> ADMIT (a contract that just re-gated
+    is admitted, not escalated)'
+  smallest_fix: 'interview_step checks remaining[-1] == 0 (ADMIT) before the escalate branch.
+
+    '
+  probe: probes/ad-17.sh
+  unlocks: a goal that just re-gated on the final round is admitted, not thrown out (found
+    by adversarial review)
+
+- id: AD-18
+  title: admitted fails closed on an unknown verdict
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-18.sh:1
+  observed: 'GREEN at baseline 2026-07-01: an unknown/None verdict -> admitted False (the
+    gate fails closed, never open)'
+  smallest_fix: 'admitted returns report.verdict is Verdict.ADMIT (whitelist), so None/unknown
+    fails closed.
+
+    '
+  probe: probes/ad-18.sh
+  unlocks: a malformed or future verdict can never bypass the gate into synthesis (found by
+    adversarial review)
