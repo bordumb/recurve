@@ -77,3 +77,27 @@ the minimum must turn the probe RED.
 A gap's text matches which of falsifiable/has_counterexample/bounded actually failed — a missing oracle is
 labeled "no oracle," not "unbounded." Negative space: a worklist with the right gap *count* but wrong gap
 *content* (mislabeled or constant) must turn the probe RED.
+
+## AD-11 — the interview admits a fully probe-able round
+
+`interview_step` returns ADMIT once the latest round of assertions is fully probe-able — the goal has become
+a contract (G3). Negative space: an interview that returns CONTINUE on a fully probe-able round (never
+recognizing done) must turn the probe RED.
+
+## AD-12 — the interview escalates instead of looping forever
+
+When `max_rounds` pass with no reduction in the un-probe-able set, `interview_step` returns ESCALATE — the
+human cannot name the checks, so the goal is not gateable; it does not interview forever. Negative space: an
+interview that returns CONTINUE after a bounded number of no-progress rounds must turn the probe RED.
+
+## AD-13 — the interview is not abandoned while converging
+
+While the un-probe-able set is still shrinking round over round, `interview_step` returns CONTINUE — a goal
+about to become gateable is not given up on. Negative space: an interview that returns ESCALATE while the
+un-probe-able set is decreasing must turn the probe RED.
+
+## AD-14 — only an admitted goal proceeds to synthesis
+
+`admitted` is true only for an ADMIT report; a REFUSE-AND-INTERVIEW or REFUSE-NOT-GATEABLE goal never reaches
+synthesis (G4) — letting one through would bypass the entire gate. Negative space: an `admitted` that returns
+true for a non-ADMIT verdict must turn the probe RED.

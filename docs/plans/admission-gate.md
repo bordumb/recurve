@@ -109,15 +109,23 @@ reduction, not elimination.
 
 ## 7. Build order
 
-- **G1 — the rubric as a read-only report.** Given a goal, emit the per-assertion probe-ability diagnostic.
-  No interview, no refusal — just the honest map of what is and isn't gateable. Shippable alone; it already
-  ends silent garbage-in.
-- **G2 — the three verdicts.** ADMIT / REFUSE-AND-INTERVIEW / REFUSE-NOT-GATEABLE, with the
-  too-few-invariants detector for the last.
-- **G3 — the interview loop.** The "what would wrong look like?" turn, with its convergence/escalation
-  stopping rule; interviewer is a separate agent.
-- **G4 — wire to synthesis.** ADMIT hands the now-gateable goal to the synthesis proposer; the loop is whole:
-  admission → synthesis → human curation → burndown (agent-runtime).
+The deterministic spine of every step below is **built and gated** in `recurvelib/admission.py` (suite
+`claims/admission`, AD-1..14). What stays pluggable is the natural-language *judgment* at each step — the
+rater that reads an assertion and sets its criterion booleans (G1), and the interviewer that interprets the
+human's answer into updated assertions (G3). Those are the agent part, the same boundary as the synthesis
+proposer; everything that decides *from* their output is fixed and falsifiable.
+
+- **G1 — the rubric as a read-only report.** *(built — `gateability`, `worklist`, `Assertion.probeable`,
+  AD-1..3.)* The per-assertion probe-ability diagnostic; the honest map of what is and isn't gateable.
+- **G2 — the three verdicts.** *(built — `admit`, AD-4..10.)* ADMIT / REFUSE-AND-INTERVIEW /
+  REFUSE-NOT-GATEABLE, with the too-few-invariants floor and the empty/boundary corners pinned.
+- **G3 — the interview loop.** *(spine built — `interview_step`, AD-11..13.)* The convergence/escalation
+  stopping rule (admit when fully probe-able, escalate on bounded no-progress, continue while shrinking) — the
+  same shape as the burndown controller, so the interview cannot run forever. The "what would wrong look
+  like?" turn that updates the assertions is the pluggable interviewer.
+- **G4 — wire to synthesis.** *(guard built — `admitted`, AD-14.)* Only an ADMIT goal proceeds; a REFUSE
+  verdict can never bypass the gate. The loop is whole: admission → synthesis → human curation → burndown
+  (agent-runtime).
 
 ## 8. Honest limits
 

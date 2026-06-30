@@ -130,3 +130,59 @@ def admit(assertions, min_invariants: int = 2) -> AdmissionReport:
         worklist=wl,
         min_invariants=min_invariants,
     )
+
+
+class InterviewVerdict(Enum):
+    """The next move in the admission interview."""
+
+    CONTINUE = "CONTINUE"
+    ADMIT = "ADMIT"
+    ESCALATE = "ESCALATE"
+
+
+def interview_step(history, max_rounds: int = 3) -> InterviewVerdict:
+    """Decide the next move in the interview (G3), from the per-round assertion states (most recent last).
+
+    The interview turns vague assertions into probe-able ones by asking, for each, "what would *wrong* look
+    like?" Each entry in ``history`` is the goal's assertions as they stood after that round (a rater applies
+    the human's answers — that judgment is the pluggable agent part). This is the interview's stopping rule
+    (``admission-gate.md §4``) — the same shape as the burndown controller, so the interview cannot run
+    forever:
+
+      * ``ADMIT``    — the latest round is fully probe-able; the goal is now a contract.
+      * ``ESCALATE`` — ``max_rounds`` reached with no net reduction in the un-probe-able set: the human cannot
+        name the checks, so the goal is genuinely not gateable — escalate, do not interview forever.
+      * ``CONTINUE`` — otherwise; the un-probe-able set is shrinking, keep going.
+
+    Args:
+        history: Rounds in order, most recent last; each round is an iterable of Assertion.
+        max_rounds: Window after which a non-shrinking un-probe-able set escalates.
+
+    Usage:
+        v = interview_step(rounds)  # -> InterviewVerdict.ADMIT / ESCALATE / CONTINUE
+    """
+    history = [list(round_) for round_ in history]
+    if not history:
+        return InterviewVerdict.CONTINUE
+    remaining = [sum(1 for a in round_ if not a.probeable) for round_ in history]
+    if remaining[-1] == 0:
+        return InterviewVerdict.ADMIT
+    if len(history) >= max_rounds:
+        window = remaining[-max_rounds:]
+        if window[-1] >= window[0]:
+            return InterviewVerdict.ESCALATE
+    return InterviewVerdict.CONTINUE
+
+
+def admitted(report: AdmissionReport) -> bool:
+    """The synthesis precondition (G4): a goal proceeds to synthesis only if it was ADMITted.
+
+    A REFUSE verdict — vague (``REFUSE_AND_INTERVIEW``) or too thin (``REFUSE_NOT_GATEABLE``) — must never
+    reach synthesis; letting one through would bypass the entire admission gate and burn down a non-contract.
+
+    Usage:
+        if admitted(admit(assertions)):
+            synthesize(...)  # only an admitted goal becomes claims
+    """
+    return report.verdict is Verdict.ADMIT
+

@@ -161,3 +161,65 @@
   probe: probes/ad-10.sh
   unlocks: the interview is directed at the actual failed criterion, not a mislabeled one
     (found by adversarial review)
+
+- id: AD-11
+  title: the interview admits a fully probe-able round
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-11.sh:1
+  observed: 'GREEN at baseline 2026-07-01: latest round fully probe-able -> ADMIT (the goal
+    is now a contract)'
+  smallest_fix: 'interview_step returns ADMIT when the latest round has zero un-probe-able
+    assertions.
+
+    '
+  probe: probes/ad-11.sh
+  unlocks: the interview recognizes a finished contract instead of running past it
+
+- id: AD-12
+  title: the interview escalates instead of looping forever
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-12.sh:1
+  observed: 'GREEN at baseline 2026-07-01: three rounds, no reduction -> ESCALATE (not gateable;
+    do not interview forever)'
+  smallest_fix: 'interview_step returns ESCALATE when the un-probe-able count does not shrink
+    over max_rounds.
+
+    '
+  probe: probes/ad-12.sh
+  unlocks: a goal the human cannot make gateable terminates, instead of an endless interview
+
+- id: AD-13
+  title: the interview is not abandoned while converging
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-13.sh:1
+  observed: 'GREEN at baseline 2026-07-01: un-probe-able set shrinking 3->2->1 -> CONTINUE
+    (a converging interview is not abandoned)'
+  smallest_fix: 'interview_step returns CONTINUE while the un-probe-able set is still shrinking.
+
+    '
+  probe: probes/ad-13.sh
+  unlocks: a goal about to become gateable is not given up on prematurely
+
+- id: AD-14
+  title: only an admitted goal proceeds to synthesis
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-14.sh:1
+  observed: 'GREEN at baseline 2026-07-01: only ADMIT proceeds: (admit=True, interview=False,
+    not-gateable=False)'
+  smallest_fix: 'admitted returns True only when report.verdict is ADMIT.
+
+    '
+  probe: probes/ad-14.sh
+  unlocks: a REFUSE goal can never bypass the gate into synthesis
