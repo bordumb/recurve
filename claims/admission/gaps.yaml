@@ -93,3 +93,71 @@
     '
   probe: probes/ad-6.sh
   unlocks: a goal with too few invariants is told to sharpen, not gated into a brittle proxy
+
+- id: AD-7
+  title: an empty goal is never gateable
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-7.sh:1
+  observed: 'GREEN at baseline 2026-07-01: empty goal -> REFUSE-NOT-GATEABLE, gateability
+    0.0 (no assertion is not every assertion)'
+  smallest_fix: 'admit checks spine < min_invariants before spine == total, so an empty goal
+    (0,0) is REFUSE_NOT_GATEABLE.
+
+    '
+  probe: probes/ad-7.sh
+  unlocks: a contract with zero assertions cannot be admitted as perfect (found by adversarial
+    review)
+
+- id: AD-8
+  title: an all-probe-able goal below the minimum is still refused
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-8.sh:1
+  observed: 'GREEN at baseline 2026-07-01: one perfect assertion (spine 1 < min 2) -> REFUSE-NOT-GATEABLE
+    (too thin to be a contract)'
+  smallest_fix: 'the thinness gate (spine < min_invariants) is checked first, so a single
+    perfect assertion is refused.
+
+    '
+  probe: probes/ad-8.sh
+  unlocks: a one-invariant goal cannot be admitted just because it is internally consistent
+    (found by adversarial review)
+
+- id: AD-9
+  title: the minimum is an inclusive floor
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-9.sh:1
+  observed: 'GREEN at baseline 2026-07-01: spine == min (2): all-probe-able -> ADMIT, vague-remainder
+    -> REFUSE-AND-INTERVIEW (inclusive floor)'
+  smallest_fix: 'use spine < min_invariants (strict), so a spine of exactly min_invariants
+    is gateable.
+
+    '
+  probe: probes/ad-9.sh
+  unlocks: a valid minimum-size goal is not wrongly refused by an off-by-one (found by adversarial
+    review)
+
+- id: AD-10
+  title: each worklist gap names the specific failed criterion
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-10.sh:1
+  observed: 'GREEN at baseline 2026-07-01: each gap names the actual failed criterion (oracle
+    / bound), not a constant placeholder'
+  smallest_fix: 'Assertion.gaps emits the criterion-specific string for each failed criterion;
+    worklist passes it through.
+
+    '
+  probe: probes/ad-10.sh
+  unlocks: the interview is directed at the actual failed criterion, not a mislabeled one
+    (found by adversarial review)

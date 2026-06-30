@@ -47,3 +47,33 @@ probe RED.
 When fewer assertions are probe-able than `min_invariants`, the verdict is REFUSE-NOT-GATEABLE — too little
 to gate honestly, recommend not gating. Negative space: a verdict that ADMITs or merely interviews a goal
 whose probe-able spine is below the minimum must turn the probe RED.
+
+> AD-7..10 were found by an adversarial review of AD-1..6 (`docs/plans/separation-of-refereeing.md`). The
+> six fixtures only ever pin spine ∈ {1, 3} at the default `min_invariants`, so the empty goal, the
+> single-perfect-assertion case, the `spine == min_invariants` boundary, and the worklist's gap *content*
+> were all unexercised. The real spine already handled each; these claims pin them so no reordered/off-by-one
+> variant can pass.
+
+## AD-7 — an empty goal is never gateable
+
+`admit([])` is REFUSE-NOT-GATEABLE with gateability `0.0`: zero assertions is no contract, not a perfect one.
+Negative space: a verdict that treats "no assertion failed" as "every assertion passed" and ADMITs an empty
+goal must turn the probe RED.
+
+## AD-8 — an all-probe-able goal below the minimum is still refused
+
+A single perfectly probe-able assertion (spine 1 < `min_invariants`) is REFUSE-NOT-GATEABLE — "perfectly
+probe-able" does not buy back "too few invariants." Negative space: a verdict that ADMITs a fully-probe-able
+goal whose spine is below the minimum must turn the probe RED.
+
+## AD-9 — the minimum is an inclusive floor
+
+A spine of exactly `min_invariants` is gateable: ADMIT if all probe-able, REFUSE-AND-INTERVIEW if a vague
+remainder — never REFUSE-NOT-GATEABLE. Negative space: an off-by-one that refuses a goal whose spine *equals*
+the minimum must turn the probe RED.
+
+## AD-10 — each worklist gap names the specific failed criterion
+
+A gap's text matches which of falsifiable/has_counterexample/bounded actually failed — a missing oracle is
+labeled "no oracle," not "unbounded." Negative space: a worklist with the right gap *count* but wrong gap
+*content* (mislabeled or constant) must turn the probe RED.
