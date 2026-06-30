@@ -1,0 +1,50 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: ST-1
+  title: a fully-green cycle stops with success
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/st-1.sh:1
+  observed: 'GREEN at baseline 2026-06-30: a fully-green cycle -> STOP-SUCCESS'
+  smallest_fix: 'decide() returns STOP-SUCCESS when the latest cycle has open==regressed==broken==uncovered==0
+    and is not divergent.
+
+    '
+  probe: probes/st-1.sh
+  unlocks: the agent stops at done instead of running past it (the core 'cannot stop' failure,
+    closed)
+
+- id: ST-2
+  title: flat progress reverts, never thrashes forever
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/st-2.sh:1
+  observed: 'GREEN at baseline 2026-06-30: three flat cycles -> STOP-REVERT (bounded non-progress,
+    no infinite loop)'
+  smallest_fix: 'decide() returns STOP-REVERT when open+uncovered does not shrink over k cycles.
+
+    '
+  probe: probes/st-2.sh
+  unlocks: bounded non-progress — the loop reverts to the last good state instead of thrashing
+
+- id: ST-3
+  title: a converging approach is not abandoned
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-3.sh:1
+  observed: 'GREEN at baseline 2026-06-30: work shrinking 5->3->1 -> CONTINUE (a converging
+    approach is not abandoned)'
+  smallest_fix: 'decide() returns CONTINUE while open+uncovered is still shrinking cycle over
+    cycle.
+
+    '
+  probe: probes/st-3.sh
+  unlocks: a plateau about to break is not killed by an over-eager revert
