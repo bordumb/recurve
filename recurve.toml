@@ -26,3 +26,8 @@ method = "none"
 dir = "claims/toolkit"
 rebuild = ""               # the engine runs from source; nothing to copy
 harness = []
+
+[suites.completeness]
+dir = "claims/completeness"
+rebuild = ""               # pure engine module; nothing to copy
+harness = []

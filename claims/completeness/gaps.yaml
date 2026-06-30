@@ -1,0 +1,99 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: CL-1
+  title: the frontier is exactly the uncovered surface
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-1.sh:1
+  observed: 'GREEN at baseline 2026-06-30: frontier is exactly the uncovered point — covered
+    ''a'' and deferred ''b'' excluded'
+  smallest_fix: 'compute_frontier classifies a point onto the frontier iff its id is in neither
+    covered_ids nor deferred_ids.
+
+    '
+  probe: probes/cl-1.sh
+  unlocks: a green gate can no longer present a covered point as uncovered, nor leak covered
+    work onto the frontier
+
+- id: CL-2
+  title: the frontier is ranked highest-risk first
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-2.sh:1
+  observed: 'GREEN at baseline 2026-06-30: frontier ranked highest-weight first: [''high'',''mid'',''low'']'
+  smallest_fix: 'sort the frontier by descending weight, ties broken by id for determinism.
+
+    '
+  probe: probes/cl-2.sh
+  unlocks: the most valuable uncovered point is the one a burndown loop claims next
+
+- id: CL-3
+  title: coverage accounting is total
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-3.sh:1
+  observed: 'GREEN at baseline 2026-06-30: accounting is total: covered+deferred+uncovered
+    == total, uncovered == len(frontier)'
+  smallest_fix: 'classify every surface point exactly once so covered + deferred + uncovered
+    == total and uncovered == len(frontier).
+
+    '
+  probe: probes/cl-3.sh
+  unlocks: the gate can honestly report the precisely-bounded set it says nothing about
+
+- id: CL-4
+  title: equal-weight frontier points order deterministically by ascending id
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-4.sh:1
+  observed: 'GREEN at baseline 2026-06-30: equal-weight ties ordered by ascending id, deterministically'
+  smallest_fix: 'sort the frontier by (-weight, id) so equal weights resolve by ascending
+    id, deterministically.
+
+    '
+  probe: probes/cl-4.sh
+  unlocks: a burndown's next-frontier pick is the same run-to-run (found by adversarial review)
+
+- id: CL-5
+  title: duplicate ids are classified per-occurrence, never collapsed
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-5.sh:1
+  observed: 'GREEN at baseline 2026-06-30: duplicate ids each count: total=3, none erased
+    from the accounting'
+  smallest_fix: 'classify each surface point as it is iterated, not per unique id, so duplicates
+    each count toward total.
+
+    '
+  probe: probes/cl-5.sh
+  unlocks: a duplicate-id surface point can never be silently erased from coverage (found
+    by adversarial review)
+
+- id: CL-6
+  title: coverage claimed for an absent id never inflates the accounting
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-6.sh:1
+  observed: 'GREEN at baseline 2026-06-30: phantom covered ids ignored: covered=1, accounting
+    stays total (1)'
+  smallest_fix: 'count covered/deferred by surface membership, not by input-set size, so phantom
+    ids are ignored.
+
+    '
+  probe: probes/cl-6.sh
+  unlocks: phantom coverage can never inflate the accounting or hide a real gap (found by
+    adversarial review)
