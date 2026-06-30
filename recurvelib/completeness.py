@@ -22,7 +22,8 @@ from recurvelib.frontier import compute_frontier
 class CompletenessReport:
     """The frontier plus the completeness verdict for a surface against a ledger.
 
-    Invariant: ``complete`` is True exactly when ``uncovered == 0`` (the frontier is empty).
+    Invariant: ``complete`` is True exactly when the surface is non-empty and nothing is uncovered — an
+    empty surface (``total == 0``) is a measurement signal, never a finished cycle.
 
     Args:
         frontier: The ranked uncovered surface points — the silent holes, made visible.
@@ -53,7 +54,10 @@ def covered_ids(claims) -> set:
     """
     ids: set = set()
     for claim in claims:
-        ids.update(claim.get("covers") or [])
+        covers = claim.get("covers") or []
+        if isinstance(covers, str):
+            covers = [covers]  # a bare-string covers is ONE id, never iterated into character-ids
+        ids.update(covers)
     return ids
 
 
@@ -81,5 +85,5 @@ def completeness_report(surface, covered, deferred_ids=()) -> CompletenessReport
         deferred=fr.deferred,
         uncovered=fr.uncovered,
         total=fr.total,
-        complete=fr.uncovered == 0,
+        complete=fr.total > 0 and fr.uncovered == 0,
     )

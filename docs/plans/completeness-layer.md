@@ -223,6 +223,28 @@ release **ships with its coverage map + deferral list + counterexample results**
   goal has too few stable invariants to gate, rather than forcing a brittle contract onto creative work.
   Refusing to gate is sometimes the honest verdict.
 
+### 7.1 Implementation status and known limits (dev-complete branch)
+
+P1, P2, P3, P5 ship as gated engine modules (`recurvelib/{surface,measured,completeness,frontier,fidelity}.py`,
+suite `claims/completeness`, CL-1..23). P4 synthesis is deliberately not a module — the proposer is an LLM
+(agent-runtime). A second independent adversarial review hardened the modules and surfaced these **scoped
+limits**, recorded here rather than papered over:
+
+- **Multi-module qualname collision (measured coverage).** `measure_coverage` matches a traced `co_qualname`
+  (`Class.method`, no module prefix) against surface ids. Two modules that share a `Class.method` name can
+  cross-credit coverage. The single-module adapter's ids are *module-local*; a multi-module driver must
+  namespace surface ids and traced names by module before this is safe. Until then, measure one module's
+  surface while exercising that module.
+- **`measure_coverage(exercise)` with no `surface_ids` is raw mode** — it returns every traced name,
+  including helpers and the exercise wrapper. That is phantom coverage if fed to the gate directly; always
+  pass `surface_ids` (then CL-18 holds). The convenience default is not the gate-safe path.
+- **The measurement tracer does not compose.** It replaces (does not chain to) an active global tracer for
+  the exercise, so running under `coverage.py`/a debugger drops that tool's events for the traced region.
+  Run measurement in isolation, or chain to the previous tracer (follow-on).
+- **Absence of goal-counterexamples is not proof of fidelity.** `divergent([])` is `False` by definition; a
+  fidelity harness that yields an empty list on its own loader failure must not let that read as
+  intent-intact (a fail-open). The caller, not `divergent`, owns that distinction.
+
 ---
 
 ## 8. Suggested build order

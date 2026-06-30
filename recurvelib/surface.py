@@ -14,6 +14,26 @@ from typing import Protocol
 
 from recurvelib.frontier import SurfacePoint
 
+# Statement wrappers a def can hide inside at module or class scope: a method under `if TYPE_CHECKING:`,
+# a function under `try/except ImportError:`, a platform `if`, a `for`/`with`. They are still surface.
+_WRAPPERS = (ast.If, ast.For, ast.While, ast.Try, ast.With, ast.AsyncFor, ast.AsyncWith)
+
+
+def _defs_in(body):
+    """Yield the function/class defs in ``body``, descending THROUGH conditional wrappers but NOT into a
+    def's own body (a nested function is implementation, not surface)."""
+    for node in body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            yield node
+        elif isinstance(node, _WRAPPERS):
+            yield from _defs_in(list(ast.iter_child_nodes(node)))
+
+
+def _weight(node) -> int:
+    """A complexity proxy: the number of AST nodes in the def. Bigger/branchier units rank higher on the
+    frontier, so the most consequential uncovered point is claimed first (not just the alphabetical one)."""
+    return sum(1 for _ in ast.walk(node))
+
 
 class Adapter(Protocol):
     """A surface adapter: reads claimable points out of a target's source for one language/runtime.
@@ -38,22 +58,27 @@ class PythonAdapter:
     """
 
     def extract(self, source: str, location: str = "") -> list[SurfacePoint]:
-        tree = ast.parse(source)
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []  # an unparseable target has a defined, empty surface — it never crashes the pass
         points: list[SurfacePoint] = []
 
-        def add(name: str, lineno: int, prefix: str) -> None:
-            if name.startswith("_"):
+        def add(node, prefix: str) -> None:
+            if node.name.startswith("_"):
                 return
-            loc = f"{location}:{lineno}" if location else str(lineno)
-            points.append(SurfacePoint(id=f"{prefix}{name}", weight=0, kind="function", location=loc))
+            loc = f"{location}:{node.lineno}" if location else str(node.lineno)
+            points.append(
+                SurfacePoint(id=f"{prefix}{node.name}", weight=_weight(node), kind="function", location=loc)
+            )
 
-        for node in tree.body:
+        for node in _defs_in(tree.body):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                add(node.name, node.lineno, "")
+                add(node, "")
             elif isinstance(node, ast.ClassDef) and not node.name.startswith("_"):
-                for item in node.body:
+                for item in _defs_in(node.body):
                     if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        add(item.name, item.lineno, f"{node.name}.")
+                        add(item, f"{node.name}.")
 
         points.sort(key=lambda p: (p.id, p.location))
         return points

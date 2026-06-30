@@ -289,3 +289,84 @@
     '
   probe: probes/cl-18.sh
   unlocks: off-surface calls cannot inflate coverage or distort the frontier
+
+- id: CL-19
+  title: extraction descends into conditional bodies
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-19.sh:1
+  observed: 'GREEN at baseline 2026-06-30: a TYPE_CHECKING-guarded method is surfaced alongside
+    the plain one: C.guarded, C.real'
+  smallest_fix: 'walk through if/for/while/try/with wrappers (via _defs_in) when collecting
+    module- and class-level defs.
+
+    '
+  probe: probes/cl-19.sh
+  unlocks: a TYPE_CHECKING/try-fallback/platform-guarded method is no longer a silent coverage
+    hole (found by adversarial review)
+
+- id: CL-20
+  title: an unparseable target has a defined empty surface
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-20.sh:1
+  observed: 'GREEN at baseline 2026-06-30: unparseable target -> [] : a defined empty surface,
+    no crash'
+  smallest_fix: 'wrap ast.parse in try/except SyntaxError and return [].
+
+    '
+  probe: probes/cl-20.sh
+  unlocks: one bad file cannot abort the whole completeness pass (found by adversarial review)
+
+- id: CL-21
+  title: surface points carry a meaningful weight
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-21.sh:1
+  observed: 'GREEN at baseline 2026-06-30: weights are meaningful: big=22 > small=4 > 0 (ranking
+    is not vacuous)'
+  smallest_fix: 'weight each point by AST size (_weight) so the frontier ranks by complexity,
+    not alphabetically.
+
+    '
+  probe: probes/cl-21.sh
+  unlocks: the frontier claims the most consequential uncovered unit first (found by adversarial
+    review)
+
+- id: CL-22
+  title: a string covers is one id, never character-exploded
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-22.sh:1
+  observed: 'GREEN at baseline 2026-06-30: a string covers is one id: {verify_chain} (not
+    exploded into characters)'
+  smallest_fix: 'in covered_ids, wrap a str covers in a one-element list before set.update.
+
+    '
+  probe: probes/cl-22.sh
+  unlocks: a bare-string covers no longer silently loses coverage and pollutes the set (found
+    by adversarial review)
+
+- id: CL-23
+  title: an empty surface is not vacuously complete
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-23.sh:1
+  observed: 'GREEN at baseline 2026-06-30: empty surface -> complete=False (no surface is
+    a measurement signal, not a finished cycle)'
+  smallest_fix: 'completeness_report sets complete = (total > 0 and uncovered == 0).
+
+    '
+  probe: probes/cl-23.sh
+  unlocks: a measurement failure (no surface) cannot present as a finished green cycle (found
+    by adversarial review)

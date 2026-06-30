@@ -125,3 +125,42 @@ exercise running it must turn the probe RED.
 Calls outside the declared surface (helpers, stdlib) are not phantom coverage; the measured set is restricted
 to surface points. Negative space: a measurer that reports an off-surface call as covered must turn the probe
 RED.
+
+> CL-19..23 were found by a second adversarial review (`docs/plans/separation-of-refereeing.md`) of the
+> solo-authored surface/completeness modules. The probes' fixtures were all flat, valid, single-module — so
+> conditional defs, unparseable files, weighting, string `covers`, and empty surfaces were unexercised. Four
+> were real bugs (silent miscoverage or a crash), now fixed. Known limits it surfaced but that are scoped
+> follow-ons (multi-module qualname namespacing, tracer composition, fail-open on empty fidelity input) are
+> recorded in `docs/plans/completeness-layer.md` §"Honest limits", not hidden.
+
+## CL-19 — extraction descends into conditional bodies
+
+A public `def` nested in an `if`/`for`/`try`/`with` at module or class scope (a `TYPE_CHECKING` stub, a
+`try/except ImportError` fallback, a platform branch) is still a claimable unit and is surfaced — an extractor
+that walks only direct body children silently drops it, hiding a real hole the gate then cannot see. Negative
+space: a source whose only extra method is under `if TYPE_CHECKING:` for which extraction omits it must turn
+the probe RED.
+
+## CL-20 — an unparseable target has a defined empty surface
+
+A file that does not parse yields `[]`, not an uncaught `SyntaxError` that aborts the whole completeness pass.
+Negative space: an `extract` that lets `ast.parse` raise out of the function on invalid syntax must turn the
+probe RED.
+
+## CL-21 — surface points carry a meaningful weight
+
+The adapter weights each point by complexity (AST size), so the frontier ranks the most consequential
+uncovered unit first rather than collapsing to alphabetical order. Negative space: an adapter that assigns a
+constant weight so a complex unit does not outrank a trivial one must turn the probe RED.
+
+## CL-22 — a string `covers` is one id, never character-exploded
+
+`covered_ids` treats a bare-string `covers` (a common authoring slip) as a single id, not a sequence of
+characters — exploding it both loses the intended coverage and pollutes the set. Negative space: a
+`covered_ids` that turns `covers: "abc"` into `{'a','b','c'}` must turn the probe RED.
+
+## CL-23 — an empty surface is not vacuously complete
+
+A surface of size zero is a measurement signal (nothing extracted), not a finished cycle; `complete` requires
+a non-empty surface, so the controller cannot `STOP-SUCCESS` over a target nothing was measured on. Negative
+space: a report that calls `total == 0` complete must turn the probe RED.
