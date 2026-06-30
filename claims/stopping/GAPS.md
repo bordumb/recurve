@@ -27,3 +27,21 @@ cycles (thrashes forever) must turn the probe RED.
 While open work is still shrinking cycle over cycle, the controller returns `CONTINUE` — it does not give up
 on progress (abandoning a plateau about to break is the opposite failure). Negative space: a controller that
 returns `STOP-REVERT` while work is decreasing must turn the probe RED.
+
+## ST-4 — work starts on the highest-value frontier point
+
+With no item in progress, the controller picks the highest-value uncovered point (the frontier is ranked
+highest-first) — effort goes to what matters most. Negative space: a controller that starts on a lower-value
+point when a higher one is available must turn the probe RED.
+
+## ST-5 — a stalled item pivots to a better one
+
+When the current item has stalled and a higher-value item is available, the controller returns `PIVOT` to it
+— re-allocating effort rather than grinding a stuck item. Negative space: a controller that returns
+`CONTINUE` on a stalled item with a higher-value alternative must turn the probe RED.
+
+## ST-6 — the best item is not pivoted away pointlessly
+
+A stalled item that is already the best is not pivoted off (that is a `decide()` REVERT call, not a pivot);
+the controller returns `CONTINUE`. Negative space: a controller that returns `PIVOT` when already on the best
+item (a pivot to itself — churn dressed as re-allocation) must turn the probe RED.

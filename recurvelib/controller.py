@@ -77,3 +77,32 @@ def decide(history: list[Progress], k: int = 3) -> Verdict:
             return Verdict.STOP_REVERT
 
     return Verdict.CONTINUE
+
+
+def pick_next(frontier, current_id=None, stalled=False):
+    """Choose the next item to work — the PIVOT decision, a bandit over the ranked frontier.
+
+    The frontier is ranked highest-value first (``compute_frontier`` sorts by descending weight). With no
+    current item, start on the best. When the current item has *stalled* and a higher-value item exists,
+    ``PIVOT`` to it — re-allocate effort rather than grind a stuck item. A stalled item that is already the
+    best is not abandoned (that is a ``decide()`` REVERT call, not a pivot).
+
+    Args:
+        frontier: The ranked uncovered points (highest value first); each has ``.id``.
+        current_id: The id of the item currently being worked, or None to start.
+        stalled: Whether the current item has stopped making progress.
+
+    Returns:
+        ``(Verdict, item_id)`` — ``(CONTINUE, best)`` to start or stay; ``(PIVOT, best)`` to switch.
+
+    Usage:
+        verdict, item = pick_next(report.frontier, current_id="X", stalled=True)
+    """
+    if not frontier:
+        return (Verdict.CONTINUE, None)
+    best = frontier[0].id
+    if current_id is None:
+        return (Verdict.CONTINUE, best)
+    if stalled and best != current_id:
+        return (Verdict.PIVOT, best)
+    return (Verdict.CONTINUE, current_id)

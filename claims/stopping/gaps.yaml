@@ -48,3 +48,50 @@
     '
   probe: probes/st-3.sh
   unlocks: a plateau about to break is not killed by an over-eager revert
+
+- id: ST-4
+  title: work starts on the highest-value frontier point
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-4.sh:1
+  observed: 'GREEN at baseline 2026-06-30: starts on the highest-value frontier point: high'
+  smallest_fix: 'pick_next returns frontier[0].id (the ranked-highest point) when there is
+    no current item.
+
+    '
+  probe: probes/st-4.sh
+  unlocks: effort goes to the most valuable uncovered work first
+
+- id: ST-5
+  title: a stalled item pivots to a better one
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-5.sh:1
+  observed: 'GREEN at baseline 2026-06-30: stalled on ''low'' with ''high'' available -> PIVOT
+    to high'
+  smallest_fix: 'pick_next returns (PIVOT, best) when the current item is stalled and a higher-value
+    item exists.
+
+    '
+  probe: probes/st-5.sh
+  unlocks: a stuck item is re-allocated instead of ground forever
+
+- id: ST-6
+  title: the best item is not pivoted away pointlessly
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-6.sh:1
+  observed: 'GREEN at baseline 2026-06-30: stalled but already on the best item -> CONTINUE
+    (no pointless pivot)'
+  smallest_fix: 'pick_next returns (CONTINUE, current) when the stalled current item is already
+    the best.
+
+    '
+  probe: probes/st-6.sh
+  unlocks: a stalled best item is escalated to a REVERT decision, not churned by a self-pivot
