@@ -241,3 +241,51 @@
     '
   probe: probes/cl-15.sh
   unlocks: a revert can name the most severe intent breach instead of a vague failure
+
+- id: CL-16
+  title: an exercised surface point is measured as covered
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-16.sh:1
+  observed: 'GREEN at baseline 2026-06-30: the exercised function target_a is measured as
+    covered'
+  smallest_fix: 'measure_coverage traces the exercise and records the qualified names of the
+    functions it calls.
+
+    '
+  probe: probes/cl-16.sh
+  unlocks: coverage can be measured from what a probe runs, not just what a claim declares
+
+- id: CL-17
+  title: 'declared is not measured: an unexercised point is not covered'
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-17.sh:1
+  observed: 'GREEN at baseline 2026-06-30: target_b was never exercised, so it is not measured
+    as covered (a claim cannot just declare it)'
+  smallest_fix: 'measure_coverage returns only functions actually called, so an unexercised
+    surface point is absent.
+
+    '
+  probe: probes/cl-17.sh
+  unlocks: a claim can no longer earn coverage it does not exercise — the gameable gap in
+    declared coverage, closed
+
+- id: CL-18
+  title: measured coverage carries no phantom points
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-18.sh:1
+  observed: 'GREEN at baseline 2026-06-30: measured == {target_a}: the off-surface call ''helper''
+    is not phantom coverage'
+  smallest_fix: 'measure_coverage intersects the called names with the known surface ids.
+
+    '
+  probe: probes/cl-18.sh
+  unlocks: off-surface calls cannot inflate coverage or distort the frontier

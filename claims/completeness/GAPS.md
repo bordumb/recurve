@@ -107,3 +107,21 @@ nothing forbidden was accepted must turn the probe RED.
 `divergent_ids` reports the accepted goal-counterexamples only, ranked by weight, so a revert can name the
 most severe breach. Negative space: a report that includes a rejected goal-counterexample, or misorders by
 severity, must turn the probe RED.
+
+## CL-16 — an exercised surface point is measured as covered
+
+Measured coverage records the functions a probe actually runs (traced), so a genuinely-exercised point counts
+as covered — the strong, non-gameable source behind the `completeness_report` seam. Negative space: a
+measurer that runs the exercise but records nothing must turn the probe RED.
+
+## CL-17 — declared is not measured: an unexercised point is not covered
+
+A surface point a probe never executes is not measured as covered, even if a claim declares it — this is the
+gap declared coverage cannot close. Negative space: a measurer that reports a point covered without the
+exercise running it must turn the probe RED.
+
+## CL-18 — measured coverage carries no phantom points
+
+Calls outside the declared surface (helpers, stdlib) are not phantom coverage; the measured set is restricted
+to surface points. Negative space: a measurer that reports an off-surface call as covered must turn the probe
+RED.
