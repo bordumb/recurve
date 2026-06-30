@@ -97,3 +97,52 @@
   probe: probes/cl-6.sh
   unlocks: phantom coverage can never inflate the accounting or hide a real gap (found by
     adversarial review)
+
+- id: CL-7
+  title: public functions and methods both become surface points
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-7.sh:1
+  observed: 'GREEN at baseline 2026-06-30: public function + public method both surfaced,
+    qualified: alpha, Beta.gamma'
+  smallest_fix: 'the Python adapter descends into public ClassDef bodies, emitting a qualified
+    Class.method point per public method as well as each top-level function.
+
+    '
+  probe: probes/cl-7.sh
+  unlocks: the frontier ranks real units of the target, methods included, not just top-level
+    functions
+
+- id: CL-8
+  title: private code is not surface
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-8.sh:1
+  observed: 'GREEN at baseline 2026-06-30: privates excluded: only {shown, Pub.pub} surfaced
+    (no _hidden, Pub._priv, _Secret.meth)'
+  smallest_fix: 'skip underscore-prefixed functions/methods and the methods of underscore-prefixed
+    classes.
+
+    '
+  probe: probes/cl-8.sh
+  unlocks: the frontier never demands a claim for an implementation detail
+
+- id: CL-9
+  title: surface extraction is deterministic
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-9.sh:1
+  observed: 'GREEN at baseline 2026-06-30: deterministic: identical sorted sequence across
+    two extractions (4 points)'
+  smallest_fix: 'sort the extracted points by (id, location) so the surface map is identical
+    and diffable on every run.
+
+    '
+  probe: probes/cl-9.sh
+  unlocks: coverage regressions are detectable because the surface map is a stable measurement

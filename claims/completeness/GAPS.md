@@ -50,3 +50,22 @@ An impl that counted the sizes of the covered/deferred input sets (rather than s
 `covered` with phantom ids and broke the very totality CL-3 defends — yet passed cl-1..3, whose fixtures
 carry no phantom ids. `covered`/`deferred` count only surface-present ids. Negative space: a covered id not
 on the surface that raises `covered` above the on-surface count, breaking totality, must turn the probe RED.
+
+## CL-7 — public functions and methods both become surface points
+
+Surface extraction (`recurvelib.surface`) emits one point per public unit a claim could cover — a top-level
+function AND a public method, each qualified (`func`, `Class.method`) — so the frontier ranks real units of
+the target, not just whatever it was handed. Negative space: an adapter that finds only top-level functions
+and silently drops class methods must turn the probe RED.
+
+## CL-8 — private code is not surface
+
+Underscore-prefixed functions/methods, and the methods of underscore-prefixed classes, are implementation,
+not a claimable surface; extraction excludes them so the frontier never demands a claim for a private. Negative
+space: an adapter that surfaces a `_private` name must turn the probe RED.
+
+## CL-9 — surface extraction is deterministic
+
+The same target yields the identical, sorted sequence of points on every run — a surface map is a
+*measurement* that must be diffable and stable, or coverage regressions can't be detected. Negative space: an
+adapter that returns the right points in a nondeterministic order must turn the probe RED.
