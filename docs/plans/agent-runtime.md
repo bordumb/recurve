@@ -106,20 +106,43 @@ What a future `claims/runtime` suite would gate — each with its kept counterex
 
 ## 5. Build order
 
-Sequenced so a *safe* loop runs before a *smart* one:
+Sequenced so a *safe* loop runs before a *smart* one. Each step is stated as a gateable claim — a **done**
+condition (the oracle) and a **wrong** condition (the kept counterexample) — so this build order is itself a
+contract the admission gate ADMITs. (It was walked there by an interview pass; the vague originals are in
+git history.)
 
-- **A1 — the minimal closed loop.** Sense (existing gate only) → `decide` → Act → revert-to-last-green. No
-  completeness, no adversary. This alone is an autonomous RED-claim burndown, safe because of the gate +
-  revert. The honest MVP.
+- **A1 — the minimal closed loop.** Sense (existing gate only) → `decide` → Act → revert-to-last-green; the
+  honest MVP, safe because of the gate + revert, not the actor.
+  - *Done when:* on a one-RED-claim contract with a stub actor that emits the fixing diff, the loop reaches
+    STOP-SUCCESS in ≤ N cycles, the gate ends GREEN, and the ledger closes that claim exactly once.
+  - *Wrong looks like:* a run that reports STOP-SUCCESS while the gate is still RED (trusting the actor's
+    self-report), or one that closes a claim and then silently reopens it.
 - **A2 — completeness Sense.** Wire surface/coverage/frontier into Sense so `pick_next` ranks real uncovered
-  work; the loop now closes silent holes, not just RED claims.
+  work, not just RED claims.
+  - *Done when:* on a target with exactly one uncovered public function, the Sense Progress reports
+    `uncovered` equal to that one function and `pick_next` returns it as the next item.
+  - *Wrong looks like:* Sense reporting `uncovered == 0` (or omitting the function) on a target with a
+    genuinely uncovered public unit.
 - **A3 — fidelity Sense.** Feed `divergent` so the loop refuses a success-stop on a goal-counterexample.
-- **A4 — the write boundary.** Enforce that actor diffs touch only the target tree; reject otherwise. *Land
-  this before A5* — an autonomous actor without the boundary can game the gate.
+  - *Done when:* a cycle with all probes green but a passing goal-counterexample (`divergent=True`) never
+    returns STOP-SUCCESS.
+  - *Wrong looks like:* a green-but-divergent cycle returning STOP-SUCCESS (already guarded by ST-7/CL-13).
+- **A4 — the write boundary.** Enforce that actor diffs touch only the target tree. *Land before A5.*
+  - *Done when:* a cycle whose actor diff edits any path under the referee surface (claims/probes/traps/gate
+    config) is rejected before gating, and a diff confined to the target tree proceeds.
+  - *Wrong looks like:* an actor diff that edits a probe is accepted and the cycle gated green.
 - **A5 — the adversary turn.** A periodic separate agent red-teams new claims; the capture rule turns
-  findings into traps. The loop now hardens its own contract (as this very build did, by hand, three times).
-- **A6 — the human gate + the actor adapter.** Contract approval before burndown; escalations out; a
-  reference actor adapter behind a stable interface so the actor is swappable.
+  findings into traps (as this very build did, by hand, five times).
+  - *Done when:* given a claim that a planted wrong-but-passing implementation defeats, the adversary turn
+    yields a new trap that is RED on the wrong implementation and GREEN on the real one.
+  - *Wrong looks like:* the adversary turn producing no new trap (or a trap the wrong implementation still
+    passes) for a demonstrably-defeatable claim.
+- **A6 — the actor adapter (with the human gate).** A reference actor behind a stable interface.
+  - *Done when:* an actor is invoked only through the adapter interface `propose(contract, item, evidence) ->
+    diff`; a contract whose admission verdict is not ADMIT is never handed to an actor (reusing `admitted`);
+    and a reference adapter satisfies the interface.
+  - *Wrong looks like:* the loop invoking an actor on a non-ADMIT contract, or reaching an actor outside the
+    adapter interface. (The human-approval step around it is a process the gate stands down on — §6.)
 
 A1 is shippable on its own: an autonomous loop you can trust *because the trust lives in the deterministic
 spine, not the actor*.

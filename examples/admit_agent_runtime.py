@@ -6,6 +6,10 @@ This is a worked example of `recurvelib.admission`. The admission gate decides w
 is the pluggable rater part (here, hand-rated below, with the reasoning shown); `admit()` makes the
 deterministic verdict over those ratings.
 
+NOTE: this rates the ORIGINAL, pre-interview A1-A6 — the refusal. The doc's §5 has since been sharpened by an
+interview pass (see examples/interview_agent_runtime.py); the sharpened version ADMITs. This file is kept as
+the "before" snapshot so the refusal stays reproducible.
+
 Run it:
     cd recurve && python3 examples/admit_agent_runtime.py
 """
