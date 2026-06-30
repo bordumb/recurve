@@ -132,9 +132,12 @@ reduction, not elimination.
 
 ## 9. The gate, run on this very plan
 
-By its own rubric, `agent-runtime.md`'s A1–A6 are **REFUSE-AND-INTERVIEW**: each names components but no
-falsifiable done-condition and no counterexample. The honest output is the rewrite — e.g. *A1: "given a
-one-claim RED contract and a stub actor emitting the fixing diff, the loop reaches STOP-SUCCESS in ≤N cycles,
-the gate ends GREEN, the claim closes exactly once; counterexample it must reject — a stub whose diff edits a
-probe is killed by the write boundary, not gated green"* — plus the interview for A2–A6. That a plan in this
-same directory fails this gate, and is improved by it, is the demonstration.
+Run live by the built `recurvelib.admission.admit`, `agent-runtime.md`'s A1–A6 *as written* are
+**REFUSE-NOT-GATEABLE** (gateability `0.00`): each names components but states no falsifiable done-condition
+and no counterexample, so the gateable spine is empty — honestly, this is not yet a contract. The output is
+the rewrite — e.g. *A1: "given a one-claim RED contract and a stub actor emitting the fixing diff, the loop
+reaches STOP-SUCCESS in ≤N cycles, the gate ends GREEN, the claim closes exactly once; counterexample it must
+reject — a stub whose diff edits a probe is killed by the write boundary, not gated green."* Sharpen two of
+the six that way and the verdict flips to **REFUSE-AND-INTERVIEW** with the remaining four as the worklist;
+sharpen all six and it **ADMITs** — exactly as the gate ADMITs its own AD-1..6 contract. That a plan in this
+same directory fails this gate, and is walked to passing by it, is the demonstration.

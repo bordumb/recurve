@@ -1,0 +1,95 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: AD-1
+  title: probe-ability is the conjunction of all three criteria
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-1.sh:1
+  observed: 'GREEN at baseline 2026-07-01: probe-able only when all three criteria hold; missing
+    any one disqualifies'
+  smallest_fix: 'Assertion.probeable returns falsifiable AND has_counterexample AND bounded.
+
+    '
+  probe: probes/ad-1.sh
+  unlocks: a vague assertion cannot pass on a single virtue
+
+- id: AD-2
+  title: gateability is the measured probe-able share
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-2.sh:1
+  observed: 'GREEN at baseline 2026-07-01: gateability = probeable/total: 0.5 for 2-of-4,
+    0.0 for empty'
+  smallest_fix: 'gateability returns probeable/total, 0.0 for empty.
+
+    '
+  probe: probes/ad-2.sh
+  unlocks: the verdict rests on a counted metric, not a rated score
+
+- id: AD-3
+  title: the worklist names exactly the un-probe-able assertions with their gaps
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-3.sh:1
+  observed: 'GREEN at baseline 2026-07-01: worklist = the un-probe-able assertions only, each
+    with its named gaps (bad1:1, bad2:2)'
+  smallest_fix: 'worklist emits (id, gaps) for each not-probeable assertion and excludes probe-able
+    ones.
+
+    '
+  probe: probes/ad-3.sh
+  unlocks: the human gets an actionable interview worklist, not an opaque score
+
+- id: AD-4
+  title: an all-probe-able goal is admitted
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-4.sh:1
+  observed: 'GREEN at baseline 2026-07-01: every assertion probe-able -> ADMIT (a good contract
+    is let through)'
+  smallest_fix: 'admit returns ADMIT when spine == total and spine >= min_invariants.
+
+    '
+  probe: probes/ad-4.sh
+  unlocks: a good contract is let through instead of blocked
+
+- id: AD-5
+  title: a gateable spine with a vague remainder is refused for interview
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-5.sh:1
+  observed: 'GREEN at baseline 2026-07-01: gateable spine + vague remainder -> REFUSE-AND-INTERVIEW
+    (do not admit an incomplete contract)'
+  smallest_fix: 'admit returns REFUSE_AND_INTERVIEW when spine >= min_invariants but spine
+    < total.
+
+    '
+  probe: probes/ad-5.sh
+  unlocks: an incomplete contract is never silently admitted
+
+- id: AD-6
+  title: a too-thin spine is refused as not gateable
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-6.sh:1
+  observed: 'GREEN at baseline 2026-07-01: spine of 1 (< min 2) -> REFUSE-NOT-GATEABLE (too
+    few invariants to gate honestly)'
+  smallest_fix: 'admit returns REFUSE_NOT_GATEABLE when spine < min_invariants.
+
+    '
+  probe: probes/ad-6.sh
+  unlocks: a goal with too few invariants is told to sharpen, not gated into a brittle proxy

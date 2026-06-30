@@ -36,3 +36,8 @@ harness = []
 dir = "claims/stopping"
 rebuild = ""               # pure engine module; nothing to copy
 harness = []
+
+[suites.admission]
+dir = "claims/admission"
+rebuild = ""               # pure engine module; nothing to copy
+harness = []
