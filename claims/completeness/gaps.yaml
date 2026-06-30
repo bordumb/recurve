@@ -146,3 +146,51 @@
     '
   probe: probes/cl-9.sh
   unlocks: coverage regressions are detectable because the surface map is a stable measurement
+
+- id: CL-10
+  title: declared coverage aggregates from the claims
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-10.sh:1
+  observed: 'GREEN at baseline 2026-06-30: covered ids are the union of every claim''s covers:
+    {a, b, c}'
+  smallest_fix: 'covered_ids returns the union of every claim''s covers field.
+
+    '
+  probe: probes/cl-10.sh
+  unlocks: the completeness gate reads a real ledger of claims, with a measured coverage source
+    able to slot in later
+
+- id: CL-11
+  title: a cycle is complete iff nothing is uncovered
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-11.sh:1
+  observed: 'GREEN at baseline 2026-06-30: complete iff uncovered==0: incomplete when ''a''
+    is uncovered, complete when covered'
+  smallest_fix: 'completeness_report sets complete = (uncovered == 0).
+
+    '
+  probe: probes/cl-11.sh
+  unlocks: greenness is soundness AND completeness, not soundness alone
+
+- id: CL-12
+  title: an uncovered point is surfaced, never masked
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-12.sh:1
+  observed: 'GREEN at baseline 2026-06-30: the uncovered point ''c'' is on the frontier and
+    the cycle is flagged incomplete — no masking'
+  smallest_fix: 'completeness_report carries the frontier through unmodified and never declares
+    completeness with points still uncovered.
+
+    '
+  probe: probes/cl-12.sh
+  unlocks: a green gate can never silently hide a hole — the whole point of the completeness
+    layer

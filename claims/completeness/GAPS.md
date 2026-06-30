@@ -69,3 +69,22 @@ space: an adapter that surfaces a `_private` name must turn the probe RED.
 The same target yields the identical, sorted sequence of points on every run — a surface map is a
 *measurement* that must be diffable and stable, or coverage regressions can't be detected. Negative space: an
 adapter that returns the right points in a nondeterministic order must turn the probe RED.
+
+## CL-10 — declared coverage aggregates from the claims
+
+The covered set is the union of every claim's `covers` field (a claim that covers nothing contributes
+nothing) — the coverage *source* is pluggable behind this seam, with a measured source the stronger upgrade.
+Negative space: an aggregator that ignores `covers` and reports nothing covered must turn the probe RED.
+
+## CL-11 — a cycle is complete iff nothing is uncovered
+
+The completeness gate reports `complete` exactly when the frontier is empty — every surface point covered or
+deferred. Negative space: a report that calls a cycle complete while points remain uncovered must turn the
+probe RED.
+
+## CL-12 — an uncovered point is surfaced, never masked
+
+An uncovered surface point appears on the frontier and flags the cycle incomplete; the gate can never present
+a green verdict that silently says nothing about it (the cardinal sin a sound-but-incomplete gate commits).
+Negative space: a report that empties the frontier and declares completeness despite an uncovered point must
+turn the probe RED.
