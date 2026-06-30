@@ -88,3 +88,22 @@ An uncovered surface point appears on the frontier and flags the cycle incomplet
 a green verdict that silently says nothing about it (the cardinal sin a sound-but-incomplete gate commits).
 Negative space: a report that empties the frontier and declares completeness despite an uncovered point must
 turn the probe RED.
+
+## CL-13 — an accepted goal-counterexample is divergence
+
+Intent fidelity: a behavior the goal forbids that gets *accepted* makes the cycle divergent, however green the
+probes are — soundness and completeness cannot buy back a broken intent. The controller reads divergence to
+refuse a success-stop and, if it persists, to revert. Negative space: a divergence check that stays False
+while a forbidden behavior is accepted must turn the probe RED.
+
+## CL-14 — no false divergence alarm
+
+When every goal-counterexample is rejected, the cycle is not divergent — intent is intact and progress is
+allowed; a spurious alarm would force endless reverts. Negative space: a divergence check that fires while
+nothing forbidden was accepted must turn the probe RED.
+
+## CL-15 — divergence names exactly what broke, worst first
+
+`divergent_ids` reports the accepted goal-counterexamples only, ranked by weight, so a revert can name the
+most severe breach. Negative space: a report that includes a rejected goal-counterexample, or misorders by
+severity, must turn the probe RED.

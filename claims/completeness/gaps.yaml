@@ -194,3 +194,50 @@
   probe: probes/cl-12.sh
   unlocks: a green gate can never silently hide a hole — the whole point of the completeness
     layer
+
+- id: CL-13
+  title: an accepted goal-counterexample is divergence
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-13.sh:1
+  observed: 'GREEN at baseline 2026-06-30: an accepted goal-counterexample -> divergent (green
+    probes cannot hide a broken intent)'
+  smallest_fix: 'divergent() returns True when any goal-counterexample is accepted.
+
+    '
+  probe: probes/cl-13.sh
+  unlocks: green probes can never buy a stop when intent was broken — the controller reads
+    divergence and reverts
+
+- id: CL-14
+  title: no false divergence alarm
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-14.sh:1
+  observed: 'GREEN at baseline 2026-06-30: all goal-counterexamples rejected -> not divergent
+    (intent intact, progress allowed)'
+  smallest_fix: 'divergent() returns False when every goal-counterexample is rejected.
+
+    '
+  probe: probes/cl-14.sh
+  unlocks: a converging build is not forced into endless reverts by a spurious alarm
+
+- id: CL-15
+  title: divergence names exactly what broke, worst first
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-15.sh:1
+  observed: 'GREEN at baseline 2026-06-30: divergent_ids = exactly the accepted ones, worst
+    first: [''high'',''low'']'
+  smallest_fix: 'divergent_ids returns the accepted goal-counterexamples only, sorted by descending
+    weight then id.
+
+    '
+  probe: probes/cl-15.sh
+  unlocks: a revert can name the most severe intent breach instead of a vague failure
