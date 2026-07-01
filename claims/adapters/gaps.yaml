@@ -122,3 +122,84 @@
   probe: probes/ap-8.sh
   unlocks: serializing the evidence never crashes propose before the agent runs (found by
     adversarial review)
+
+- id: AP-9
+  title: apply rolls back a created directory, not just files
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ap-9.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a failed apply removes the directory it created:
+    no orphan ''fresh/'' after rollback'
+  smallest_fix: apply tracks dirs it creates and rmdirs them (deepest-first) on rollback.
+  probe: probes/ap-9.sh
+  unlocks: a failed apply leaves no orphan directories (found by adversarial review)
+
+- id: AP-10
+  title: apply overwrites a binary file without a decode crash
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ap-10.sh:1
+  observed: 'GREEN at baseline 2026-07-01: an in-bounds patch over a binary file applies cleanly
+    (prior read as bytes)'
+  smallest_fix: apply snapshots the prior as bytes (read_bytes), rolls back with write_bytes.
+  probe: probes/ap-10.sh
+  unlocks: an in-bounds patch over a binary file no longer crashes (found by adversarial review)
+
+- id: AP-11
+  title: checkpoint works on a repo with no configured identity
+  class: broken-route
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ap-11.sh:1
+  observed: 'GREEN at baseline 2026-07-01: checkpoint succeeds on a repo with no configured
+    user (identity supplied via -c)'
+  smallest_fix: checkpoint commits with -c user.name/user.email so it does not depend on ambient
+    config.
+  probe: probes/ap-11.sh
+  unlocks: the loop first action does not crash on an unconfigured host (found by adversarial
+    review)
+
+- id: AP-12
+  title: a missing git binary is a typed error, not a raw crash
+  class: broken-route
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ap-12.sh:1
+  observed: 'GREEN at baseline 2026-07-01: git missing on the revert path -> RestoreError
+    (typed), not a raw FileNotFoundError'
+  smallest_fix: _git wraps CalledProcessError/FileNotFoundError/TimeoutExpired into GitError;
+    restore -> RestoreError.
+  probe: probes/ap-12.sh
+  unlocks: git-missing/timeout on the revert path fails typed
+
+- id: AP-13
+  title: a hanging agent times out
+  class: broken-route
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ap-13.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a command exceeding the timeout -> AgentError (the
+    loop is not wedged by a hanging agent)'
+  smallest_fix: CommandActor.propose passes timeout= and raises AgentError on TimeoutExpired.
+  probe: probes/ap-13.sh
+  unlocks: a hanging agent cannot wedge the loop (found by adversarial review)
+
+- id: AP-14
+  title: the evidence serializer is total for dataclasses too
+  class: missing-surface
+  status: closed
+  severity: friction
+  evidence:
+  - probes/ap-14.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a recursive dataclass serializes to a placeholder
+    string (asdict failure is caught)'
+  smallest_fix: _jsonable wraps dataclasses.asdict in try/except, falling through to str.
+  probe: probes/ap-14.sh
+  unlocks: a recursive dataclass evidence cannot crash propose (found by adversarial review)

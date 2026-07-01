@@ -21,9 +21,12 @@ from recurvelib.runtime import within_boundary
 
 def _jsonable(obj):
     """Total JSON fallback: dataclasses (e.g. the Progress evidence) become dicts, everything else a string —
-    even if the object's own ``__str__`` raises."""
+    even if ``asdict`` or the object's own ``__str__`` raises."""
     if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
-        return dataclasses.asdict(obj)
+        try:
+            return dataclasses.asdict(obj)
+        except Exception:
+            pass                                  # a recursive/unserializable field -> fall through to str
     try:
         return str(obj)
     except Exception:
@@ -32,6 +35,10 @@ def _jsonable(obj):
 
 class BoundaryViolation(Exception):
     """Raised when a patch would write outside the target tree or onto the referee surface."""
+
+
+class GitError(Exception):
+    """A git command failed — non-zero exit, a missing/unexecutable git binary, or a timeout."""
 
 
 class AgentError(Exception):
@@ -71,12 +78,17 @@ class GitWorld:
         rels = list(patch)
         if not within_boundary(rels, "", self.referee_roots):
             raise BoundaryViolation(f"patch touches the referee surface or escapes the tree: {rels}")
-        written = []  # (path, prior_text_or_None) in write order, for rollback
+        written = []          # (path, prior_bytes_or_None) in write order — bytes so a binary prior survives
+        created_dirs = set()  # directories this apply created, so rollback can remove them
         try:
             for rel, content in patch.items():
                 path = self.root / posixpath.normpath(rel)   # write the path the boundary approved
-                prior = path.read_text() if path.is_file() else None
+                prior = path.read_bytes() if path.is_file() else None
                 written.append((path, prior))
+                parent = path.parent
+                while str(parent).startswith(str(self.root)) and parent != self.root and not parent.exists():
+                    created_dirs.add(parent)
+                    parent = parent.parent
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(content)
         except Exception:
@@ -85,7 +97,12 @@ class GitWorld:
                     if path.exists():
                         path.unlink()
                 else:
-                    path.write_text(prior)
+                    path.write_bytes(prior)
+            for d in sorted(created_dirs, key=lambda p: len(str(p)), reverse=True):
+                try:
+                    d.rmdir()                              # deepest-first; only removes if empty
+                except OSError:
+                    pass
             raise
 
     def checkpoint(self):
@@ -95,22 +112,28 @@ class GitWorld:
         depend on the host's commit-signing config, and signing a throwaway snapshot is meaningless.
         """
         self._git("add", "-A")
-        self._git("commit", "-m", "runtime-checkpoint", "--allow-empty", "--no-verify", "--no-gpg-sign")
+        # supply a throwaway identity via -c, so a checkpoint works on a repo with no configured user.
+        self._git("-c", "user.name=recurve", "-c", "user.email=recurve@localhost",
+                  "commit", "-m", "runtime-checkpoint", "--allow-empty", "--no-verify", "--no-gpg-sign")
         return self._git("rev-parse", "HEAD").strip()
 
     def restore(self, sha):
         """Hard-reset the working tree back to ``sha`` (a checkpoint), discarding everything after it.
 
-        Raises ``RestoreError`` (not a raw ``CalledProcessError``) if ``sha`` is unknown/unreachable, so the
-        revert path fails in a way the driver can catch.
+        Raises ``RestoreError`` (never a raw ``CalledProcessError``/``FileNotFoundError``/timeout) if the sha
+        is unknown/unreachable or git is unavailable, so the revert path fails in a way the driver can catch.
         """
         try:
             self._git("reset", "--hard", sha)
-        except subprocess.CalledProcessError as e:
-            raise RestoreError(f"could not restore checkpoint {sha!r}: {(e.stderr or '').strip()[:200]}") from e
+        except GitError as e:
+            raise RestoreError(f"could not restore checkpoint {sha!r}: {e}") from e
 
-    def _git(self, *args):
-        out = subprocess.run(["git", "-C", str(self.root), *args], check=True, capture_output=True, text=True)
+    def _git(self, *args, timeout=60):
+        try:
+            out = subprocess.run(["git", "-C", str(self.root), *args],
+                                 check=True, capture_output=True, text=True, timeout=timeout)
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired) as e:
+            raise GitError(f"git {' '.join(args)}: {e}") from e
         return out.stdout
 
 
@@ -125,12 +148,16 @@ class CommandActor:
         cmd: The command to run, as an argv list.
     """
 
-    def __init__(self, cmd):
+    def __init__(self, cmd, timeout=300):
         self.cmd = list(cmd)
+        self.timeout = timeout
 
     def propose(self, contract, item, evidence):
         payload = json.dumps({"contract": contract, "item": item, "evidence": evidence}, default=_jsonable)
-        out = subprocess.run(self.cmd, input=payload, capture_output=True, text=True)
+        try:
+            out = subprocess.run(self.cmd, input=payload, capture_output=True, text=True, timeout=self.timeout)
+        except subprocess.TimeoutExpired as e:
+            raise AgentError(f"agent command timed out after {self.timeout}s") from e
         if out.returncode != 0:
             raise AgentError(f"agent command exited {out.returncode}: {(out.stderr or '').strip()[:200]}")
         text = out.stdout.strip()

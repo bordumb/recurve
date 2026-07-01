@@ -60,12 +60,14 @@ def within_boundary(diff_paths, target_root: str, referee_roots) -> bool:
         if posixpath.isabs(raw):
             return False                          # an absolute path escapes the target tree
         p = posixpath.normpath(raw)
-        if p == ".." or p.startswith("../"):
-            return False                          # a normalized path that climbs above the target tree
+        if p in (".", "..") or p.startswith("../"):
+            return False                          # "." is the tree root itself; ".." climbs above it
         if not p.startswith(target_root):
             return False
         for r in referee_roots:
-            rr = r.rstrip("/")                       # match whole path components, not a bare prefix
+            rr = posixpath.normpath(r).rstrip("/")   # match whole path components, not a bare prefix
+            if rr in ("", ".") or rr == ".." or rr.startswith("../"):
+                return False                      # a degenerate referee root (empty/root/escaping) fails closed
             if p == rr or p.startswith(rr + "/"):    # the referee root itself, or something under it
                 return False
     return True

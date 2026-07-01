@@ -252,3 +252,17 @@
   probe: probes/rt-17.sh
   unlocks: a single erroring probe body cannot crash the Sense step of the gate (found by
     adversarial review)
+
+- id: RT-18
+  title: the boundary fails closed on a degenerate referee root and rejects the root key
+  class: security-tradeoff
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-18.sh:1
+  observed: 'GREEN at baseline 2026-07-01: degenerate referee roots fail closed; the ''.''
+    root key is refused; a normal write still passes'
+  smallest_fix: within_boundary rejects a "." key and fails closed on an empty/root/escaping
+    referee root.
+  probe: probes/rt-18.sh
+  unlocks: a misconfigured referee never fails open

@@ -63,3 +63,43 @@ must turn the probe RED.
 `_jsonable` returns a string for any object — even one whose `__str__` raises — so serializing the evidence
 can never crash `propose` before the agent runs. Negative space: a `_jsonable` that re-raises on a
 non-str-able object must turn the probe RED.
+
+> AP-9..14 were found by a SECOND adversarial review — this time of the AP-5..8 fixes themselves (new code
+> that hadn't faced a referee). All six were real bugs in the fixes; a re-pass on a bug-finding module found
+> more, as loop-until-dry predicts.
+
+## AP-9 — apply rolls back a created directory, not just files
+
+A failed multi-key patch that created a *new directory* before failing has that directory removed on
+rollback, so the tree is byte-for-byte its pre-apply self. Negative space: an apply that unlinks created
+files but leaves a `mkdir`-ed directory behind must turn the probe RED.
+
+## AP-10 — apply overwrites a binary file without a decode crash
+
+The prior contents are snapshotted as *bytes*, so an in-bounds patch replacing an existing non-UTF-8 file
+applies cleanly instead of raising a raw `UnicodeDecodeError`. Negative space: an apply that reads the prior
+as text and crashes on a binary file must turn the probe RED.
+
+## AP-11 — checkpoint works on a repo with no configured identity
+
+`checkpoint` supplies a throwaway git identity (`-c user.name/user.email`), so it commits on a host with no
+configured user instead of crashing the loop's first action. Negative space: a checkpoint that relies on
+ambient git config and fails on an unconfigured repo must turn the probe RED.
+
+## AP-12 — a missing git binary is a typed error, not a raw crash
+
+`restore`/`_git` wrap a missing/unexecutable git (and a git timeout) into the typed `GitError`/`RestoreError`,
+not a raw `FileNotFoundError`. Negative space: an `_git` catching only `CalledProcessError`, so git-missing
+leaks a raw error out of the revert path, must turn the probe RED.
+
+## AP-13 — a hanging agent times out
+
+`CommandActor.propose` runs the command with a timeout; a command that exceeds it becomes an `AgentError`,
+never an unbounded hang of the loop. Negative space: a `propose` with no timeout that lets a sleeping command
+run past the budget must turn the probe RED.
+
+## AP-14 — the evidence serializer is total for dataclasses too
+
+`_jsonable` guards the dataclass branch, so a dataclass with a recursive/unserializable field still yields a
+string rather than a `RecursionError`. Negative space: a `_jsonable` that calls `asdict` unguarded and raises
+on a recursive dataclass must turn the probe RED.

@@ -119,3 +119,10 @@ reaches the frontier must turn the probe RED.
 vector (the raising probe's points simply uncovered), never propagating the exception and killing the gate
 pass. Found by adversarial review. Negative space: a `sense_measured` that lets a raising exercise abort the
 coverage aggregate — so no Progress is produced — must turn the probe RED.
+
+## RT-18 — the boundary fails closed on a degenerate referee root and rejects the root key
+
+`within_boundary` refuses everything under an empty / root-only / escaping referee root (a misconfiguration
+fails *closed*, never open), and rejects a `"."`/empty patch key that resolves to the tree root itself. Found
+by adversarial review. Negative space: a boundary that admits any write under `referee_roots=[""]`, or admits
+a `""`/`.` patch key targeting the repo root, must turn the probe RED.
