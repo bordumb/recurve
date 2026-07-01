@@ -47,19 +47,44 @@ def bypasses_permissions(agent: str) -> bool:
             or "--dangerously-skip-permissions" in agent)
 
 
+def resolve_workflow(cfg: Config, parallel: bool = False) -> Path | None:
+    """The burndown script to run: the target's stamped workflow if present,
+    else the engine's shipped template — so ``recurve run`` works on the
+    self-host repo too, not only on stamped targets. ``None`` if neither exists."""
+    name = "burndown-parallel.sh" if parallel else "burndown.sh"
+    stamped = cfg.assets_dir / "workflows" / name
+    if stamped.exists():
+        return stamped
+    from . import resource_dir
+    shipped = resource_dir("templates") / "workflows" / name
+    return shipped if shipped.exists() else None
+
+
 def build_run(cfg: Config, agent: str, cap: int, lanes: int | None,
-              parked: str | None, caffeinate: bool) -> tuple[list[str], dict[str, str]]:
-    """Pure: return ``(argv, env_overrides)`` for the stamped workflow — no I/O,
-    so it is testable. ``--lanes N`` selects the parallel script; on macOS the
-    run is wrapped in ``caffeinate`` (a sleeping host reads as a hung agent)."""
+              parked: str | None, caffeinate: bool) -> tuple[list[str] | None, dict[str, str]]:
+    """Return ``(argv, env_overrides)`` for the burndown workflow; ``argv`` is
+    ``None`` when no workflow can be found. ``--lanes N`` selects the parallel
+    script; on macOS the run is wrapped in ``caffeinate`` (a sleeping host reads
+    as a hung agent). When the workflow is the un-stamped engine template,
+    ``RECURVE_BIN``/``MAX_FAILS``/``RUNAWAY`` are set so it runs without stamp-time
+    interpolation and re-invokes this engine."""
     parallel = bool(lanes and lanes > 1)
-    script = cfg.assets_dir / "workflows" / (
-        "burndown-parallel.sh" if parallel else "burndown.sh")
-    env: dict[str, str] = {"AGENT_CMD": agent, "CAP": str(cap)}
+    name = "burndown-parallel.sh" if parallel else "burndown.sh"
+    script = resolve_workflow(cfg, parallel)
+    env: dict[str, str] = {
+        "AGENT_CMD": agent,
+        "CAP": str(cap),
+        "MAX_FAILS": str(cfg.burndown_max_consecutive_failures),
+        "RUNAWAY": str(cfg.burndown_runaway_net_positive_cycles),
+    }
+    if not (cfg.assets_dir / "workflows" / name).exists():
+        env["RECURVE_BIN"] = str(Path(__file__).resolve().parent.parent / "recurve")
     if parallel:
         env["PARALLEL"] = str(lanes)
     if parked:
         env["PARKED_SEED"] = parked
+    if script is None:
+        return None, env
     argv = ["bash", str(script)]
     if caffeinate and sys.platform == "darwin" and shutil.which("caffeinate"):
         argv = ["caffeinate", "-dimsu", *argv]

@@ -1,0 +1,3 @@
+# Pin every oracle this suite's probes compare against, exactly:
+# <oracle-name> <exact-version>
+# SR probes read the engine directly (reads: none) — no external oracle to pin.

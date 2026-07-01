@@ -595,9 +595,10 @@ def cmd_run(args):
     cap = args.cap if args.cap is not None else cfg.burndown_cap
     argv, overrides = build_run(cfg, agent, cap, args.lanes, args.parked,
                                 caffeinate=not args.no_caffeinate)
+    if argv is None:
+        _fail(f"no burndown workflow found (no stamped .recurve/workflows/, no shipped "
+              f"template) — run `{args.prog} init` in the target first", 1)
     script = Path(argv[-1])
-    if not script.exists():
-        _fail(f"no workflow at {script} — run `{args.prog} init` in the target first", 1)
 
     warn = "  \033[33m⚠ permissions bypassed\033[0m" if bypasses_permissions(agent) else ""
     lanes = f"   lanes: {args.lanes}" if args.lanes and args.lanes > 1 else ""

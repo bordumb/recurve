@@ -1,0 +1,23 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: SR-1
+  title: recurve run resolves a runnable burndown workflow on the self-host repo
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - SR-1
+  evidence:
+  - recurvelib/run.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: the loop is runnable on its own repo: recurve run
+    resolves /Users/bordumb/workspace/repositories/auths-base/recurve/templates/workflows/burndown.sh'
+  smallest_fix: recurvelib/run.py resolve_workflow() returns the stamped workflow if present,
+    else the engine's shipped templates/workflows/burndown.sh, so `recurve run` works on the
+    recurve repo itself; cmd_run errors only when neither exists
+  probe: probes/sr-1.sh
+  unlocks: 'the loop running on its own repo — the prerequisite for building #4 (complete
+    the plumbing) WITH the loop instead of by hand'

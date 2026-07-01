@@ -51,3 +51,8 @@ harness = []
 dir = "claims/adapters"
 rebuild = ""               # git-backed adapters; probes drive real temp repos
 harness = []
+
+[suites.self_recursion]
+dir = "claims/self_recursion"
+rebuild = ""               # pure engine module (recurvelib.run); nothing to copy
+harness = []
