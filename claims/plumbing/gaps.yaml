@@ -100,3 +100,22 @@
   probe: probes/pl-5.sh
   unlocks: 'completeness + fidelity gating the loop''s success (not only soundness) — the
     uncovered-frontier and accepted-divergence acceptance criteria of #4'
+
+- id: PL-6
+  title: admission gates claimify — a non-gateable goal is refused before it becomes claims
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers:
+  - PL-6
+  observed: 'RED at baseline 2026-07-01: ours=no admission gate on claimify yet oracle=admit_result
+    gates the PRD before drafts'
+  smallest_fix: add recurvelib.claimify.admit_result(result) that maps each DraftClaim to
+    an admission Assertion (falsifiable=True, has_counterexample=bool(twin), bounded=not fork)
+    and returns admission.admit(assertions); run_claimify calls it and, on a non-ADMIT verdict,
+    surfaces the interview worklist / refuses instead of writing a live drafts suite — so
+    an admission-refused goal never becomes claims and never enters a cycle
+  probe: probes/pl-6.sh
+  unlocks: 'admission wired at the front of the loop — the last of #4''s acceptance criteria:
+    a vague aim is interviewed toward a contract, not burned into a brittle proxy'
