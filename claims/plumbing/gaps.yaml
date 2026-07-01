@@ -82,3 +82,22 @@
   probe: probes/pl-4.sh
   unlocks: 'the loop feeding the FULL measured vector (frontier + divergence, not just gate
     counts) to the controller — the completeness + fidelity half of #4 (PL-5)'
+
+- id: PL-5
+  title: the loop feeds the full measured vector (uncovered + divergent) to the controller
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers:
+  - PL-5
+  observed: 'RED at baseline 2026-07-01: ours=burndown.sh stop vector omits: recurve-sense
+    --uncovered --divergent oracle=decide fed --uncovered + --divergent sourced from recurve
+    sense'
+  smallest_fix: burndown.sh's stop_verdict sources the full vector via `$PROG sense` (which
+    adds uncovered from the frontier and divergent from fidelity) and passes --uncovered and
+    --divergent to `$PROG decide`, so an uncovered frontier or a divergence blocks STOP-SUCCESS
+    — not just the gate counts. Must keep every TK burndown claim + the behavior tests green.
+  probe: probes/pl-5.sh
+  unlocks: 'completeness + fidelity gating the loop''s success (not only soundness) — the
+    uncovered-frontier and accepted-divergence acceptance criteria of #4'
