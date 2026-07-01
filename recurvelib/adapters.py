@@ -62,9 +62,13 @@ class GitWorld:
             path.write_text(content)
 
     def checkpoint(self):
-        """Commit the current tree and return the commit sha — the state a later ``restore`` rolls back to."""
+        """Commit the current tree and return the commit sha — the state a later ``restore`` rolls back to.
+
+        The snapshot commit is unsigned and skips hooks (``--no-gpg-sign --no-verify``): a checkpoint must not
+        depend on the host's commit-signing config, and signing a throwaway snapshot is meaningless.
+        """
         self._git("add", "-A")
-        self._git("commit", "-m", "runtime-checkpoint", "--allow-empty", "--no-verify")
+        self._git("commit", "-m", "runtime-checkpoint", "--allow-empty", "--no-verify", "--no-gpg-sign")
         return self._git("rev-parse", "HEAD").strip()
 
     def restore(self, sha):
