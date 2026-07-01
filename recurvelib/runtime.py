@@ -9,6 +9,7 @@ from the actor's competence.
 """
 from __future__ import annotations
 
+import posixpath
 from typing import Protocol
 
 from recurvelib.admission import admitted
@@ -54,7 +55,12 @@ def within_boundary(diff_paths, target_root: str, referee_roots) -> bool:
     the structural guarantee that an autonomous actor cannot weaken the test it is graded by.
     """
     referee_roots = tuple(referee_roots)
-    for p in diff_paths:
+    for raw in diff_paths:
+        if posixpath.isabs(raw):
+            return False                          # an absolute path escapes the target tree
+        p = posixpath.normpath(raw)
+        if p == ".." or p.startswith("../"):
+            return False                          # a normalized path that climbs above the target tree
         if not p.startswith(target_root):
             return False
         if any(p.startswith(r) for r in referee_roots):
