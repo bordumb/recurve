@@ -30,9 +30,17 @@ every claim is RED. That's correct: **the burndown is the build.**
 **3 — Record what's true, then burn the red down.**
 
 ```bash
-recurve baseline checkout                      # GREEN promises → a regression suite; RED → your honest backlog
-AGENT_CMD='…' bash .recurve/workflows/burndown.sh   # one fresh agent per cycle, gated, until green
+# GREEN promises → a regression suite; RED → your honest backlog
+recurve baseline checkout
+
+# AGENT_CMD is your coding agent — Claude Code headless here; any command
+# that reads a prompt on stdin works. One fresh agent per cycle, gated, until green:
+AGENT_CMD='claude -p --permission-mode bypassPermissions' bash .recurve/workflows/burndown.sh
 ```
+
+recurve is **BYO-agent**: `AGENT_CMD` is the only seam — any command that takes
+a cycle prompt on stdin and writes a run-record back. The loop believes the
+record and the gate, never the agent's word. ([full contract](usage.md#step-3-kick-off-the-loop))
 
 Nothing closes on anyone's say-so — a claim goes green only when its probe is
 GREEN *and* the gate holds fleet-wide. That's the whole point: **evidence, not
