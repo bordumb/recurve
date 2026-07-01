@@ -65,13 +65,16 @@
 - id: PL-4
   title: recurve sense assembles the full measured vector (open/regressed/broken/uncovered/divergent)
   class: missing-surface
-  status: open
+  status: closed
   severity: feature
   reads: none
   covers:
   - PL-4
-  observed: 'RED at baseline 2026-07-01: ours=no `recurve sense` surface yet oracle=sense_vector
-    mirrors runtime.sense'
+  evidence:
+  - recurvelib/sense_cli.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: recurve sense mirrors runtime.sense (incl.
+    uncovered + divergent): (2, 1, 0, 1, True)'
   smallest_fix: add recurvelib/sense_cli.py with sense_vector(gate_counts, surface, covered_ids,
     goal_counterexamples, deferred_ids=()) returning the fields of runtime.sense(...)[0] as
     a dict (open/regressed/broken/uncovered/divergent); add cmd_sense in cli.py + register

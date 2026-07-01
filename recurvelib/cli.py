@@ -13,6 +13,9 @@ probed, gated, burn-downable gaps.
                                    from a measured progress vector (never blind)
     recurve frontier [--point ID:W …]    surface the ranked uncovered ids — what
                                    no claim covers (the completeness frontier)
+    recurve sense [--point …] [--goal …]    assemble the FULL measured progress
+                                   vector — gate counts + uncovered + divergent —
+                                   exactly as the loop senses it for the controller
     recurve probe [--suite S|--gap ID]   run gap probes, report RED/GREEN/BROKEN
     recurve matrix [--gate]        the conformance matrix; --gate exits nonzero on
                                    any regression, broken probe, or stale suite
@@ -197,6 +200,42 @@ def cmd_frontier(args):
         return
     for i in ids:
         print(i)
+
+
+def _parse_goal(spec: str):
+    """Parse one `ID[:WEIGHT]` accepted goal-counterexample from the command line.
+
+    A goal named on `--goal` is one that was observed *accepted* this cycle — a
+    divergence signal — so it is always constructed with ``accepted=True``."""
+    from .fidelity import GoalCounterexample
+    id_part, _, w_part = spec.partition(":")
+    id_part = id_part.strip()
+    if not id_part:
+        _fail(f"empty goal-counterexample id in {spec!r} — use ID or ID:WEIGHT")
+    try:
+        weight = int(w_part) if w_part else 0
+    except ValueError:
+        _fail(f"non-integer weight in {spec!r} — use ID or ID:WEIGHT")
+    return GoalCounterexample(id_part, accepted=True, weight=weight)
+
+
+def cmd_sense(args):
+    """Print the full measured progress vector for a surface given on flags —
+    gate counts plus the uncovered (completeness) and divergent (fidelity)
+    signals, exactly as the loop senses it for the controller. A thin honest
+    report over `sense_cli.sense_vector`, which mirrors `runtime.sense`."""
+    from .sense_cli import sense_vector
+    gate = {"open": args.open, "regressed": args.regressed, "broken": args.broken}
+    surface = [_parse_point(s) for s in (args.point or [])]
+    covered = set(args.covered or [])
+    deferred = set(args.deferred or [])
+    goals = [_parse_goal(s) for s in (args.goal or [])]
+    v = sense_vector(gate, surface, covered, goals, deferred)
+    print(f"open       {v['open']}")
+    print(f"regressed  {v['regressed']}")
+    print(f"broken     {v['broken']}")
+    print(f"uncovered  {v['uncovered']}")
+    print(f"divergent  {v['divergent']}")
 
 
 def cmd_matrix(args):
@@ -1104,6 +1143,18 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.add_argument("--covered", action="append", metavar="ID", help="an id a claim covers (repeatable)")
     s.add_argument("--deferred", action="append", metavar="ID", help="an id explicitly deferred (repeatable)")
     s.set_defaults(fn=cmd_frontier)
+
+    s = sub.add_parser("sense", help="assemble the full measured progress vector — gate counts + uncovered + divergent")
+    s.add_argument("--open", type=int, default=0, help="claims still RED (work remaining)")
+    s.add_argument("--regressed", type=int, default=0, help="claims that went GREEN → RED this cycle")
+    s.add_argument("--broken", type=int, default=0, help="claims that could not be measured")
+    s.add_argument("--point", action="append", metavar="ID[:WEIGHT]",
+                   help="a surface point (repeatable); WEIGHT ranks it (higher first, default 0)")
+    s.add_argument("--covered", action="append", metavar="ID", help="an id a claim covers (repeatable)")
+    s.add_argument("--deferred", action="append", metavar="ID", help="an id explicitly deferred (repeatable)")
+    s.add_argument("--goal", action="append", metavar="ID[:WEIGHT]",
+                   help="an accepted goal-counterexample (repeatable) — a divergence signal")
+    s.set_defaults(fn=cmd_sense)
 
     s = sub.add_parser("receipts", help="evidence chains: verify / list")
     s.add_argument("action", choices=["verify", "list"])

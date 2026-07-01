@@ -49,7 +49,7 @@ counterexample): a loop that calls `decide` but never branches on `STOP-SUCCESS`
 — the verdict computed for show while the watchdog still decides — turns the
 probe RED.
 
-## PL-4 — recurve sense assembles the full measured vector
+## PL-4 — recurve sense assembles the full measured vector ✓
 
 `recurve sense` assembles the measured progress vector — `open`/`regressed`/`broken`
 from the gate, `uncovered` from the frontier, `divergent` from fidelity — exactly as
