@@ -12,6 +12,8 @@ probed, gated, burn-downable gaps.
     recurve probe [--suite S|--gap ID]   run gap probes, report RED/GREEN/BROKEN
     recurve matrix [--gate]        the conformance matrix; --gate exits nonzero on
                                    any regression, broken probe, or stale suite
+    recurve status [--gate]        one-glance health: open/closed counts, the true
+                                   gate verdict, broken/stale counts, pending drafts
     recurve report [--narrate]     the run report: progress, durations, ETA,
                                    diff honesty — deterministic; --narrate adds prose
     recurve freshness [--gate]     are suite artifacts current with the tree?
@@ -720,6 +722,43 @@ def cmd_stats(args):
     print(render.dim("close-rate by class is triage prior material; the dataset is the product."))
 
 
+def cmd_status(args):
+    """One-glance health: open/closed claim counts, the TRUE gate verdict
+    (computed from a full matrix run, never hardcoded), any broken/stale
+    counts, and the pending draft backlog."""
+    from . import render
+    from .status import summarize
+    C = render.C
+    cfg = _config(args)
+    ledger = _load(cfg)
+    matrix = run_matrix(list(ledger.gaps), cfg, timeout_s=args.timeout)
+    s = summarize(ledger, matrix)
+    drafts, _forks = _draft_backlog(cfg)
+    pending = sum(d["pending"] for d in drafts)
+
+    verdict = (f"{C['green']}PASS{C['reset']}" if s["gate_ok"]
+               else f"{C['red']}FAIL{C['reset']}")
+    print(f"{C['bold']}{cfg.name} — health{C['reset']}")
+    print(f"  claims     {C['red']}{s['open']} open{C['reset']} · "
+          f"{C['green']}{s['closed']} closed{C['reset']}")
+    print(f"  gate       {verdict}")
+    trouble = []
+    if s["regressions"]:
+        trouble.append(f"{s['regressions']} regression")
+    if s["broken"]:
+        trouble.append(f"{s['broken']} broken")
+    if s["stale"]:
+        trouble.append(f"{s['stale']} stale")
+    if s["failed_traps"]:
+        trouble.append(f"{s['failed_traps']} failed-trap")
+    if trouble:
+        print(f"  trouble    {C['amber']}{', '.join(trouble)}{C['reset']}")
+    if pending:
+        print(f"  drafts     {C['amber']}{pending} pending{C['reset']}")
+    if args.gate and not s["gate_ok"]:
+        raise SystemExit(1)
+
+
 def cmd_report(args):
     import json as _json
     from .report import NarratorError, gather, load_records, run_narrator, to_markdown
@@ -944,6 +983,11 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.set_defaults(fn=cmd_receipts)
 
     sub.add_parser("stats", help="the run-record dataset: close rates, attempts, cost by class").set_defaults(fn=cmd_stats)
+
+    s = sub.add_parser("status", help="one-glance health: open/closed counts, the true gate verdict, broken/stale/drafts")
+    s.add_argument("--gate", action="store_true", help="exit nonzero if the gate does not pass")
+    s.add_argument("--timeout", type=int, default=120)
+    s.set_defaults(fn=cmd_status)
 
     s = sub.add_parser("report", help="the run report: progress, durations, ETA, diff honesty (deterministic; --narrate adds prose)")
     s.add_argument("--suite")

@@ -336,3 +336,24 @@
   probe: probes/tk-19.sh
   unlocks: the in-session loop flowing with no launch flag on the Claude Code CLI/desktop
     (claude.ai web ignores the committed default, by design)
+
+- id: TK-20
+  title: recurve status summarizes health without ever greenwashing a failed gate
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-20
+  evidence:
+  - recurvelib/status.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: ours=gate_ok=False,open=2,closed=3 oracle=gate_ok=False,open=2,closed=3
+    — the summary never greenwashes a failed gate'
+  smallest_fix: add recurvelib/status.py with a pure summarize(ledger, matrix_result) that
+    folds open/closed claim counts plus the matrix result's OWN gate_ok, regressions, broken,
+    and stale into a dict — never recomputing or hardcoding the verdict; cmd_status calls
+    it, prints a compact health block, and registers a `status` subparser
+  probe: probes/tk-20.sh
+  unlocks: a one-glance health read (open/closed, true gate verdict, broken/stale, pending
+    drafts) that an operator or orchestrator trusts because it can never hide a failed gate
