@@ -28,6 +28,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import admission
+
 _MODAL = re.compile(r"(?i)\b(must|shall|should|could|may)\b")
 _SECURITY = re.compile(
     r"(?i)\b(auth\w*|encrypt\w*|secret|token|credential|password|permission|"
@@ -112,6 +114,39 @@ def parse_prd(text: str, source_name: str) -> ClaimifyResult:
     return result
 
 
+def _assertion(draft: DraftClaim) -> admission.Assertion:
+    """One parsed draft, mapped to an admission assertion by the same rubric
+    claimify already applies to the spec:
+
+      - falsifiable: every draft names an observable ("user can X and sees Y"),
+        so it always has an oracle to write.
+      - has_counterexample: only if the draft carries an adversarial twin —
+        without a named "wrong" there is no trap to keep.
+      - bounded: only if the draft is not a fork — an unresolved ambiguity means
+        the surface is not yet enumerable (that is exactly what the fork asks).
+
+    So a draft with a twin and no open fork is probe-able; a fork or a missing
+    twin is not, and lands on the admission worklist to be interviewed."""
+    return admission.Assertion(
+        id=str(draft.num),
+        text=draft.sentence,
+        falsifiable=True,
+        has_counterexample=bool(draft.twin),
+        bounded=not draft.fork,
+    )
+
+
+def admit_result(result: ClaimifyResult) -> admission.AdmissionReport:
+    """Run the admission gate over a parsed PRD: is this goal gateable at all?
+
+    Maps every draft (claims, plus the fork claims again so an ambiguity counts
+    against gateability) to an admission assertion and returns
+    ``admission.admit(...)``. The report's verdict decides whether the goal
+    should become claims or be refused/interviewed toward a contract first."""
+    assertions = [_assertion(d) for d in result.claims + result.forks]
+    return admission.admit(assertions)
+
+
 _SCAFFOLD = [
     ("BOOT-1", "the harness exists", "probes can find a runnable harness (env, fixtures, oracle pins)",
      "author harness/env.sh + versions.lock; the probe checks both exist and env.sh sources cleanly"),
@@ -149,15 +184,75 @@ def _draft_block(gid: str, c: DraftClaim, prefix: str) -> list[str]:
     return lines + [""]
 
 
+def _worklist_lines(report: admission.AdmissionReport,
+                    by_num: dict) -> list[str]:
+    """The interview worklist as human-facing bullets: each not-yet-probe-able
+    assertion, quoted, with the named reason it cannot become a claim yet."""
+    lines: list[str] = []
+    seen: set = set()
+    for aid, gaps in report.worklist:
+        if aid in seen:
+            continue
+        seen.add(aid)
+        draft = by_num.get(aid)
+        quote = (draft.sentence if draft else aid)[:100]
+        lines.append(f"  - \"{quote}\": {'; '.join(gaps)}")
+    return lines
+
+
 def run_claimify(target: Path, prd: Path, suite: str, prog: str,
                  skip_review: bool) -> list[str]:
     """Generates drafts + GAPS.md + ADJUDICATE.md into an init-stamped target.
-    Returns human-facing notes."""
+    Returns human-facing notes.
+
+    Admission runs at the front: the parsed goal is scored for gateability
+    before it becomes claims. A genuinely non-gateable goal
+    (REFUSE-NOT-GATEABLE — too few probe-able invariants to gate honestly) is
+    refused here, with the interview worklist, instead of being burned into a
+    brittle drafts suite that no probe can honestly hold. A goal with a workable
+    spine but a vague remainder (REFUSE-AND-INTERVIEW) still produces drafts —
+    that is the productive common case — but the worklist is surfaced loudly so
+    the vague assertions get interviewed toward real checks, not papered over."""
     text = prd.read_text(errors="replace")
     res = parse_prd(text, prd.name)
+    report = admit_result(res)
+    by_num = {str(c.num): c for c in res.claims}
     notes: list[str] = []
     suite_dir = target / ".recurve" / "claims" / suite
     prefix = "".join(w[0] for w in re.split(r"[^A-Za-z0-9]+", suite) if w)[:4].upper() or "C"
+
+    # Admission at the front: a genuinely non-gateable goal never becomes a
+    # drafts suite. Refuse it, name why, and hand back the interview worklist —
+    # do not sculpt a wish into a contract that only looks green.
+    if report.verdict is admission.Verdict.REFUSE_NOT_GATEABLE:
+        work = _worklist_lines(report, by_num)
+        adm = [
+            f"# ADMISSION — {prd.name} REFUSED (not gateable)",
+            "",
+            f"> The admission gate scored this goal's gateability at "
+            f"{report.gateability:.2f} ({report.probeable}/{report.total} "
+            f"assertions probe-able). Fewer than {report.min_invariants} stable,",
+            "> probe-able invariants means there is too little to gate honestly —",
+            "> this reads as exploration/taste, not a contract. No drafts were",
+            "> written: burning this down would ship a brittle proxy dressed as",
+            "> green. Sharpen the assertions below (name, for each, what *wrong*",
+            "> looks like and how a check would see it), then re-run init.",
+            "",
+            "## Interview worklist",
+            "",
+        ]
+        adm += work or ["  (no assertions parsed — the spec named no checkable behavior)"]
+        (target / ".recurve" / "ADMISSION.md").write_text("\n".join(adm) + "\n")
+        notes.append(f"ADMISSION REFUSED: {prd.name} is not gateable "
+                     f"(gateability {report.gateability:.2f}, "
+                     f"{report.probeable}/{report.total} probe-able) — "
+                     f"REFUSE-NOT-GATEABLE. No drafts written.")
+        notes.append("This goal is too vague to become a contract. Interview it toward "
+                     "checkable assertions — see .recurve/ADMISSION.md:")
+        notes += work or ["  (the spec named no checkable behavior at all)"]
+        notes.append("Sharpen the worklist above, then re-run "
+                     f"`{prog} init --from-prd {prd.name}`.")
+        return notes
 
     chunks = [
         "# gaps.draft.yaml — claimified from the spec; intentions, not observations.",
@@ -250,6 +345,25 @@ def run_claimify(target: Path, prd: Path, suite: str, prog: str,
         "> instruction stream.",
         "",
     ]
+    # A gateable spine with a vague remainder is ADMITted-with-reservations:
+    # the drafts are still worth writing, but the un-probe-able assertions are
+    # an interview worklist, not silent claims. Surface them at the top of
+    # ADJUDICATE.md so the human sharpens them before baseline.
+    if report.verdict is admission.Verdict.REFUSE_AND_INTERVIEW:
+        work = _worklist_lines(report, by_num)
+        adj += [
+            "## Admission worklist — sharpen these before baseline",
+            "",
+            f"Admission scored gateability {report.gateability:.2f} "
+            f"({report.probeable}/{report.total} assertions probe-able). A spine",
+            "exists, so drafts were written — but the assertions below name no",
+            "check yet. For each, say what *wrong* looks like and how a probe",
+            "would see it; that turns the wish into a claim.",
+            "",
+        ]
+        adj += work or ["  (worklist empty)"]
+        adj.append("")
+
     if not res.forks:
         adj.append("(no forks detected — the spec was unusually unambiguous; stay suspicious)")
     for c in res.forks:
@@ -267,6 +381,12 @@ def run_claimify(target: Path, prd: Path, suite: str, prog: str,
     notes.append(f"claimify: {len(res.claims)} claims ({sec} security-relevant, "
                  f"default review-gated), {len(res.forks)} fork(s) in ADJUDICATE.md, "
                  f"3 scaffolding gaps")
+    if report.verdict is admission.Verdict.REFUSE_AND_INTERVIEW:
+        notes.append(f"ADMISSION: gateability {report.gateability:.2f} "
+                     f"({report.probeable}/{report.total} probe-able) — "
+                     f"REFUSE-AND-INTERVIEW. Drafts written (a spine exists), but "
+                     f"the vague assertions are an interview worklist in "
+                     f".recurve/ADJUDICATE.md — sharpen them before baseline.")
     if skip_review:
         notes.append("NOTE: --no-review skips the human draft skim. That skim is a "
                      "security boundary (spec text is untrusted) and the only cheap "

@@ -56,3 +56,8 @@ harness = []
 dir = "claims/self_recursion"
 rebuild = ""               # pure engine module (recurvelib.run); nothing to copy
 harness = []
+
+[suites.plumbing]
+dir = "claims/plumbing"
+rebuild = ""               # wires the verification layer into the loop (#4)
+harness = []

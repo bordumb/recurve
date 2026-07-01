@@ -64,3 +64,23 @@
   probe: probes/sr-3.sh
   unlocks: recurve run actually EXECUTES the loop on the self-host repo (not just resolves
     it) — the loop verifiably runs on its own repo, end to end
+
+- id: SR-4
+  title: a live cycle on the self-host repo is handed a real interpolated per-cycle contract
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - SR-4
+  evidence:
+  - recurvelib/run.py
+  - templates/workflows/burndown.sh
+  observed: 'GREEN at baseline 2026-07-01: the cycle is handed a real interpolated contract:
+    /var/folders/_q/dg663s8n4ss8qq21mhrk0t0c0000gn/T/recurve-run-1i74om8e/RUN.md'
+  smallest_fix: burndown.sh points the cycle prompt at {{RUN_CONTRACT}} (stamped -> .recurve/RUN.md);
+    recurve run's materialize_workflow writes an interpolated RUN.md into the temp dir and
+    sets RUN_CONTRACT to it, so a self-host cycle reads a real contract, not a dangling path
+  probe: probes/sr-4.sh
+  unlocks: 'a live sculpting cycle on the recurve repo — the loop can hand a real agent the
+    contract, the last self-host gap before burning down #4 WITH the loop'

@@ -63,6 +63,10 @@ The **runtime** composes these into an autonomous burndown loop: **Sense** (gate
 the referee surface by a write boundary) → revert-to-last-green. The verdict is a pure function of what was
 measured; the actor's self-report is never an input.
 
+This is not a parallel spine that sits unused: the burndown loop that actually runs **consults it**. The
+loop's success-halt is `controller.decide`'s `STOP-SUCCESS` over the measured vector — never an empty backlog
+or the cap alone — and the pieces are reachable on the CLI (`recurve decide`, `recurve frontier`).
+
 ```mermaid
 flowchart LR
     AD{ADMISSION<br/>goal gateable?} -- REFUSE --> HU[human:<br/>interview + sharpen]
@@ -97,11 +101,12 @@ pass of the loop):
 | --- | --- |
 | **Claim** | A falsifiable statement about the target. Exists in three synchronized places: prose (`GAPS.md`), ledger entry (`gaps.yaml`), probe. |
 | **Gap** | A claim whose probe is RED — the delta between claimed and proven. A *closed* gap is GREEN and guarded forever. |
-| **Probe** | An executable: exit 0 GREEN · 1 RED · anything else BROKEN. The map is total — a crash is never a verdict. |
+| **Probe** | An executable: exit 0 GREEN · 1 RED · 3 SKIP · anything else BROKEN. The map is total — a crash is never a verdict. |
 | **Trap** | A kept counterexample fixture the probe must turn RED. Mutation testing for the spec layer. |
 | **Suite** | One ledger + prose + probes + harness for one domain. |
 | **Ledger** | `gaps.yaml` — the machine record of verified observations, never intentions. |
 | **Gate** | The conjunction that must hold to promote: probe GREEN + fleet matrix (no regression / broken / stale / failed trap) + behavioral harness. |
+| **Oracle waiver** | Exit 3 = SKIP: the probe's external oracle is absent (not-applicable here). It blocks the gate like BROKEN *unless* the claim declares an `oracle_waiver` — then it is a visible, non-blocking skip. A probe can never silently dodge the gate. |
 | **Cycle** | One fresh agent taking the ledger from N red to N−k, proven, snapshotted, committed. |
 | **Park** | Marking a gap un-greenable-this-run for human triage; the loop continues past it. |
 
@@ -142,6 +147,8 @@ recurvelib/            the engine (Python, stdlib + PyYAML only)
   claimify.py          PRD → draft claims (adversarial twins, forks)
   init.py              target scaffolding (blank / archaeology / claimify)
   run.py               `recurve run` — the loop wrapper (agent + cap defaults; bypass-permissions agent)
+  decide_cli.py        `recurve decide` — the stopping controller, surfaced as a verb
+  frontier_cli.py      `recurve frontier` — the ranked uncovered surface, surfaced as a verb
   pack.py              claim packs — claims as a distributable unit
   # the verification layer (deterministic spine; LLM parts are pluggable)
   admission.py         is the goal gateable? probe-ability, verdict, interview, synthesis guard
@@ -181,11 +188,14 @@ product's own domain:
 
 ## Watchdogs (every rule was paid for)
 
-The unattended loop halts **only** on: no work left, the cycle cap,
-N consecutive failures, or runaway scope (consecutive net-gap-positive
-cycles). An un-greenable gap is parked with an attempt journal — observations,
-never conclusions — and the loop moves on. A tree lock makes a second
-concurrent loop refuse to start; stealing the lock is a human-only act.
+The unattended loop declares **success** only when the stopping controller
+returns `STOP-SUCCESS` over the measured vector — sound, complete, and not
+diverged. An empty backlog is not enough: if a regression or unmeasurable claim
+lingers with no gap to sculpt, the loop halts *for the human* rather than claim
+victory. The cycle cap, N consecutive failures, and runaway scope (consecutive
+net-gap-positive cycles) are the backstops. An un-greenable gap is parked with an
+attempt journal — observations, never conclusions — and the loop moves on. A tree
+lock makes a second concurrent loop refuse to start; stealing it is a human-only act.
 
 ## Parallel lanes (v2)
 

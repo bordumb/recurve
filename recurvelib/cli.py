@@ -9,6 +9,16 @@ probed, gated, burn-downable gaps.
     recurve next                   value-first triage; flags review-gated gaps
     recurve run [--agent CMD]      run the burndown loop; the agent defaults to a
                                    bypass-permissions Claude (--dry-run to preview)
+    recurve admit <prd>            run the admission gate on a PRD/spec — is this
+                                   goal gateable at all? — print the verdict +
+                                   the interview worklist (the front-door gate)
+    recurve decide [--open N …]    ask the stopping controller for its stop verdict
+                                   from a measured progress vector (never blind)
+    recurve frontier [--point ID:W …]    surface the ranked uncovered ids — what
+                                   no claim covers (the completeness frontier)
+    recurve sense [--point …] [--goal …]    assemble the FULL measured progress
+                                   vector — gate counts + uncovered + divergent —
+                                   exactly as the loop senses it for the controller
     recurve probe [--suite S|--gap ID]   run gap probes, report RED/GREEN/BROKEN
     recurve matrix [--gate]        the conformance matrix; --gate exits nonzero on
                                    any regression, broken probe, or stale suite
@@ -158,6 +168,108 @@ def cmd_probe(args):
     gaps = _filter(_load(cfg), args.suite, args.gap)
     matrix = run_matrix(gaps, cfg, timeout_s=args.timeout)
     print(render.matrix_table(matrix))
+
+
+def cmd_decide(args):
+    from .decide_cli import verdict_for
+    print(verdict_for(args.open, args.regressed, args.broken, args.uncovered, args.divergent))
+
+
+def _parse_point(spec: str):
+    """Parse one `ID[:WEIGHT]` surface point from the command line."""
+    from .frontier import SurfacePoint
+    id_part, _, w_part = spec.partition(":")
+    id_part = id_part.strip()
+    if not id_part:
+        _fail(f"empty surface point id in {spec!r} — use ID or ID:WEIGHT")
+    try:
+        weight = int(w_part) if w_part else 0
+    except ValueError:
+        _fail(f"non-integer weight in {spec!r} — use ID or ID:WEIGHT")
+    return SurfacePoint(id_part, weight)
+
+
+def cmd_frontier(args):
+    """Print the ranked uncovered ids for a surface given on flags — what no
+    claim covers, highest-risk first. A thin honest report over
+    `frontier_cli.frontier_ids`, which mirrors `compute_frontier`."""
+    from .frontier_cli import frontier_ids
+    surface = [_parse_point(s) for s in (args.point or [])]
+    covered = set(args.covered or [])
+    deferred = set(args.deferred or [])
+    ids = frontier_ids(surface, covered, deferred)
+    if not ids:
+        print("frontier empty — every surface point is covered or deferred.")
+        return
+    for i in ids:
+        print(i)
+
+
+def _parse_goal(spec: str):
+    """Parse one `ID[:WEIGHT]` accepted goal-counterexample from the command line.
+
+    A goal named on `--goal` is one that was observed *accepted* this cycle — a
+    divergence signal — so it is always constructed with ``accepted=True``."""
+    from .fidelity import GoalCounterexample
+    id_part, _, w_part = spec.partition(":")
+    id_part = id_part.strip()
+    if not id_part:
+        _fail(f"empty goal-counterexample id in {spec!r} — use ID or ID:WEIGHT")
+    try:
+        weight = int(w_part) if w_part else 0
+    except ValueError:
+        _fail(f"non-integer weight in {spec!r} — use ID or ID:WEIGHT")
+    return GoalCounterexample(id_part, accepted=True, weight=weight)
+
+
+def cmd_sense(args):
+    """Print the full measured progress vector for a surface given on flags —
+    gate counts plus the uncovered (completeness) and divergent (fidelity)
+    signals, exactly as the loop senses it for the controller. A thin honest
+    report over `sense_cli.sense_vector`, which mirrors `runtime.sense`."""
+    from .sense_cli import sense_vector
+    gate = {"open": args.open, "regressed": args.regressed, "broken": args.broken}
+    surface = [_parse_point(s) for s in (args.point or [])]
+    covered = set(args.covered or [])
+    deferred = set(args.deferred or [])
+    goals = [_parse_goal(s) for s in (args.goal or [])]
+    v = sense_vector(gate, surface, covered, goals, deferred)
+    print(f"open       {v['open']}")
+    print(f"regressed  {v['regressed']}")
+    print(f"broken     {v['broken']}")
+    print(f"uncovered  {v['uncovered']}")
+    print(f"divergent  {v['divergent']}")
+
+
+def cmd_admit(args):
+    """Run the admission gate on a PRD/spec — is this goal gateable at all? —
+    and print the verdict plus the interview worklist. A thin honest report over
+    `claimify.admit_result`, which maps the parsed drafts to admission
+    assertions and runs `admission.admit`. This is the same gate `init
+    --from-prd` runs at the front; running it standalone lets a human (or an
+    orchestrator) score a goal before committing to claimify it."""
+    from .admission import Verdict
+    from .claimify import admit_result, parse_prd
+    prd = Path(args.prd)
+    if not prd.exists():
+        _fail(f"no such PRD/spec file: {prd}")
+    res = parse_prd(prd.read_text(errors="replace"), prd.name)
+    report = admit_result(res)
+    by_num = {str(c.num): c for c in res.claims}
+    print(f"verdict     {report.verdict.value}")
+    print(f"gateability {report.gateability:.2f}  ({report.probeable}/{report.total} probe-able)")
+    if report.worklist:
+        print("worklist (interview these toward checks):")
+        seen: set = set()
+        for aid, gaps in report.worklist:
+            if aid in seen:
+                continue
+            seen.add(aid)
+            draft = by_num.get(aid)
+            quote = (draft.sentence if draft else aid)[:100]
+            print(f"  - \"{quote}\": {'; '.join(gaps)}")
+    if args.gate and report.verdict is not Verdict.ADMIT:
+        raise SystemExit(1)
 
 
 def cmd_matrix(args):
@@ -1050,6 +1162,38 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.add_argument("--federate", action="append", metavar="RECURVE_TOML",
                    help="also gate another project's suites (shared-tree federation); repeatable")
     s.set_defaults(fn=cmd_matrix)
+
+    s = sub.add_parser("decide", help="run the stopping controller on a measured progress vector and print its verdict")
+    s.add_argument("--open", type=int, default=0, help="claims still RED (work remaining)")
+    s.add_argument("--regressed", type=int, default=0, help="claims that went GREEN → RED this cycle")
+    s.add_argument("--broken", type=int, default=0, help="claims that could not be measured")
+    s.add_argument("--uncovered", type=int, default=0, help="frontier size (completeness signal)")
+    s.add_argument("--divergent", action="store_true", help="a goal-counterexample passed (built the wrong thing)")
+    s.set_defaults(fn=cmd_decide)
+
+    s = sub.add_parser("admit", help="run the admission gate on a PRD/spec — is this goal gateable? — print the verdict + interview worklist")
+    s.add_argument("prd", metavar="PRD", help="path to the PRD/spec file to score for gateability")
+    s.add_argument("--gate", action="store_true", help="exit nonzero on a non-ADMIT verdict (refused/interview)")
+    s.set_defaults(fn=cmd_admit)
+
+    s = sub.add_parser("frontier", help="surface the ranked uncovered ids — what no claim covers")
+    s.add_argument("--point", action="append", metavar="ID[:WEIGHT]",
+                   help="a surface point (repeatable); WEIGHT ranks it (higher first, default 0)")
+    s.add_argument("--covered", action="append", metavar="ID", help="an id a claim covers (repeatable)")
+    s.add_argument("--deferred", action="append", metavar="ID", help="an id explicitly deferred (repeatable)")
+    s.set_defaults(fn=cmd_frontier)
+
+    s = sub.add_parser("sense", help="assemble the full measured progress vector — gate counts + uncovered + divergent")
+    s.add_argument("--open", type=int, default=0, help="claims still RED (work remaining)")
+    s.add_argument("--regressed", type=int, default=0, help="claims that went GREEN → RED this cycle")
+    s.add_argument("--broken", type=int, default=0, help="claims that could not be measured")
+    s.add_argument("--point", action="append", metavar="ID[:WEIGHT]",
+                   help="a surface point (repeatable); WEIGHT ranks it (higher first, default 0)")
+    s.add_argument("--covered", action="append", metavar="ID", help="an id a claim covers (repeatable)")
+    s.add_argument("--deferred", action="append", metavar="ID", help="an id explicitly deferred (repeatable)")
+    s.add_argument("--goal", action="append", metavar="ID[:WEIGHT]",
+                   help="an accepted goal-counterexample (repeatable) — a divergence signal")
+    s.set_defaults(fn=cmd_sense)
 
     s = sub.add_parser("receipts", help="evidence chains: verify / list")
     s.add_argument("action", choices=["verify", "list"])

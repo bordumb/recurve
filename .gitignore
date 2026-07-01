@@ -8,6 +8,9 @@ __pycache__/
 # mkdocs build output
 site/
 
+# internal research notes — local-only, never committed or published
+docs/research/
+
 # ancestor-facing acceptance fixtures are LOCAL-ONLY (see acceptance/LOCAL.md)
 acceptance/ancestors.env
 acceptance/configs/

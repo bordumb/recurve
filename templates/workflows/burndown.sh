@@ -4,7 +4,7 @@
 # contract:
 #
 #   $AGENT_CMD is invoked once per cycle with the cycle prompt on stdin.
-#   It must sculpt exactly one gap per .recurve/RUN.md and write a run-record JSON
+#   It must sculpt exactly one gap per {{RUN_CONTRACT}} and write a run-record JSON
 #   (schema/run-record.schema.json) to the path in $RECURVE_RESULT_FILE.
 #   Its exit code is ignored; only the record and the gate are believed.
 #
@@ -69,7 +69,7 @@ print(" ".join(x["suite"] for x in d.get("drafts", [])))' "$next_json")"
   echo "burndown: arming wave $wave_n — drafts pend in: $suites"
 
   local arm_prompt="You are ARMING the next wave of an unattended burndown — authoring probes, never product code.
-Read .recurve/RUN.md for the probe contract, then for suite(s): $suites
+Read {{RUN_CONTRACT}} for the probe contract, then for suite(s): $suites
 1. Open each suite's gaps.draft.yaml and pick up to $WAVE drafts, highest severity first (feature before friction before cosmetic). Leave 'security-tradeoff' drafts alone — those wait for a human.
 2. For each picked draft: author probes/<id>.sh per the frozen probe contract (exit 0 GREEN / 1 RED with one 'ours=X oracle=Y' line / 2 BROKEN), mirroring the style of the suite's existing probes; author a known-bad trap fixture under probes/<id>.trap/<name>/; replace the smallest_fix TODO with the minimal observable slice; set 'probe:' on the draft entry and delete its 'needs_authoring' flag.
 3. Touch ONLY gaps.draft.yaml, probes/, and GAPS.md prose for the picked drafts. Never the product tree, never gaps.yaml — the baseline ceremony is the only door into the ledger.
@@ -88,6 +88,48 @@ d=json.load(sys.stdin)
 sys.exit(0 if d.get("recommended") else 1)'
 }
 
+# stop_verdict: ask the stopping controller whether the loop is done, from the
+# FULL MEASURED vector — never a mechanical guess. `open` (RED/open gaps) comes
+# from `next --json`; `regressed`/`broken` are parsed from the matrix summary
+# line ("... regressions R · broken B ..."). The gate counts are only half the
+# vector: `recurve sense` assembles the whole one, adding `uncovered` from the
+# completeness frontier and `divergent` from fidelity, so the loop feeds the
+# controller completeness and fidelity, not just soundness. (For a target with
+# no configured surface these are 0 / False, so behavior is unchanged.) The
+# controller's verdict is printed on stdout (STOP-SUCCESS / STOP-REVERT /
+# CONTINUE); the caller gates its success-halt on it. The cap/failure/runaway
+# watchdogs remain as backstops.
+stop_verdict() {
+  local next_json="$1" matrix_out open regressed broken sense_out uncovered divergent
+  open="$(py 'import json,sys
+d=json.loads(sys.argv[1])
+n=(1 if d.get("recommended") else 0)+len(d.get("then",[]))+len(d.get("review_gated",[]))
+print(n)' "$next_json")"
+  matrix_out="$($PROG matrix 2>/dev/null)"
+  regressed="$(py 'import re,sys
+m=re.search(r"regressions\s+(\d+)", sys.argv[1]); print(m.group(1) if m else 0)' "$matrix_out")"
+  broken="$(py 'import re,sys
+m=re.search(r"broken\s+(\d+)", sys.argv[1]); print(m.group(1) if m else 0)' "$matrix_out")"
+
+  # Source the FULL vector: sense takes the gate counts and adds `uncovered`
+  # from the frontier and `divergent` from fidelity. With no configured surface
+  # these come back 0 / False, which is correct — the completeness and fidelity
+  # signals only bind when the target has a surface to be incomplete about.
+  sense_out="$($PROG sense --open "${open:-0}" --regressed "${regressed:-0}" --broken "${broken:-0}" 2>/dev/null)"
+  uncovered="$(py 'import re,sys
+m=re.search(r"uncovered\s+(\d+)", sys.argv[1]); print(m.group(1) if m else 0)' "$sense_out")"
+  divergent="$(py 'import re,sys
+m=re.search(r"divergent\s+(\w+)", sys.argv[1]); print("1" if m and m.group(1)=="True" else "0")' "$sense_out")"
+
+  # Feed the whole vector to the controller. --divergent is a store_true flag on
+  # decide, so pass it only when fidelity actually diverged.
+  if [ "${divergent:-0}" = "1" ]; then
+    $PROG decide --open "${open:-0}" --regressed "${regressed:-0}" --broken "${broken:-0}" --uncovered "${uncovered:-0}" --divergent
+  else
+    $PROG decide --open "${open:-0}" --regressed "${regressed:-0}" --broken "${broken:-0}" --uncovered "${uncovered:-0}"
+  fi
+}
+
 fails=0
 runaway=0
 closed=0
@@ -100,7 +142,20 @@ while [ "$cycle" -lt "$CAP" ]; do
     DRAFTS="$(py 'import json,sys; d=json.loads(sys.argv[1]); print(sum(x["pending"] for x in d.get("drafts", [])))' "$NEXT_JSON")"
     FORKS="$(py 'import json,sys; print(json.loads(sys.argv[1]).get("adjudications_pending", 0))' "$NEXT_JSON")"
     if [ "${DRAFTS:-0}" -eq 0 ]; then
-      echo "burndown: no work left and no drafts pend — the spec is burned down. Halting."
+      # No backlog and no drafts — but the STOP decision is the controller's,
+      # not the empty-backlog watchdog's. Measure the cycle's gate vector and
+      # halt as burned-down ONLY when controller.decide returns STOP-SUCCESS;
+      # any other verdict means a regression or unmeasurable claim slipped in
+      # that no open gap tracks, so halt for the human instead of blind victory.
+      VERDICT="$(stop_verdict "$NEXT_JSON")"
+      if [ "$VERDICT" = "STOP-SUCCESS" ]; then
+        echo "burndown: no work left and no drafts pend — controller.decide verdict STOP-SUCCESS — the spec is burned down. Halting."
+        break
+      fi
+      # The backlog holds no gap the loop can pick up, yet the controller
+      # withholds STOP-SUCCESS — a regression or unmeasurable claim slipped in
+      # that no open gap tracks. Do not declare victory; halt for the human.
+      echo "burndown: backlog empty but controller.decide verdict is $VERDICT (not STOP-SUCCESS) — a regression or unmeasurable claim remains with no gap to sculpt. Halting for the human."
       break
     fi
     if [ "${FORKS:-0}" -gt 0 ]; then
@@ -122,7 +177,7 @@ while [ "$cycle" -lt "$CAP" ]; do
   cycle=$((cycle+1))
   echo "burndown cycle $cycle/$CAP: $GAP"
   RESULT_FILE="$(mktemp)"
-  PROMPT="You are running ONE improvement cycle. Read .recurve/RUN.md and obey it exactly.
+  PROMPT="You are running ONE improvement cycle. Read {{RUN_CONTRACT}} and obey it exactly.
 Your gap: $GAP  (details: \`$PROG show $GAP\`)
 Hard rules (non-negotiable, embedded because you are stateless):
 - never git reset/checkout shared state; never touch sacred paths

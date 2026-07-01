@@ -1,0 +1,124 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: PL-1
+  title: recurve decide surfaces the stopping controller (verdict_for mirrors controller.decide)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - PL-1
+  evidence:
+  - recurvelib/decide_cli.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: recurve decide surfaces the controller faithfully:
+    verdict_for mirrors controller.decide'
+  smallest_fix: add recurvelib/decide_cli.py with verdict_for(open, regressed, broken, uncovered,
+    divergent) returning controller.decide([Progress(...)]).value; add cmd_decide in cli.py
+    that parses a progress vector from flags and prints verdict_for(...), register the `decide`
+    subparser, and add it to the module docstring usage list
+  probe: probes/pl-1.sh
+  unlocks: 'the loop asking recurve for its stop verdict from a measured vector (controller
+    wired) — the first step of #4, and the first #4 claim burned down BY the loop'
+
+- id: PL-2
+  title: recurve frontier surfaces the completeness frontier (frontier_ids mirrors compute_frontier)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - PL-2
+  evidence:
+  - recurvelib/frontier_cli.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: recurve frontier surfaces the frontier faithfully:
+    frontier_ids mirrors compute_frontier'
+  smallest_fix: add recurvelib/frontier_cli.py with frontier_ids(surface, covered_ids, deferred_ids=())
+    returning [p.id for p in compute_frontier(surface, covered_ids, deferred_ids).frontier];
+    add cmd_frontier in cli.py that reports the frontier, register the `frontier` subparser,
+    and add it to the module docstring usage list
+  probe: probes/pl-2.sh
+  unlocks: the loop seeing what no claim covers (completeness surfaced) — the signal it needs
+    to refuse STOP-SUCCESS while the frontier is nonempty
+
+- id: PL-3
+  title: the burndown loop's stop decision consults controller.decide (not the cap watchdog)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - PL-3
+  observed: 'GREEN at baseline 2026-07-01: burndown.sh consults recurve decide and gates its
+    success-halt on the controller''s verdict'
+  smallest_fix: burndown.sh computes the cycle's gate vector (open/regressed/broken parsed
+    from recurve matrix) and calls `{{PROG}} decide` with it; the success-halt is gated on
+    the verdict being STOP-SUCCESS, so controller.decide decides when the loop is done — not
+    the ad-hoc no-work/cap watchdog. Must keep every TK burndown-behavior claim green.
+  probe: probes/pl-3.sh
+  unlocks: 'the loop''s stop verdict coming from controller.decide — the core of #4, the verification
+    layer wired into the running loop (uncovered/divergent join the vector as PL-4 lands)'
+
+- id: PL-4
+  title: recurve sense assembles the full measured vector (open/regressed/broken/uncovered/divergent)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - PL-4
+  evidence:
+  - recurvelib/sense_cli.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: recurve sense mirrors runtime.sense (incl.
+    uncovered + divergent): (2, 1, 0, 1, True)'
+  smallest_fix: add recurvelib/sense_cli.py with sense_vector(gate_counts, surface, covered_ids,
+    goal_counterexamples, deferred_ids=()) returning the fields of runtime.sense(...)[0] as
+    a dict (open/regressed/broken/uncovered/divergent); add cmd_sense in cli.py + register
+    the verb
+  probe: probes/pl-4.sh
+  unlocks: 'the loop feeding the FULL measured vector (frontier + divergence, not just gate
+    counts) to the controller — the completeness + fidelity half of #4 (PL-5)'
+
+- id: PL-5
+  title: the loop feeds the full measured vector (uncovered + divergent) to the controller
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - PL-5
+  observed: 'GREEN at baseline 2026-07-01: the loop sources the full vector via recurve sense
+    and feeds --uncovered + --divergent to the controller'
+  smallest_fix: burndown.sh's stop_verdict sources the full vector via `$PROG sense` (which
+    adds uncovered from the frontier and divergent from fidelity) and passes --uncovered and
+    --divergent to `$PROG decide`, so an uncovered frontier or a divergence blocks STOP-SUCCESS
+    — not just the gate counts. Must keep every TK burndown claim + the behavior tests green.
+  probe: probes/pl-5.sh
+  unlocks: 'completeness + fidelity gating the loop''s success (not only soundness) — the
+    uncovered-frontier and accepted-divergence acceptance criteria of #4'
+
+- id: PL-6
+  title: admission gates claimify — a non-gateable goal is refused before it becomes claims
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - PL-6
+  evidence:
+  - recurvelib/claimify.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: admission gates claimify: gateable -> ADMIT, vague
+    -> REFUSE, run_claimify consults it'
+  smallest_fix: add recurvelib.claimify.admit_result(result) that maps each DraftClaim to
+    an admission Assertion (falsifiable=True, has_counterexample=bool(twin), bounded=not fork)
+    and returns admission.admit(assertions); run_claimify calls it and, on a non-ADMIT verdict,
+    surfaces the interview worklist / refuses instead of writing a live drafts suite — so
+    an admission-refused goal never becomes claims and never enters a cycle
+  probe: probes/pl-6.sh
+  unlocks: 'admission wired at the front of the loop — the last of #4''s acceptance criteria:
+    a vague aim is interviewed toward a contract, not burned into a brittle proxy'
