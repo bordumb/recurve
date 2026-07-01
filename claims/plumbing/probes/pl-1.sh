@@ -30,7 +30,8 @@ except ImportError:
     print("ours=no `recurve decide` surface yet oracle=verdict_for mirrors controller.decide")
     sys.exit(1)  # RED-first: the surface does not exist
 
-cases = [(0, 0, 0, 0, False), (2, 0, 0, 0, False), (0, 0, 1, 0, False), (0, 0, 0, 3, False)]
+cases = [(0, 0, 0, 0, False), (2, 0, 0, 0, False), (0, 0, 1, 0, False), (0, 0, 0, 3, False),
+         (0, 0, 0, 0, True)]  # green BUT divergent -> must be CONTINUE, never STOP-SUCCESS
 for c in cases:
     want = decide([Progress(*c)]).value
     try:
