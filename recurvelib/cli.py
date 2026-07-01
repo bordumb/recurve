@@ -9,6 +9,8 @@ probed, gated, burn-downable gaps.
     recurve next                   value-first triage; flags review-gated gaps
     recurve run [--agent CMD]      run the burndown loop; the agent defaults to a
                                    bypass-permissions Claude (--dry-run to preview)
+    recurve decide [--open N …]    ask the stopping controller for its stop verdict
+                                   from a measured progress vector (never blind)
     recurve probe [--suite S|--gap ID]   run gap probes, report RED/GREEN/BROKEN
     recurve matrix [--gate]        the conformance matrix; --gate exits nonzero on
                                    any regression, broken probe, or stale suite
@@ -158,6 +160,11 @@ def cmd_probe(args):
     gaps = _filter(_load(cfg), args.suite, args.gap)
     matrix = run_matrix(gaps, cfg, timeout_s=args.timeout)
     print(render.matrix_table(matrix))
+
+
+def cmd_decide(args):
+    from .decide_cli import verdict_for
+    print(verdict_for(args.open, args.regressed, args.broken, args.uncovered, args.divergent))
 
 
 def cmd_matrix(args):
@@ -1050,6 +1057,14 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.add_argument("--federate", action="append", metavar="RECURVE_TOML",
                    help="also gate another project's suites (shared-tree federation); repeatable")
     s.set_defaults(fn=cmd_matrix)
+
+    s = sub.add_parser("decide", help="run the stopping controller on a measured progress vector and print its verdict")
+    s.add_argument("--open", type=int, default=0, help="claims still RED (work remaining)")
+    s.add_argument("--regressed", type=int, default=0, help="claims that went GREEN → RED this cycle")
+    s.add_argument("--broken", type=int, default=0, help="claims that could not be measured")
+    s.add_argument("--uncovered", type=int, default=0, help="frontier size (completeness signal)")
+    s.add_argument("--divergent", action="store_true", help="a goal-counterexample passed (built the wrong thing)")
+    s.set_defaults(fn=cmd_decide)
 
     s = sub.add_parser("receipts", help="evidence chains: verify / list")
     s.add_argument("action", choices=["verify", "list"])

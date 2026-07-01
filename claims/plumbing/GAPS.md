@@ -11,12 +11,15 @@
 `missing-surface` claims about the recurve engine, `reads: none` — each probe
 executes the behavior against a kept counterexample.
 
-## PL-1 — recurve decide surfaces the stopping controller
+## PL-1 — recurve decide surfaces the stopping controller ✓
 
 `recurve decide` runs the stopping controller (`controller.decide`) on a
-progress vector and prints the verdict, so the loop — and a human — can ask
-recurve what to do from a *measured* vector instead of the cap watchdog deciding
-blind. The verb's logic (`recurvelib.decide_cli.verdict_for`) must mirror
-`controller.decide` exactly. Negative space: a decide surface whose verdict
-disagrees with `controller.decide` (e.g. always STOP-SUCCESS) must turn the
-probe RED.
+progress vector read from flags (`--open/--regressed/--broken/--uncovered/--divergent`)
+and prints the verdict, so the loop — and a human — can ask recurve what to do
+from a *measured* vector instead of the cap watchdog deciding blind. The verb's
+logic (`recurvelib.decide_cli.verdict_for`) is a thin faithful mirror of
+`controller.decide`: it wraps the vector in a one-cycle history and returns the
+verdict's string value, adding no policy of its own, so it can never disagree
+with the referee it exposes. Negative space (kept RED as a counterexample): a
+decide surface whose verdict disagrees with `controller.decide` (e.g. always
+STOP-SUCCESS) turns the probe RED.

@@ -5,13 +5,16 @@
 - id: PL-1
   title: recurve decide surfaces the stopping controller (verdict_for mirrors controller.decide)
   class: missing-surface
-  status: open
+  status: closed
   severity: feature
   reads: none
   covers:
   - PL-1
-  observed: 'RED at baseline 2026-07-01: ours=no `recurve decide` surface yet oracle=verdict_for
-    mirrors controller.decide'
+  evidence:
+  - recurvelib/decide_cli.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: recurve decide surfaces the controller faithfully:
+    verdict_for mirrors controller.decide'
   smallest_fix: add recurvelib/decide_cli.py with verdict_for(open, regressed, broken, uncovered,
     divergent) returning controller.decide([Progress(...)]).value; add cmd_decide in cli.py
     that parses a progress vector from flags and prints verdict_for(...), register the `decide`
