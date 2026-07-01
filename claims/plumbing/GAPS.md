@@ -59,7 +59,7 @@ just the gate counts. The verb's logic (`recurvelib.sense_cli.sense_vector`) mir
 (`uncovered`) or fidelity (`divergent`) signal — reporting 0 / False — turns the
 probe RED.
 
-## PL-5 — the loop feeds the full vector to the controller
+## PL-5 — the loop feeds the full vector to the controller ✓
 
 `burndown.sh`'s stop decision sources the full vector (via `recurve sense`) and
 passes `--uncovered` and `--divergent` to `recurve decide`, so an uncovered frontier

@@ -88,14 +88,19 @@ d=json.load(sys.stdin)
 sys.exit(0 if d.get("recommended") else 1)'
 }
 
-# stop_verdict: ask the stopping controller whether the loop is done, from a
-# MEASURED gate vector — never a mechanical guess. `open` (RED/open gaps) comes
+# stop_verdict: ask the stopping controller whether the loop is done, from the
+# FULL MEASURED vector — never a mechanical guess. `open` (RED/open gaps) comes
 # from `next --json`; `regressed`/`broken` are parsed from the matrix summary
-# line ("... regressions R · broken B ..."). The controller's verdict is
-# printed on stdout (STOP-SUCCESS / STOP-REVERT / CONTINUE); the caller gates
-# its success-halt on it. The cap/failure/runaway watchdogs remain as backstops.
+# line ("... regressions R · broken B ..."). The gate counts are only half the
+# vector: `recurve sense` assembles the whole one, adding `uncovered` from the
+# completeness frontier and `divergent` from fidelity, so the loop feeds the
+# controller completeness and fidelity, not just soundness. (For a target with
+# no configured surface these are 0 / False, so behavior is unchanged.) The
+# controller's verdict is printed on stdout (STOP-SUCCESS / STOP-REVERT /
+# CONTINUE); the caller gates its success-halt on it. The cap/failure/runaway
+# watchdogs remain as backstops.
 stop_verdict() {
-  local next_json="$1" matrix_out open regressed broken
+  local next_json="$1" matrix_out open regressed broken sense_out uncovered divergent
   open="$(py 'import json,sys
 d=json.loads(sys.argv[1])
 n=(1 if d.get("recommended") else 0)+len(d.get("then",[]))+len(d.get("review_gated",[]))
@@ -105,7 +110,24 @@ print(n)' "$next_json")"
 m=re.search(r"regressions\s+(\d+)", sys.argv[1]); print(m.group(1) if m else 0)' "$matrix_out")"
   broken="$(py 'import re,sys
 m=re.search(r"broken\s+(\d+)", sys.argv[1]); print(m.group(1) if m else 0)' "$matrix_out")"
-  $PROG decide --open "${open:-0}" --regressed "${regressed:-0}" --broken "${broken:-0}"
+
+  # Source the FULL vector: sense takes the gate counts and adds `uncovered`
+  # from the frontier and `divergent` from fidelity. With no configured surface
+  # these come back 0 / False, which is correct — the completeness and fidelity
+  # signals only bind when the target has a surface to be incomplete about.
+  sense_out="$($PROG sense --open "${open:-0}" --regressed "${regressed:-0}" --broken "${broken:-0}" 2>/dev/null)"
+  uncovered="$(py 'import re,sys
+m=re.search(r"uncovered\s+(\d+)", sys.argv[1]); print(m.group(1) if m else 0)' "$sense_out")"
+  divergent="$(py 'import re,sys
+m=re.search(r"divergent\s+(\w+)", sys.argv[1]); print("1" if m and m.group(1)=="True" else "0")' "$sense_out")"
+
+  # Feed the whole vector to the controller. --divergent is a store_true flag on
+  # decide, so pass it only when fidelity actually diverged.
+  if [ "${divergent:-0}" = "1" ]; then
+    $PROG decide --open "${open:-0}" --regressed "${regressed:-0}" --broken "${broken:-0}" --uncovered "${uncovered:-0}" --divergent
+  else
+    $PROG decide --open "${open:-0}" --regressed "${regressed:-0}" --broken "${broken:-0}" --uncovered "${uncovered:-0}"
+  fi
 }
 
 fails=0
