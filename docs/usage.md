@@ -85,41 +85,68 @@ This is the human-owned step; it is deliberately the bottleneck.
 
 ## Step 3 — Kick off the loop
 
-=== "Unattended (walk away)"
+The primary way to run recurve is **from inside your agent session** — it stays
+where you already are, you steer between cycles, and there is nothing to babysit.
+A terminal loop is there for walk-away / CI.
+
+=== "In your agent session (recommended)"
+
+    Open a Claude Code session in the target and invoke the **loop** skill
+    (`init` stamped it into `.claude/skills/loop/`):
+
+    ```text
+    > run the recurve loop        (the loop skill)
+    ```
+
+    The session becomes the **orchestrator**: it spawns **one fresh sub-agent
+    per cycle** (the ledger is the only memory — no context rot), holds the tree
+    lock, and gates every cycle on `recurve matrix --gate`. `init` also stamps
+    `.claude/settings.json` with `defaultMode: bypassPermissions`, so a CLI
+    session runs cycles without stopping for permission prompts. That is safe
+    because the loop is a **cage**: the write boundary keeps each sub-agent off
+    the referee surface, per-cycle commits make any cycle a one-command
+    rollback, and nothing closes without the gate. (For one cycle only, invoke
+    the **cycle** skill instead.)
+
+=== "Terminal, unattended (walk away / CI)"
 
     ```bash
     cd ~/code/myproject
-    export PATH="$PWD/bin:$PATH"          # however recurve reaches your PATH
+    recurve run                          # agent defaults to a bypass-permissions Claude
+    ```
+
+    `recurve run` is the wrapper: it fills in a headless bypass-permissions
+    agent (an unattended cycle cannot answer a prompt), the cap, and macOS
+    keep-awake, then execs the stamped workflow. `--dry-run` previews the exact
+    invocation; `--agent '<cmd>'` (or `$AGENT_CMD`) overrides the default;
+    `--lanes N` runs parallel lanes. To drive the raw workflow yourself:
+
+    ```bash
     AGENT_CMD='claude -p --permission-mode bypassPermissions' CAP=12 \
       caffeinate -dimsu bash .recurve/workflows/burndown.sh
     ```
 
-    `AGENT_CMD` is any agent harness that reads a prompt on stdin and writes
-    a run-record JSON to `$RECURVE_RESULT_FILE` — the loop believes only the
-    record and the gate, never the agent's word. Watchdogs halt on: no work
-    left, the cap, consecutive failures, or runaway scope. Un-greenable gaps
-    are parked with attempt journals; the loop moves on.
-
-    (`caffeinate` is macOS keep-awake; a sleeping machine looks like a hung
-    agent.)
-
-=== "One cycle by hand"
-
-    Follow `.recurve/RUN.md` — it is the entrypoint and the stop condition.
-    Short form: `recurve next`, sculpt the smallest honest change, rebuild,
-    `recurve matrix --gate`, promote open→closed + rewrite the prose,
-    snapshot, commit, `recurve record append`, **stop**. One cycle = one
-    agent.
+    The loop believes only the run-record and the gate, never the agent's word.
+    Watchdogs halt on: no work left, the cap, consecutive failures, or runaway
+    scope. Un-greenable gaps are parked; the loop moves on. (`AGENT_CMD` is any
+    harness that reads a prompt on stdin and writes a run-record to
+    `$RECURVE_RESULT_FILE`.)
 
 === "Parallel lanes"
 
     ```bash
-    AGENT_CMD='...' PARALLEL=2 bash .recurve/workflows/burndown-parallel.sh
+    recurve run --lanes 2
+    # or, raw: AGENT_CMD='...' PARALLEL=2 bash .recurve/workflows/burndown-parallel.sh
     ```
 
     Lanes sculpt in isolated git worktrees over disjoint suites; the gate is
     the serialization point — candidates land one at a time, failures are
     reverted and discarded, never merged.
+
+!!! note "Any chat host — planned"
+    An MCP server (`recurve-mcp`) will expose the loop's verbs to any chat host
+    (Claude Desktop, other IDEs, non-Claude agents) — the same in-session model,
+    beyond Claude Code. Not shipped yet.
 
 ### While it runs
 
