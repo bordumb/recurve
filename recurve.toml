@@ -46,3 +46,8 @@ harness = []
 dir = "claims/runtime"
 rebuild = ""               # pure engine module; nothing to copy
 harness = []
+
+[suites.adapters]
+dir = "claims/adapters"
+rebuild = ""               # git-backed adapters; probes drive real temp repos
+harness = []

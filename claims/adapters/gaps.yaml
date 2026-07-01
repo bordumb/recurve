@@ -1,0 +1,58 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: AP-1
+  title: the write boundary is enforced when a patch is applied to a real tree
+  class: security-tradeoff
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ap-1.sh:1
+  observed: 'GREEN at baseline 2026-07-01: apply refuses a referee-surface patch (nothing
+    written) and writes a target-tree patch'
+  smallest_fix: GitWorld.apply checks within_boundary on every path before writing; refuses
+    on violation.
+  probe: probes/ap-1.sh
+  unlocks: the live actor cannot edit its own probes/traps on disk
+
+- id: AP-2
+  title: checkpoint then restore rolls a real tree back
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ap-2.sh:1
+  observed: 'GREEN at baseline 2026-07-01: checkpoint then restore rolls the working tree
+    back to the snapshot'
+  smallest_fix: checkpoint commits and returns HEAD; restore does git reset --hard to it.
+  probe: probes/ap-2.sh
+  unlocks: STOP-REVERT actually undoes the actor changes on disk
+
+- id: AP-3
+  title: the actor is driven by the external command
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ap-3.sh:1
+  observed: 'GREEN at baseline 2026-07-01: actor returns the command''s parsed patch; empty
+    stdout -> no change ({})'
+  smallest_fix: CommandActor runs the command, feeds evidence on stdin, parses the JSON patch
+    from stdout.
+  probe: probes/ap-3.sh
+  unlocks: a real (BYO) agent drives the loop through a stable seam
+
+- id: AP-4
+  title: the loop burns a real repo down and stops
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ap-4.sh:1
+  observed: 'GREEN at baseline 2026-07-01: live loop on a real repo: RED -> GREEN on disk,
+    STOP-SUCCESS, referee untouched'
+  smallest_fix: 'GitWorld + CommandActor compose under run(): apply writes, gate re-measures,
+    controller stops.'
+  probe: probes/ap-4.sh
+  unlocks: the autonomous loop runs end to end on a real tree, not just a stub world
