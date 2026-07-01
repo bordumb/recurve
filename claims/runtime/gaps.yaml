@@ -1,0 +1,95 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: RT-1
+  title: the loop stops by the gate, never the actor word
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-1.sh:1
+  observed: 'GREEN at baseline 2026-07-01: fixing actor -> STOP-SUCCESS + world green; lying
+    actor -> never STOP-SUCCESS (verdict from the gate)'
+  smallest_fix: 'run computes the verdict from world.gate() via decide(); the actor''s output
+    is only applied as a diff.
+
+    '
+  probe: probes/rt-1.sh
+  unlocks: A1 — an autonomous loop you can trust because the trust lives in the gate, not
+    the actor
+
+- id: RT-2
+  title: Sense reports the real uncovered work
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/rt-2.sh:1
+  observed: 'GREEN at baseline 2026-07-01: Sense surfaces the uncovered unit: uncovered=1,
+    frontier=[''alpha''], pick_next -> alpha'
+  smallest_fix: 'sense derives uncovered and the frontier from completeness_report.
+
+    '
+  probe: probes/rt-2.sh
+  unlocks: A2 — the loop closes silent holes, not just RED claims
+
+- id: RT-3
+  title: Sense feeds divergence so a green-but-diverged cycle does not stop
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-3.sh:1
+  observed: 'GREEN at baseline 2026-07-01: green-but-diverged cycle: divergent=True, decide
+    != STOP-SUCCESS (intent breach blocks the stop)'
+  smallest_fix: 'sense sets Progress.divergent from fidelity.divergent(goal_counterexamples).
+
+    '
+  probe: probes/rt-3.sh
+  unlocks: A3 — green probes cannot buy a success-stop when intent was broken
+
+- id: RT-4
+  title: the write boundary keeps the actor off the referee surface
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-4.sh:1
+  observed: 'GREEN at baseline 2026-07-01: target-only diff accepted; a probe-editing diff
+    and an outside diff both rejected'
+  smallest_fix: 'within_boundary requires every diff path under target_root and under no referee_root.
+
+    '
+  probe: probes/rt-4.sh
+  unlocks: A4 — an autonomous actor cannot weaken the test it is graded by
+
+- id: RT-5
+  title: the capture rule only accepts a discriminating trap
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/rt-5.sh:1
+  observed: 'GREEN at baseline 2026-07-01: capture accepts only a discriminating trap (RED
+    on wrong, GREEN on real)'
+  smallest_fix: 'capture returns trap_red_on_wrong AND trap_green_on_real.
+
+    '
+  probe: probes/rt-5.sh
+  unlocks: A5 — an adversary objection becomes evidence only when it discriminates
+
+- id: RT-6
+  title: the actor is reached only on an admitted contract
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-6.sh:1
+  observed: 'GREEN at baseline 2026-07-01: ADMIT -> actor invoked; non-ADMIT -> actor never
+    called, returns None'
+  smallest_fix: 'guarded_propose returns None unless admitted(report) is true.
+
+    '
+  probe: probes/rt-6.sh
+  unlocks: A6 — a non-ADMIT contract is never burned down
