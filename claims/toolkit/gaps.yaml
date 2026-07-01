@@ -295,3 +295,44 @@
   probe: probes/tk-17.sh
   unlocks: the in-session loop as a first-class surface (the primary entry point of the command-surface
     plan) without losing the clean-agent-per-cycle hygiene
+
+- id: TK-18
+  title: recurve run defaults the agent to a bypass-permissions Claude when AGENT_CMD is unset
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-18
+  evidence:
+  - recurvelib/run.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: unset AGENT_CMD -> ''claude -p --permission-mode
+    bypassPermissions'' [default] — the loop never stalls on a permission prompt'
+  smallest_fix: recurvelib/run.py resolve_agent() returns DEFAULT_AGENT ("claude -p --permission-mode
+    bypassPermissions") with source "default" when both the --agent flag and $AGENT_CMD are
+    unset; cmd_run wires it into `recurve run` so an unattended loop never stalls on a permission
+    prompt
+  probe: probes/tk-18.sh
+  unlocks: a headless loop that flows without setting AGENT_CMD by hand — the P1 wrapper with
+    a safe, visible bypass default
+
+- id: TK-19
+  title: init stamps .claude/settings.json defaulting the permission mode to bypassPermissions
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-19
+  evidence:
+  - templates/settings.json
+  - recurvelib/init.py
+  observed: 'GREEN at baseline 2026-07-01: stamped .claude/settings.json defaults permissions.defaultMode=bypassPermissions
+    — the loop flows without prompts'
+  smallest_fix: templates/settings.json sets permissions.defaultMode=bypassPermissions; init.py
+    stamps it to <target>/.claude/settings.json alongside the skills, so a Claude Code CLI
+    session in the target runs the loop without permission prompts
+  probe: probes/tk-19.sh
+  unlocks: the in-session loop flowing with no launch flag on the Claude Code CLI/desktop
+    (claude.ai web ignores the committed default, by design)

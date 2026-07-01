@@ -7,6 +7,8 @@ probed, gated, burn-downable gaps.
     recurve show <gap-id>          one gap in full
     recurve validate               schema + invariants: every open gap has a probe
     recurve next                   value-first triage; flags review-gated gaps
+    recurve run [--agent CMD]      run the burndown loop; the agent defaults to a
+                                   bypass-permissions Claude (--dry-run to preview)
     recurve probe [--suite S|--gap ID]   run gap probes, report RED/GREEN/BROKEN
     recurve matrix [--gate]        the conformance matrix; --gate exits nonzero on
                                    any regression, broken probe, or stale suite
@@ -548,6 +550,39 @@ def cmd_install(args):
               f"export PATH=\"{bin_dir}:$PATH\"\033[0m")
 
 
+def cmd_run(args):
+    """Run the burndown loop with sensible defaults — the friendly wrapper over
+    the stamped workflow (`recurvelib.run`). Resolves the agent (defaulting to a
+    bypass-permissions Claude so an unattended cycle never stalls on a prompt),
+    the cap, and the script, then execs it. `--dry-run` prints the resolution
+    and exits."""
+    import os
+    import subprocess
+
+    from .run import build_run, bypasses_permissions, resolve_agent
+
+    cfg = _config(args)
+    agent, source = resolve_agent(args.agent, os.environ.get("AGENT_CMD"))
+    cap = args.cap if args.cap is not None else cfg.burndown_cap
+    argv, overrides = build_run(cfg, agent, cap, args.lanes, args.parked,
+                                caffeinate=not args.no_caffeinate)
+    script = Path(argv[-1])
+    if not script.exists():
+        _fail(f"no workflow at {script} — run `{args.prog} init` in the target first", 1)
+
+    warn = "  \033[33m⚠ permissions bypassed\033[0m" if bypasses_permissions(agent) else ""
+    lanes = f"   lanes: {args.lanes}" if args.lanes and args.lanes > 1 else ""
+    print(f"agent: {agent}   [{source}]{warn}")
+    print(f"cap: {cap}   script: {script.name}{lanes}")
+    if args.dry_run:
+        print(" ".join(argv))
+        return
+
+    env = dict(os.environ)
+    env.update(overrides)
+    raise SystemExit(subprocess.run(argv, env=env).returncode)
+
+
 def cmd_record(args):
     import json as _json
     from .records import RecordError, validate_run_record
@@ -871,6 +906,15 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.add_argument("--bin-dir", default="~/.local/bin",
                    help="directory to link recurve into (default: ~/.local/bin)")
     s.set_defaults(fn=cmd_install)
+
+    s = sub.add_parser("run", help="run the burndown loop with sensible defaults (agent defaults to a bypass-permissions Claude)")
+    s.add_argument("--agent", help="agent invocation (reads a cycle prompt on stdin); overrides $AGENT_CMD and the default")
+    s.add_argument("--cap", type=int, help="max sculpting cycles (default: [burndown] cap)")
+    s.add_argument("--lanes", type=int, help="run N parallel lanes (uses burndown-parallel.sh)")
+    s.add_argument("--parked", help="comma-separated parked gap ids to seed this run")
+    s.add_argument("--no-caffeinate", action="store_true", help="do not keep the machine awake (macOS)")
+    s.add_argument("--dry-run", action="store_true", help="print the resolved agent + cap + script and exit, without running")
+    s.set_defaults(fn=cmd_run)
 
     s = sub.add_parser("record", help="run records: append (schema-validated) / list")
     s.add_argument("action", choices=["append", "list"])

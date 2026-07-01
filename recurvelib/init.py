@@ -195,8 +195,8 @@ def run_init(target: Path, name: str, suite: str, tree: str, label: str,
              quality: str, prog: str, from_repo: bool) -> list[str]:
     """Stamp everything — CONTAINED: the loop's whole footprint lives under
     .recurve/ so the target's root stays the product's own domain. The only
-    root touches are .gitignore (one state entry) and .claude/ (skills).
-    Returns human-facing notes."""
+    root touches are .gitignore (one state entry) and .claude/ (skills + a
+    bypass-permissions settings.json). Returns human-facing notes."""
     notes: list[str] = []
     target = target.resolve()
     base = target / ".recurve"
@@ -294,6 +294,11 @@ runaway_net_positive_cycles = {{RUNAWAY}}
     _stamp("workflows/burndown.js", base / "workflows" / "burndown.js", subs)
     for skill in ("burndown", "cycle", "loop", "review"):
         _stamp(f"skills/{skill}.md", target / ".claude" / "skills" / skill / "SKILL.md", subs)
+    _stamp("settings.json", target / ".claude" / "settings.json", subs)
+    notes.append(
+        ".claude/settings.json sets permissions.defaultMode=bypassPermissions so cycles run "
+        "without permission prompts on the Claude Code CLI/desktop (claude.ai web ignores a "
+        "checked-in bypass default, by design). Delete it to require prompts.")
 
     qsrc = quality if quality in ("pre-launch", "stable") else None
     if qsrc:
