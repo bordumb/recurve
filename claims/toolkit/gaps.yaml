@@ -32,6 +32,9 @@
   smallest_fix: (already conformant at extraction) — guard the equivalence forever
   probe: probes/tk-2.sh
   unlocks: the migration IS the test suite; if this breaks, the engine generalized wrong
+  oracle_waiver: the ancestor instances are an external acceptance target, absent from a
+    standalone checkout; the probe skips (non-blocking) when they are not present and runs
+    full-strength — RED on any divergence — wherever they are
 
 - id: TK-3
   title: 'the verdict map is total: crash/signal/timeout coerce to BROKEN, never a verdict'

@@ -29,6 +29,14 @@ from .model import Gap, Status
 from .probe import Outcome, ProbeResult, ProbeRunner, ShellProbeRunner, TrapResult, run_traps
 
 
+def is_waived_skip(result: ProbeResult) -> bool:
+    """A probe that reported its external oracle absent (SKIP, exit 3) on a claim
+    that DECLARED an `oracle_waiver` — a visible, non-blocking "not applicable
+    here". A SKIP without a declared waiver is NOT honored: it blocks the gate
+    like a broken probe, so a probe can never silently dodge the gate."""
+    return result.outcome is Outcome.SKIP and bool(result.gap.oracle_waiver)
+
+
 @dataclass(frozen=True)
 class Matrix:
     results: tuple[ProbeResult, ...]
@@ -45,7 +53,17 @@ class Matrix:
 
     @property
     def broken(self) -> list[ProbeResult]:
-        return [r for r in self.results if r.outcome is Outcome.BROKEN]
+        # BROKEN, plus an UNdeclared skip: a probe cannot dodge the gate by
+        # reporting its oracle absent unless the claim declared an oracle_waiver.
+        return [r for r in self.results
+                if r.outcome is Outcome.BROKEN
+                or (r.outcome is Outcome.SKIP and not r.gap.oracle_waiver)]
+
+    @property
+    def skipped(self) -> list[ProbeResult]:
+        """Probes whose external oracle was absent AND whose claim declared an
+        oracle_waiver — non-blocking, but surfaced as visible debt."""
+        return [r for r in self.results if is_waived_skip(r)]
 
     @property
     def missing(self) -> list[ProbeResult]:
@@ -87,6 +105,7 @@ class Matrix:
             "broken": len(self.broken),
             "stale": len(self.stale),
             "missing": len(self.missing),
+            "skipped": len(self.skipped),
         }
 
 
@@ -125,9 +144,13 @@ def run_matrix(
     # discipline ([gate] traps = "off").
     trap_results: list[TrapResult] = []
     if config.traps == "required":
+        # A probe whose external oracle was absent (SKIP) can't run its traps
+        # either — exclude it so a not-applicable claim doesn't fail the trap pass.
+        skipped_ids = {r.gap.id for r in results if r.outcome is Outcome.SKIP}
         guards = [g for g in measurable
                   if g.status is Status.CLOSED
-                  and fresh[(g.suite, g.reads)].state is not Freshness.STALE]
+                  and fresh[(g.suite, g.reads)].state is not Freshness.STALE
+                  and g.id not in skipped_ids]
         with ThreadPoolExecutor(max_workers=workers) as pool:
             for batch in pool.map(lambda g: run_traps(g, runner, timeout_s), guards):
                 trap_results.extend(batch)

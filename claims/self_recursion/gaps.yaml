@@ -1,0 +1,66 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: SR-1
+  title: recurve run resolves a runnable burndown workflow on the self-host repo
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - SR-1
+  evidence:
+  - recurvelib/run.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: the loop is runnable on its own repo: recurve run
+    resolves /Users/bordumb/workspace/repositories/auths-base/recurve/templates/workflows/burndown.sh'
+  smallest_fix: recurvelib/run.py resolve_workflow() returns the stamped workflow if present,
+    else the engine's shipped templates/workflows/burndown.sh, so `recurve run` works on the
+    recurve repo itself; cmd_run errors only when neither exists
+  probe: probes/sr-1.sh
+  unlocks: 'the loop running on its own repo — the prerequisite for building #4 (complete
+    the plumbing) WITH the loop instead of by hand'
+
+- id: SR-2
+  title: the self-host gate is greenable — a declared oracle_waiver skips, an undeclared skip
+    still blocks
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - SR-2
+  evidence:
+  - recurvelib/conformance.py
+  - recurvelib/probe.py
+  - claims/toolkit/gaps.yaml
+  observed: 'GREEN at baseline 2026-07-01: a declared oracle_waiver honors a skip (non-blocking);
+    an undeclared skip still blocks'
+  smallest_fix: a probe may exit 3 (SKIP) when its external oracle is absent; conformance.is_waived_skip
+    honors it as non-blocking ONLY when the claim declares an oracle_waiver, else it counts
+    as broken; TK-2 declares the waiver, so the self-host gate is green while the ancestors
+    are absent — without letting any probe dodge the gate by exiting 3
+  probe: probes/sr-2.sh
+  unlocks: 'a green self-host gate, so recurve run gets past preflight and the loop can execute
+    on its own repo — the rest of #5, and the door to building #4 with the loop'
+
+- id: SR-3
+  title: recurve run materializes the shipped template fully interpolated before running it
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - SR-3
+  evidence:
+  - recurvelib/run.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: materialized workflow is fully interpolated — no
+    placeholder survives; runnable under bash'
+  smallest_fix: materialize_workflow interpolates the shipped template (PROG/CAP/MAX_FAILS/RUNAWAY/
+    COMMIT_POLICY) into a temp file before exec, so no {{...}} survives; the raw template's
+    ${RECURVE_BIN:-{{PROG}}} mis-parses under bash and cannot run un-interpolated
+  probe: probes/sr-3.sh
+  unlocks: recurve run actually EXECUTES the loop on the self-host repo (not just resolves
+    it) — the loop verifiably runs on its own repo, end to end

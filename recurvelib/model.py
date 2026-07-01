@@ -73,6 +73,8 @@ class Gap:
     probe: Path | None
     source_file: Path        # the gaps.yaml this came from (for error messages)
     trap_waiver: str = ""    # reason this probe carries no trap (counted, visible debt)
+    oracle_waiver: str = ""  # reason the probe's external oracle may be absent — a
+                             # SKIP (exit 3) is then non-blocking, counted, visible debt
 
     @property
     def trap_dir(self) -> Path | None:
@@ -182,6 +184,7 @@ class Gap:
             probe=probe,
             source_file=source_file,
             trap_waiver=str(raw.get("trap_waiver", "")).strip(),
+            oracle_waiver=str(raw.get("oracle_waiver", "")).strip(),
         )
 
 

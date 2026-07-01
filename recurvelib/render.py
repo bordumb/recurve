@@ -53,7 +53,7 @@ def matrix_table(matrix: Matrix) -> str:
         color = {
             Outcome.GREEN: C["green"], Outcome.RED: C["dim"],
             Outcome.BROKEN: C["amber"], Outcome.MISSING: C["dim"],
-            Outcome.STALE: C["amber"],
+            Outcome.STALE: C["amber"], Outcome.SKIP: C["dim"],
         }[r.outcome]
         delta = ""
         if r.is_regression:
@@ -75,6 +75,7 @@ def matrix_table(matrix: Matrix) -> str:
         f"{C['red']}regressions {c['regressions']}{C['reset']} · "
         f"{C['amber']}broken {c['broken']}{C['reset']} · "
         f"{C['amber']}stale {c['stale']}{C['reset']} · "
+        f"skipped {c['skipped']} · "
         f"missing {c['missing']}"
     )
     out.append(summary)
@@ -82,6 +83,10 @@ def matrix_table(matrix: Matrix) -> str:
         out.append(dim("stale artifacts (rebuild before trusting the gate):"))
         for f in matrix.stale_suites:
             out.append(f"  {C['amber']}≈ {f.label}{C['reset']} — {dim(f.detail)}")
+    if matrix.skipped:
+        out.append(dim("skipped (external oracle absent — declared oracle_waiver, visible debt):"))
+        for r in matrix.skipped:
+            out.append(f"  {C['dim']}⊘ {r.gap.id}{C['reset']} — {dim(r.gap.oracle_waiver or r.detail)}")
     if matrix.trap_results:
         ok = sum(1 for t in matrix.trap_results if t.ok)
         out.append(dim(f"traps: {ok}/{len(matrix.trap_results)} counterexamples still RED"))
