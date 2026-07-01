@@ -88,6 +88,26 @@ d=json.load(sys.stdin)
 sys.exit(0 if d.get("recommended") else 1)'
 }
 
+# stop_verdict: ask the stopping controller whether the loop is done, from a
+# MEASURED gate vector — never a mechanical guess. `open` (RED/open gaps) comes
+# from `next --json`; `regressed`/`broken` are parsed from the matrix summary
+# line ("... regressions R · broken B ..."). The controller's verdict is
+# printed on stdout (STOP-SUCCESS / STOP-REVERT / CONTINUE); the caller gates
+# its success-halt on it. The cap/failure/runaway watchdogs remain as backstops.
+stop_verdict() {
+  local next_json="$1" matrix_out open regressed broken
+  open="$(py 'import json,sys
+d=json.loads(sys.argv[1])
+n=(1 if d.get("recommended") else 0)+len(d.get("then",[]))+len(d.get("review_gated",[]))
+print(n)' "$next_json")"
+  matrix_out="$($PROG matrix 2>/dev/null)"
+  regressed="$(py 'import re,sys
+m=re.search(r"regressions\s+(\d+)", sys.argv[1]); print(m.group(1) if m else 0)' "$matrix_out")"
+  broken="$(py 'import re,sys
+m=re.search(r"broken\s+(\d+)", sys.argv[1]); print(m.group(1) if m else 0)' "$matrix_out")"
+  $PROG decide --open "${open:-0}" --regressed "${regressed:-0}" --broken "${broken:-0}"
+}
+
 fails=0
 runaway=0
 closed=0
@@ -100,7 +120,20 @@ while [ "$cycle" -lt "$CAP" ]; do
     DRAFTS="$(py 'import json,sys; d=json.loads(sys.argv[1]); print(sum(x["pending"] for x in d.get("drafts", [])))' "$NEXT_JSON")"
     FORKS="$(py 'import json,sys; print(json.loads(sys.argv[1]).get("adjudications_pending", 0))' "$NEXT_JSON")"
     if [ "${DRAFTS:-0}" -eq 0 ]; then
-      echo "burndown: no work left and no drafts pend — the spec is burned down. Halting."
+      # No backlog and no drafts — but the STOP decision is the controller's,
+      # not the empty-backlog watchdog's. Measure the cycle's gate vector and
+      # halt as burned-down ONLY when controller.decide returns STOP-SUCCESS;
+      # any other verdict means a regression or unmeasurable claim slipped in
+      # that no open gap tracks, so halt for the human instead of blind victory.
+      VERDICT="$(stop_verdict "$NEXT_JSON")"
+      if [ "$VERDICT" = "STOP-SUCCESS" ]; then
+        echo "burndown: no work left and no drafts pend — controller.decide verdict STOP-SUCCESS — the spec is burned down. Halting."
+        break
+      fi
+      # The backlog holds no gap the loop can pick up, yet the controller
+      # withholds STOP-SUCCESS — a regression or unmeasurable claim slipped in
+      # that no open gap tracks. Do not declare victory; halt for the human.
+      echo "burndown: backlog empty but controller.decide verdict is $VERDICT (not STOP-SUCCESS) — a regression or unmeasurable claim remains with no gap to sculpt. Halting for the human."
       break
     fi
     if [ "${FORKS:-0}" -gt 0 ]; then

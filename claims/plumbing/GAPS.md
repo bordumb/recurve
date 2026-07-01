@@ -32,3 +32,19 @@ STOP-SUCCESS) turns the probe RED.
 frontier exactly. Negative space (kept RED as a counterexample): a frontier
 surface that hides uncovered points (e.g. always returns an empty list) turns the
 probe RED.
+
+## PL-3 — the burndown loop's stop decision consults controller.decide ✓
+
+The burndown loop no longer declares itself "burned down" by the empty-backlog
+watchdog alone. When the strict ledger and drafts both empty, `burndown.sh`
+measures the cycle's gate vector — `open` (RED/open gaps) from `recurve next
+--json`, `regressed` and `broken` parsed from the `recurve matrix` summary line —
+and calls `recurve decide` on it. The success-halt fires ONLY when the
+controller's verdict is `STOP-SUCCESS`; any other verdict (a regression or an
+unmeasurable claim that no open gap tracks) halts for the human instead of
+claiming victory. The cap, consecutive-failure, and runaway watchdogs remain as
+backstops. This is the #4 wiring: the loop's stop verdict comes from
+`controller.decide`, not the ad-hoc cap. Negative space (kept RED as a
+counterexample): a loop that calls `decide` but never branches on `STOP-SUCCESS`
+— the verdict computed for show while the watchdog still decides — turns the
+probe RED.

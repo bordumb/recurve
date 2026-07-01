@@ -47,13 +47,13 @@
 - id: PL-3
   title: the burndown loop's stop decision consults controller.decide (not the cap watchdog)
   class: missing-surface
-  status: open
+  status: closed
   severity: feature
   reads: none
   covers:
   - PL-3
-  observed: 'RED at baseline 2026-07-01: ours=burndown.sh never calls the decide verb oracle=the
-    loop asks controller.decide for its stop verdict'
+  observed: 'GREEN at baseline 2026-07-01: burndown.sh consults recurve decide and gates its
+    success-halt on the controller''s verdict'
   smallest_fix: burndown.sh computes the cycle's gate vector (open/regressed/broken parsed
     from recurve matrix) and calls `{{PROG}} decide` with it; the success-halt is gated on
     the verdict being STOP-SUCCESS, so controller.decide decides when the loop is done — not
