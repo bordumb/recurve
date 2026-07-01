@@ -9,6 +9,9 @@ probed, gated, burn-downable gaps.
     recurve next                   value-first triage; flags review-gated gaps
     recurve run [--agent CMD]      run the burndown loop; the agent defaults to a
                                    bypass-permissions Claude (--dry-run to preview)
+    recurve admit <prd>            run the admission gate on a PRD/spec — is this
+                                   goal gateable at all? — print the verdict +
+                                   the interview worklist (the front-door gate)
     recurve decide [--open N …]    ask the stopping controller for its stop verdict
                                    from a measured progress vector (never blind)
     recurve frontier [--point ID:W …]    surface the ranked uncovered ids — what
@@ -236,6 +239,37 @@ def cmd_sense(args):
     print(f"broken     {v['broken']}")
     print(f"uncovered  {v['uncovered']}")
     print(f"divergent  {v['divergent']}")
+
+
+def cmd_admit(args):
+    """Run the admission gate on a PRD/spec — is this goal gateable at all? —
+    and print the verdict plus the interview worklist. A thin honest report over
+    `claimify.admit_result`, which maps the parsed drafts to admission
+    assertions and runs `admission.admit`. This is the same gate `init
+    --from-prd` runs at the front; running it standalone lets a human (or an
+    orchestrator) score a goal before committing to claimify it."""
+    from .admission import Verdict
+    from .claimify import admit_result, parse_prd
+    prd = Path(args.prd)
+    if not prd.exists():
+        _fail(f"no such PRD/spec file: {prd}")
+    res = parse_prd(prd.read_text(errors="replace"), prd.name)
+    report = admit_result(res)
+    by_num = {str(c.num): c for c in res.claims}
+    print(f"verdict     {report.verdict.value}")
+    print(f"gateability {report.gateability:.2f}  ({report.probeable}/{report.total} probe-able)")
+    if report.worklist:
+        print("worklist (interview these toward checks):")
+        seen: set = set()
+        for aid, gaps in report.worklist:
+            if aid in seen:
+                continue
+            seen.add(aid)
+            draft = by_num.get(aid)
+            quote = (draft.sentence if draft else aid)[:100]
+            print(f"  - \"{quote}\": {'; '.join(gaps)}")
+    if args.gate and report.verdict is not Verdict.ADMIT:
+        raise SystemExit(1)
 
 
 def cmd_matrix(args):
@@ -1136,6 +1170,11 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.add_argument("--uncovered", type=int, default=0, help="frontier size (completeness signal)")
     s.add_argument("--divergent", action="store_true", help="a goal-counterexample passed (built the wrong thing)")
     s.set_defaults(fn=cmd_decide)
+
+    s = sub.add_parser("admit", help="run the admission gate on a PRD/spec — is this goal gateable? — print the verdict + interview worklist")
+    s.add_argument("prd", metavar="PRD", help="path to the PRD/spec file to score for gateability")
+    s.add_argument("--gate", action="store_true", help="exit nonzero on a non-ADMIT verdict (refused/interview)")
+    s.set_defaults(fn=cmd_admit)
 
     s = sub.add_parser("frontier", help="surface the ranked uncovered ids — what no claim covers")
     s.add_argument("--point", action="append", metavar="ID[:WEIGHT]",

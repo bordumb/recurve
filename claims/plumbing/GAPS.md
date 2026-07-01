@@ -67,9 +67,19 @@ or a divergence blocks `STOP-SUCCESS` — completeness and fidelity, not just th
 gate the loop's success. Negative space (kept RED): a loop that calls `decide` with
 only `--open/--regressed/--broken` (dropping uncovered + divergent) turns the probe RED.
 
-## PL-6 — the loop admits the goal before it sculpts
+## PL-6 — the loop admits the goal before it sculpts ✓
 
-The loop runs the admission gate before the first cycle: a `REFUSE-AND-INTERVIEW` /
-`REFUSE-NOT-GATEABLE` goal never enters a sculpting cycle — it halts for the human
-instead of burning a vague aim into a brittle proxy. Negative space (kept RED): a
-loop that sculpts a non-`ADMIT` goal turns the probe RED.
+The loop runs the admission gate before the first cycle: `claimify.admit_result`
+maps each parsed draft to an admission `Assertion` (falsifiable, plus a
+counterexample iff it carries an adversarial twin, plus bounded iff it has no
+unresolved fork) and runs `admission.admit`. `run_claimify` consults the verdict
+after parsing the PRD: a `REFUSE-NOT-GATEABLE` goal — too few probe-able
+invariants to gate honestly — is refused at the door, with the interview worklist
+written to `.recurve/ADMISSION.md` and surfaced on stdout, and no drafts suite is
+written, so a vague aim never enters a sculpting cycle. A `REFUSE-AND-INTERVIEW`
+goal (a workable spine with a vague remainder) still produces drafts — the
+productive common case — but its worklist is surfaced at the top of ADJUDICATE.md
+to be sharpened before baseline. `recurve admit <prd>` exposes the same gate as a
+standalone verb. Negative space (kept RED): an admission gate that ADMITs every
+goal, however vague, so a fuzzy PRD is claimified into a brittle proxy, turns the
+probe RED.
