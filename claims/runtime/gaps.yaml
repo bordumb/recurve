@@ -1,0 +1,268 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: RT-1
+  title: the loop stops by the gate, never the actor word
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-1.sh:1
+  observed: 'GREEN at baseline 2026-07-01: fixing actor -> STOP-SUCCESS + world green; lying
+    actor -> never STOP-SUCCESS (verdict from the gate)'
+  smallest_fix: 'run computes the verdict from world.gate() via decide(); the actor''s output
+    is only applied as a diff.
+
+    '
+  probe: probes/rt-1.sh
+  unlocks: A1 — an autonomous loop you can trust because the trust lives in the gate, not
+    the actor
+
+- id: RT-2
+  title: Sense reports the real uncovered work
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/rt-2.sh:1
+  observed: 'GREEN at baseline 2026-07-01: Sense surfaces the uncovered unit: uncovered=1,
+    frontier=[''alpha''], pick_next -> alpha'
+  smallest_fix: 'sense derives uncovered and the frontier from completeness_report.
+
+    '
+  probe: probes/rt-2.sh
+  unlocks: A2 — the loop closes silent holes, not just RED claims
+
+- id: RT-3
+  title: Sense feeds divergence so a green-but-diverged cycle does not stop
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-3.sh:1
+  observed: 'GREEN at baseline 2026-07-01: green-but-diverged cycle: divergent=True, decide
+    != STOP-SUCCESS (intent breach blocks the stop)'
+  smallest_fix: 'sense sets Progress.divergent from fidelity.divergent(goal_counterexamples).
+
+    '
+  probe: probes/rt-3.sh
+  unlocks: A3 — green probes cannot buy a success-stop when intent was broken
+
+- id: RT-4
+  title: the write boundary keeps the actor off the referee surface
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-4.sh:1
+  observed: 'GREEN at baseline 2026-07-01: target-only diff accepted; a probe-editing diff
+    and an outside diff both rejected'
+  smallest_fix: 'within_boundary requires every diff path under target_root and under no referee_root.
+
+    '
+  probe: probes/rt-4.sh
+  unlocks: A4 — an autonomous actor cannot weaken the test it is graded by
+
+- id: RT-5
+  title: the capture rule only accepts a discriminating trap
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/rt-5.sh:1
+  observed: 'GREEN at baseline 2026-07-01: capture accepts only a discriminating trap (RED
+    on wrong, GREEN on real)'
+  smallest_fix: 'capture returns trap_red_on_wrong AND trap_green_on_real.
+
+    '
+  probe: probes/rt-5.sh
+  unlocks: A5 — an adversary objection becomes evidence only when it discriminates
+
+- id: RT-6
+  title: the actor is reached only on an admitted contract
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-6.sh:1
+  observed: 'GREEN at baseline 2026-07-01: ADMIT -> actor invoked; non-ADMIT -> actor never
+    called, returns None'
+  smallest_fix: 'guarded_propose returns None unless admitted(report) is true.
+
+    '
+  probe: probes/rt-6.sh
+  unlocks: A6 — a non-ADMIT contract is never burned down
+
+- id: RT-7
+  title: Sense reads the gate counts straight through
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-7.sh:1
+  observed: 'GREEN at baseline 2026-07-01: Sense passes the gate counts through: open=1, regressed=2,
+    broken=3'
+  smallest_fix: sense sets open/regressed/broken from gate_counts, not a constant.
+  probe: probes/rt-7.sh
+  unlocks: a RED world can never be sensed green through a hardcoded gate field (found by
+    adversarial review)
+
+- id: RT-8
+  title: the boundary checks every diff path, not just the first
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-8.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a diff touching the referee surface anywhere in
+    the list is rejected (all paths checked)'
+  smallest_fix: within_boundary iterates every path; any referee-touching path rejects the
+    diff.
+  probe: probes/rt-8.sh
+  unlocks: an actor cannot smuggle a probe edit beside a clean file (found by adversarial
+    review)
+
+- id: RT-9
+  title: a diff path escaping via .. or absolute is rejected
+  class: security-tradeoff
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-9.sh:1
+  observed: 'GREEN at baseline 2026-07-01: ''..'' and absolute paths are rejected; a normal
+    target-tree path still passes'
+  smallest_fix: within_boundary rejects absolute paths and normalizes, rejecting any .. that
+    climbs out.
+  probe: probes/rt-9.sh
+  unlocks: the write boundary cannot be escaped by path traversal (a real bug, now fixed)
+
+- id: RT-10
+  title: the guard refuses every non-ADMIT verdict
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/rt-10.sh:1
+  observed: 'GREEN at baseline 2026-07-01: REFUSE-AND-INTERVIEW contract: actor never called,
+    guard returns None'
+  smallest_fix: guarded_propose keys on admitted() (the ADMIT verdict), not the probe-able
+    count.
+  probe: probes/rt-10.sh
+  unlocks: a REFUSE-AND-INTERVIEW contract never reaches the actor (found by adversarial review)
+
+- id: RT-11
+  title: the last-green floor is only a fully-clean cycle
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/rt-11.sh:1
+  observed: 'GREEN at baseline 2026-07-01: revert restores the initial clean floor (cycle
+    0), never the regressed cycle 1'
+  smallest_fix: run checkpoints last_green only when open == regressed == broken == 0.
+  probe: probes/rt-11.sh
+  unlocks: STOP-REVERT never restores a regressed state (found by adversarial review)
+
+- id: RT-12
+  title: STOP-REVERT restores the last-green snapshot, not the current state
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/rt-12.sh:1
+  observed: 'GREEN at baseline 2026-07-01: revert restores the cycle-0 green floor, not the
+    current (cycle 3) state'
+  smallest_fix: run calls world.restore(last_green), not world.restore(world.checkpoint()).
+  probe: probes/rt-12.sh
+  unlocks: revert rolls back the damage instead of leaving it in place (found by adversarial
+    review)
+
+- id: RT-13
+  title: an already-green world stops before the actor is invoked
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/rt-13.sh:1
+  observed: 'GREEN at baseline 2026-07-01: already-green world -> STOP-SUCCESS on entry, the
+    actor is never invoked on done code'
+  smallest_fix: run checks the STOP-SUCCESS verdict every cycle including the first.
+  probe: probes/rt-13.sh
+  unlocks: the actor is never run against already-done code (found by adversarial review)
+
+- id: RT-14
+  title: capture rejects a trap that discriminates nothing
+  class: missing-surface
+  status: closed
+  severity: friction
+  evidence:
+  - probes/rt-14.sh:1
+  observed: 'GREEN at baseline 2026-07-01: capture(False, False) -> False: a trap that catches
+    nothing and breaks real is not evidence'
+  smallest_fix: 'capture is strict AND: red_on_wrong and green_on_real.'
+  probe: probes/rt-14.sh
+  unlocks: a trap that catches nothing is never accepted as evidence (found by adversarial
+    review)
+
+- id: RT-15
+  title: the write boundary matches whole path components
+  class: security-tradeoff
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-15.sh:1
+  observed: 'GREEN at baseline 2026-07-01: referee matches whole components: sibling allowed,
+    exact/under refused, trailing-slash-agnostic'
+  smallest_fix: 'within_boundary refuses r.rstrip("/") exactly or under it, not a bare startswith.
+
+    '
+  probe: probes/rt-15.sh
+  unlocks: the referee guard is correct regardless of trailing slash, and never over/under-matches
+    (found by adversarial review)
+
+- id: RT-16
+  title: Sense derives coverage by tracing the probes, not by declaration
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-16.sh:1
+  observed: 'GREEN at baseline 2026-07-01: sense derives coverage by tracing: fc (never run)
+    is the measured-uncovered point on the frontier'
+  smallest_fix: 'sense_measured calls covered_by over the exercises, then feeds that measured
+    covered set into sense.
+
+    '
+  probe: probes/rt-16.sh
+  unlocks: the auto-wiring of measured coverage into the gate — an unexercised point reaches
+    the frontier
+
+- id: RT-17
+  title: a raising probe body does not crash Sense
+  class: broken-route
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-17.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a raising probe body doesn''t crash Sense: fa/fb
+    measured covered, fc on the frontier'
+  smallest_fix: sense_measured relies on the resilient covered_by, so a raising exercise still
+    yields a Progress.
+  probe: probes/rt-17.sh
+  unlocks: a single erroring probe body cannot crash the Sense step of the gate (found by
+    adversarial review)
+
+- id: RT-18
+  title: the boundary fails closed on a degenerate referee root and rejects the root key
+  class: security-tradeoff
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-18.sh:1
+  observed: 'GREEN at baseline 2026-07-01: degenerate referee roots fail closed; the ''.''
+    root key is refused; a normal write still passes'
+  smallest_fix: within_boundary rejects a "." key and fails closed on an empty/root/escaping
+    referee root.
+  probe: probes/rt-18.sh
+  unlocks: a misconfigured referee never fails open

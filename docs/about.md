@@ -28,6 +28,24 @@ recurve makes promises **falsifiable, then keeps them that way**:
   highest-value RED claim and turns it GREEN without breaking any guarded
   other. The fleet gate is the arbiter; the ledger is the only memory.
 
+## Beyond soundness
+
+Proving a claim GREEN makes it **sound** — but a sound gate stays silent about three things, and recurve
+closes each:
+
+- **Is the goal even worth gating?** An *admission* gate refuses a goal too vague to become falsifiable
+  claims and interviews you toward one, instead of burning a fuzzy aim into a brittle proxy.
+- **What does no claim cover?** A *completeness* half surfaces the uncovered region of a target — measured by
+  what a probe actually runs, not what a claim declares — so a green gate can never quietly hide a hole.
+- **Did we build the right thing?** A *fidelity* check tracks behaviors that must never be accepted; if one
+  slips through, the cycle is flagged as diverged no matter how green the probes are.
+
+A stopping *controller* reads these measurements and decides — continue, stop, revert, or pivot — so the
+agent doing the work never grades its own doneness. Wired together, that loop runs on a real repository:
+git-backed snapshots and revert-to-last-green, a write boundary that keeps the agent off its own probes, and
+a BYO agent behind a stable seam. The deciding logic is deterministic; the LLM pieces around it are pluggable.
+See [Architecture](architecture.md#the-verification-layer).
+
 ## The bet
 
 If this shape installs anywhere, the unit of software work stops being the
@@ -36,7 +54,7 @@ pull request and becomes the **claim**.
 Humans own three artifacts — the
 claims, the quality constitution, and the adjudications — and review *those*.
 
-Sgents own everything between a RED probe and a green gate. The artifact that
+Agents own everything between a RED probe and a green gate. The artifact that
 ships is not "code that passed CI" but **code accompanied by its evidence**:
 a ledger of falsifiable claims, each with a probe anyone can re-run, each
 verdict chained into a tamper-evident receipt.

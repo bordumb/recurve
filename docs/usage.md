@@ -168,11 +168,11 @@ forbidden_strings = ["GAP-", "FE-", "recurve"]
 rebuild = "npm ci && npm run build"
 
 [sculpts.platform]                        # a SECONDARY tree in another repo
-tree = "../auths"
+tree = "../platform"
 branch = "dev-platform"                   # its commits land here
 forbidden_strings = ["GAP-", "recurve"]   # its OWN leak vocabulary
 rebuild = "cargo build --release"
-gate = "cargo test && ../demos/rictl matrix --gate"   # its OWN gate, federated
+gate = "cargo test && recurve matrix --gate"          # its OWN gate, federated
 ```
 
 **`[target]` is what you build; `[sculpts.*]` is what you feed.** When a claim's
@@ -216,3 +216,23 @@ skips them.
 !!! warning "Closing the laptop lid"
     Stop the loop first. A sleeping machine mid-cycle is indistinguishable
     from a hung agent, and `caffeinate` cannot prevent lid-sleep on battery.
+
+## Beyond the CLI: the verification layer (library)
+
+The three steps above are the CLI workflow — claims, probes, the gate, the ledger. Recurve also ships a
+**verification layer** as importable modules (`recurvelib.*`) — these are library APIs, not (yet) CLI verbs:
+
+- **Admission** (`recurvelib.admission`) — *is a goal even gateable* before you write claims? Returns
+  `ADMIT` / `REFUSE-AND-INTERVIEW` / `REFUSE-NOT-GATEABLE` with a per-assertion worklist, so a vague aim is
+  refined instead of burned into a brittle proxy.
+- **Completeness** (`recurvelib.surface` / `measured` / `frontier` / `completeness`) — the target's claimable
+  surface, which points a probe *actually runs* (traced, not declared), and the ranked frontier of what no
+  claim covers, so a green gate can't hide a hole.
+- **Fidelity** (`recurvelib.fidelity`) — goal-counterexamples → divergence (did we build the *right* thing?).
+- **The stopping controller** (`recurvelib.controller`) — stop / revert / pivot / continue, decided by
+  measurement, not by the agent doing the work.
+- **The autonomous runtime** (`recurvelib.runtime` + `recurvelib.adapters`) — the loop spine wired to a real
+  git repo (`GitWorld`: snapshot/revert, boundary-enforced) and a BYO-agent command (`CommandActor`).
+
+These are the deterministic spine; the LLM pieces (the rater, the actor, the adversary) plug in behind
+protocols. See [Architecture](architecture.md#the-verification-layer) for how they compose.

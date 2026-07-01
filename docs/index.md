@@ -1,30 +1,116 @@
-# recurve
+---
+hide:
+  - navigation
+  - toc
+---
 
-**Claims-driven recursive software improvement.** Point recurve at a target —
-an existing repo or a PRD — and it converts intent into falsifiable claims
-with executable probes, then burns down the gap between *claimed* and
-*proven*: one fresh agent per cycle, ratcheting monotonically, parking what
-it can't prove, and reserving for humans exactly the judgments machines
-shouldn't make.
+<div align="center" style="margin-top: 4rem; margin-bottom: 4rem;" markdown="1">
+
+<h1 class="hero-text">Software that proves itself</h1>
+
+<p class="hero-subtitle">
+recurve turns a spec or a repo into falsifiable claims with executable probes,
+then burns the gap between <em>claimed</em> and <em>proven</em> down to zero —
+one fresh agent per cycle, behind a gate that never lies.
+</p>
+
+[Get Started](usage.md){ .md-button .md-button--primary }
+&nbsp;&nbsp;
+[Architecture](architecture.md){ .md-button }
+
+</div>
+
+## Install
 
 ```bash
-recurve ledger      # every claim and its status — the red backlog is the honest one
-recurve matrix      # run every probe: GREEN / RED / BROKEN / STALE, and the gate verdict
-recurve next        # the highest-value gap to work on right now
+git clone https://github.com/bordumb/recurve ~/tools/recurve
+python3 -m pip install pyyaml
+python3 ~/tools/recurve/recurve install        # → ~/.local/bin/recurve
 ```
 
-## Where to go
+!!! tip
+    Prefer a shim, an alias, or a CI-friendly entrypoint? See the full
+    [Installation guide](install.md). The engine is Python stdlib + PyYAML —
+    it never fights your target's toolchain.
 
-| Page | What it answers |
-| --- | --- |
-| [About](about.md) | What this is, and the bet behind it |
-| [Architecture](architecture.md) | The vocabulary, the loop, and the engine |
-| [Installation](install.md) | Getting `recurve` onto your PATH |
-| [How to Use](usage.md) | Initialize → design → kick off the loop — single- or multi-tree (and how to stop it) |
+---
 
-!!! tip "The one command to trust"
-    `recurve matrix --gate` exits non-zero on any regression, broken probe,
-    stale artifact, or a guard probe that blessed its own counterexample.
-    Everything else — including this documentation — is commentary. A claim
-    is closed when its probe is GREEN and the gate is green fleet-wide,
-    never because someone believes it is.
+<div class="grid cards" markdown>
+
+-   :material-clipboard-check-outline: **Claims, not vibes**
+
+    ---
+
+    Every promise becomes a **claim** with an executable **probe**: GREEN proven,
+    RED not yet, BROKEN can't tell. If it can't be probed, it isn't a claim — so
+    your README, your spec, and your intent all become machine-checkable.
+
+-   :material-shield-check: **A gate that can't lie**
+
+    ---
+
+    Nothing closes on an agent's say-so. A claim goes green only when its probe
+    passes *and* the fleet gate holds — and every probe keeps a **trap** it must
+    fail against, so a weakened probe is caught mechanically.
+
+-   :material-robot-outline: **Burn down unattended**
+
+    ---
+
+    Point it at a spec or a repo and walk away. One fresh agent per cycle takes
+    the highest-value RED claim to GREEN, parks what it can't prove, reverts what
+    regresses. The ledger is the only memory — **bring your own agent.**
+
+</div>
+
+---
+
+## Quick tour
+
+```bash
+# 1 · turn a spec (or an existing repo) into a gated backlog of claims
+recurve init --from-prd PRD.md --suite checkout
+
+# 2 · record what's true today — GREEN promises become a regression suite
+recurve baseline checkout
+
+# 3 · walk away — one agent per cycle burns red → green, behind the gate
+AGENT_CMD='claude -p --permission-mode bypassPermissions' bash .recurve/workflows/burndown.sh
+```
+
+The loop believes the run-record and the gate, never the agent's word. That is
+the whole point: **evidence, not belief.**
+
+---
+
+## Explore
+
+<div class="grid cards" markdown>
+
+-   :material-lightbulb-on-outline: **About**
+
+    ---
+
+    What recurve is, and the bet behind it.
+
+    [The idea →](about.md)
+
+-   :material-sitemap-outline: **Architecture**
+
+    ---
+
+    The vocabulary, the loop, and the engine.
+
+    [How it works →](architecture.md)
+
+-   :material-rocket-launch-outline: **How to use**
+
+    ---
+
+    Initialize, design the claims, kick off the loop — and stop it safely.
+
+    [Walk through it →](usage.md)
+
+</div>
+
+[View on GitHub :material-github:](https://github.com/bordumb/recurve){ .md-button }

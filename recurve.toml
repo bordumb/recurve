@@ -26,3 +26,28 @@ method = "none"
 dir = "claims/toolkit"
 rebuild = ""               # the engine runs from source; nothing to copy
 harness = []
+
+[suites.completeness]
+dir = "claims/completeness"
+rebuild = ""               # pure engine module; nothing to copy
+harness = []
+
+[suites.stopping]
+dir = "claims/stopping"
+rebuild = ""               # pure engine module; nothing to copy
+harness = []
+
+[suites.admission]
+dir = "claims/admission"
+rebuild = ""               # pure engine module; nothing to copy
+harness = []
+
+[suites.runtime]
+dir = "claims/runtime"
+rebuild = ""               # pure engine module; nothing to copy
+harness = []
+
+[suites.adapters]
+dir = "claims/adapters"
+rebuild = ""               # git-backed adapters; probes drive real temp repos
+harness = []

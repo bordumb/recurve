@@ -1,0 +1,188 @@
+# completeness — the coverage layer's promises, probed
+
+> The **frontier** slice of `docs/plans/completeness-layer.md`: a green gate must not mask silent holes.
+> Every claim below is guarded by a probe with a kept counterexample — run
+> `./recurve --config recurve.toml matrix --gate` and believe the gate, not this prose.
+
+## Conventions
+
+These are enforcement-surface claims about the `recurvelib.frontier` engine module (`missing-surface`),
+`reads: none` because each probe *executes* the behavior it guards against a kept counterexample (the trap).
+
+## CL-1 — the frontier is exactly the uncovered surface
+
+A surface point is on the frontier if and only if it is neither covered nor explicitly deferred; the frontier
+never admits a covered point and never admits a deferred one. This is what makes "what does no claim cover?"
+answerable, and what turns a light user's silent holes into a visible list. Negative space: a frontier that
+admits a covered point must turn the probe RED.
+
+## CL-2 — the frontier is ranked highest-risk first
+
+The frontier is ordered by descending weight (ties broken by id, for determinism), so the most valuable
+uncovered point is the one claimed next. Negative space: an unranked or ascending frontier must turn the
+probe RED.
+
+## CL-3 — coverage accounting is total
+
+Every surface point is classified exactly once: `covered + deferred + uncovered == total`, and the uncovered
+count equals the frontier length — no point lost, none double-counted. Totality is what lets the gate say
+"this is correct, and here is the precisely-bounded set it says nothing about." Negative space: an accounting
+that drops or double-counts a point must turn the probe RED.
+
+## CL-4 — equal-weight frontier points order deterministically by ascending id
+
+Found by an adversarial review of CL-1..3 (a separate agent, per `docs/plans/separation-of-refereeing.md`):
+CL-2's fixture used distinct weights, so a tie was never exercised, and an impl that drops the id-tiebreak
+ranked equal-weight points nondeterministically — a burndown loop's "next" pick would change run-to-run.
+Equal-weight points must come out by ascending id. Negative space: a weight-only sort that lets two
+equal-weight points appear in any order other than ascending id must turn the probe RED.
+
+## CL-5 — duplicate ids are classified per-occurrence, never collapsed
+
+CL-3's totality held even for an impl that deduped the surface by id — silently erasing a real, uncovered
+surface point from the accounting (the worst kind of coverage hole: the gate reports "nothing uncovered
+here" about a point that exists). Two distinct points sharing an id each count toward total. Negative space:
+a surface with two same-id points whose reported total is less than the point count must turn the probe RED.
+
+## CL-6 — coverage claimed for an absent id never inflates the accounting
+
+An impl that counted the sizes of the covered/deferred input sets (rather than surface hits) inflated
+`covered` with phantom ids and broke the very totality CL-3 defends — yet passed cl-1..3, whose fixtures
+carry no phantom ids. `covered`/`deferred` count only surface-present ids. Negative space: a covered id not
+on the surface that raises `covered` above the on-surface count, breaking totality, must turn the probe RED.
+
+## CL-7 — public functions and methods both become surface points
+
+Surface extraction (`recurvelib.surface`) emits one point per public unit a claim could cover — a top-level
+function AND a public method, each qualified (`func`, `Class.method`) — so the frontier ranks real units of
+the target, not just whatever it was handed. Negative space: an adapter that finds only top-level functions
+and silently drops class methods must turn the probe RED.
+
+## CL-8 — private code is not surface
+
+Underscore-prefixed functions/methods, and the methods of underscore-prefixed classes, are implementation,
+not a claimable surface; extraction excludes them so the frontier never demands a claim for a private. Negative
+space: an adapter that surfaces a `_private` name must turn the probe RED.
+
+## CL-9 — surface extraction is deterministic
+
+The same target yields the identical, sorted sequence of points on every run — a surface map is a
+*measurement* that must be diffable and stable, or coverage regressions can't be detected. Negative space: an
+adapter that returns the right points in a nondeterministic order must turn the probe RED.
+
+## CL-10 — declared coverage aggregates from the claims
+
+The covered set is the union of every claim's `covers` field (a claim that covers nothing contributes
+nothing) — the coverage *source* is pluggable behind this seam, with a measured source the stronger upgrade.
+Negative space: an aggregator that ignores `covers` and reports nothing covered must turn the probe RED.
+
+## CL-11 — a cycle is complete iff nothing is uncovered
+
+The completeness gate reports `complete` exactly when the frontier is empty — every surface point covered or
+deferred. Negative space: a report that calls a cycle complete while points remain uncovered must turn the
+probe RED.
+
+## CL-12 — an uncovered point is surfaced, never masked
+
+An uncovered surface point appears on the frontier and flags the cycle incomplete; the gate can never present
+a green verdict that silently says nothing about it (the cardinal sin a sound-but-incomplete gate commits).
+Negative space: a report that empties the frontier and declares completeness despite an uncovered point must
+turn the probe RED.
+
+## CL-13 — an accepted goal-counterexample is divergence
+
+Intent fidelity: a behavior the goal forbids that gets *accepted* makes the cycle divergent, however green the
+probes are — soundness and completeness cannot buy back a broken intent. The controller reads divergence to
+refuse a success-stop and, if it persists, to revert. Negative space: a divergence check that stays False
+while a forbidden behavior is accepted must turn the probe RED.
+
+## CL-14 — no false divergence alarm
+
+When every goal-counterexample is rejected, the cycle is not divergent — intent is intact and progress is
+allowed; a spurious alarm would force endless reverts. Negative space: a divergence check that fires while
+nothing forbidden was accepted must turn the probe RED.
+
+## CL-15 — divergence names exactly what broke, worst first
+
+`divergent_ids` reports the accepted goal-counterexamples only, ranked by weight, so a revert can name the
+most severe breach. Negative space: a report that includes a rejected goal-counterexample, or misorders by
+severity, must turn the probe RED.
+
+## CL-16 — an exercised surface point is measured as covered
+
+Measured coverage records the functions a probe actually runs (traced), so a genuinely-exercised point counts
+as covered — the strong, non-gameable source behind the `completeness_report` seam. Negative space: a
+measurer that runs the exercise but records nothing must turn the probe RED.
+
+## CL-17 — declared is not measured: an unexercised point is not covered
+
+A surface point a probe never executes is not measured as covered, even if a claim declares it — this is the
+gap declared coverage cannot close. Negative space: a measurer that reports a point covered without the
+exercise running it must turn the probe RED.
+
+## CL-18 — measured coverage carries no phantom points
+
+Calls outside the declared surface (helpers, stdlib) are not phantom coverage; the measured set is restricted
+to surface points. Negative space: a measurer that reports an off-surface call as covered must turn the probe
+RED.
+
+> CL-19..23 were found by a second adversarial review (`docs/plans/separation-of-refereeing.md`) of the
+> solo-authored surface/completeness modules. The probes' fixtures were all flat, valid, single-module — so
+> conditional defs, unparseable files, weighting, string `covers`, and empty surfaces were unexercised. Four
+> were real bugs (silent miscoverage or a crash), now fixed. Known limits it surfaced but that are scoped
+> follow-ons (multi-module qualname namespacing, tracer composition, fail-open on empty fidelity input) are
+> recorded in `docs/plans/completeness-layer.md` §"Honest limits", not hidden.
+
+## CL-19 — extraction descends into conditional bodies
+
+A public `def` nested in an `if`/`for`/`try`/`with` at module or class scope (a `TYPE_CHECKING` stub, a
+`try/except ImportError` fallback, a platform branch) is still a claimable unit and is surfaced — an extractor
+that walks only direct body children silently drops it, hiding a real hole the gate then cannot see. Negative
+space: a source whose only extra method is under `if TYPE_CHECKING:` for which extraction omits it must turn
+the probe RED.
+
+## CL-20 — an unparseable target has a defined empty surface
+
+A file that does not parse yields `[]`, not an uncaught `SyntaxError` that aborts the whole completeness pass.
+Negative space: an `extract` that lets `ast.parse` raise out of the function on invalid syntax must turn the
+probe RED.
+
+## CL-21 — surface points carry a meaningful weight
+
+The adapter weights each point by complexity (AST size), so the frontier ranks the most consequential
+uncovered unit first rather than collapsing to alphabetical order. Negative space: an adapter that assigns a
+constant weight so a complex unit does not outrank a trivial one must turn the probe RED.
+
+## CL-22 — a string `covers` is one id, never character-exploded
+
+`covered_ids` treats a bare-string `covers` (a common authoring slip) as a single id, not a sequence of
+characters — exploding it both loses the intended coverage and pollutes the set. Negative space: a
+`covered_ids` that turns `covers: "abc"` into `{'a','b','c'}` must turn the probe RED.
+
+## CL-23 — an empty surface is not vacuously complete
+
+A surface of size zero is a measurement signal (nothing extracted), not a finished cycle; `complete` requires
+a non-empty surface, so the controller cannot `STOP-SUCCESS` over a target nothing was measured on. Negative
+space: a report that calls `total == 0` complete must turn the probe RED.
+
+## CL-24 — measured coverage aggregates across all the probes
+
+`covered_by` traces every exercise (a claim's probe body) and unions the surface points each one runs — so a
+point is covered iff *some* probe actually executes it, and a point every claim declares but none runs stays
+uncovered. This is what feeds the gate measured coverage instead of declared. Negative space: a `covered_by`
+that returns the whole surface (declaring what it never traced) must turn the probe RED.
+
+## CL-25 — a raising probe body does not crash the aggregate
+
+`covered_by` traces each exercise independently, so a probe body that *raises* (a RED/broken probe — the
+common case in a burndown) contributes no coverage but never aborts measurement for the other claims. Found
+by adversarial review: CL-24's fixtures only fed clean exercises. Negative space: a `covered_by` that lets a
+raising middle exercise (`[fa, boom, fb]`) propagate — losing the flanking coverage — must turn the probe RED.
+
+## CL-26 — a sys.exit() probe body is isolated too
+
+`covered_by` isolates a probe body that calls `sys.exit()` (`SystemExit` is a `BaseException`, not an
+`Exception`) — a common skip-guard — so it contributes no coverage but never aborts the aggregate; a real
+`KeyboardInterrupt` still propagates. Found by adversarial review (CL-25 used only a `ValueError`). Negative
+space: a `covered_by` catching only `Exception`, so a `sys.exit()` exercise crashes the whole pass, must turn
+the probe RED.

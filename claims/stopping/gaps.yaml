@@ -1,0 +1,179 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: ST-1
+  title: a fully-green cycle stops with success
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/st-1.sh:1
+  observed: 'GREEN at baseline 2026-06-30: a fully-green cycle -> STOP-SUCCESS'
+  smallest_fix: 'decide() returns STOP-SUCCESS when the latest cycle has open==regressed==broken==uncovered==0
+    and is not divergent.
+
+    '
+  probe: probes/st-1.sh
+  unlocks: the agent stops at done instead of running past it (the core 'cannot stop' failure,
+    closed)
+
+- id: ST-2
+  title: flat progress reverts, never thrashes forever
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/st-2.sh:1
+  observed: 'GREEN at baseline 2026-06-30: three flat cycles -> STOP-REVERT (bounded non-progress,
+    no infinite loop)'
+  smallest_fix: 'decide() returns STOP-REVERT when open+uncovered does not shrink over k cycles.
+
+    '
+  probe: probes/st-2.sh
+  unlocks: bounded non-progress — the loop reverts to the last good state instead of thrashing
+
+- id: ST-3
+  title: a converging approach is not abandoned
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-3.sh:1
+  observed: 'GREEN at baseline 2026-06-30: work shrinking 5->3->1 -> CONTINUE (a converging
+    approach is not abandoned)'
+  smallest_fix: 'decide() returns CONTINUE while open+uncovered is still shrinking cycle over
+    cycle.
+
+    '
+  probe: probes/st-3.sh
+  unlocks: a plateau about to break is not killed by an over-eager revert
+
+- id: ST-4
+  title: work starts on the highest-value frontier point
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-4.sh:1
+  observed: 'GREEN at baseline 2026-06-30: starts on the highest-value frontier point: high'
+  smallest_fix: 'pick_next returns frontier[0].id (the ranked-highest point) when there is
+    no current item.
+
+    '
+  probe: probes/st-4.sh
+  unlocks: effort goes to the most valuable uncovered work first
+
+- id: ST-5
+  title: a stalled item pivots to a better one
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-5.sh:1
+  observed: 'GREEN at baseline 2026-06-30: stalled on ''low'' with ''high'' available -> PIVOT
+    to high'
+  smallest_fix: 'pick_next returns (PIVOT, best) when the current item is stalled and a higher-value
+    item exists.
+
+    '
+  probe: probes/st-5.sh
+  unlocks: a stuck item is re-allocated instead of ground forever
+
+- id: ST-6
+  title: the best item is not pivoted away pointlessly
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-6.sh:1
+  observed: 'GREEN at baseline 2026-06-30: stalled but already on the best item -> CONTINUE
+    (no pointless pivot)'
+  smallest_fix: 'pick_next returns (CONTINUE, current) when the stalled current item is already
+    the best.
+
+    '
+  probe: probes/st-6.sh
+  unlocks: a stalled best item is escalated to a REVERT decision, not churned by a self-pivot
+
+- id: ST-7
+  title: a cycle that is not truly green never stops with success
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/st-7.sh:1
+  observed: 'GREEN at baseline 2026-06-30: broken/regressed/divergent cycles all refuse STOP-SUCCESS
+    (no false ''done'')'
+  smallest_fix: 'decide() requires broken==0, regressed==0, and not divergent (as well as
+    open==uncovered==0) for STOP-SUCCESS.
+
+    '
+  probe: probes/st-7.sh
+  unlocks: the loop cannot declare done on unmeasured, regressing, or diverged work (found
+    by adversarial review)
+
+- id: ST-8
+  title: oscillating remaining-work reverts
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-8.sh:1
+  observed: 'GREEN at baseline 2026-06-30: oscillation [5,1,5] -> STOP-REVERT (no net progress
+    is non-progress)'
+  smallest_fix: 'the flat-progress revert compares the window''s last remaining value to its
+    first (rem[-1] >= rem[0]), catching dip-and-return oscillation.
+
+    '
+  probe: probes/st-8.sh
+  unlocks: a net-zero oscillation cannot loop forever (found by adversarial review)
+
+- id: ST-9
+  title: an empty frontier is a clean no-op, not a crash
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-9.sh:1
+  observed: 'GREEN at baseline 2026-06-30: empty frontier -> (CONTINUE, None): a clean no-op
+    at frontier exhaustion'
+  smallest_fix: 'pick_next guards the empty frontier and returns (CONTINUE, None).
+
+    '
+  probe: probes/st-9.sh
+  unlocks: frontier exhaustion yields a clean signal instead of crashing the loop (found by
+    adversarial review)
+
+- id: ST-10
+  title: a non-stalled item is not pivoted away
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-10.sh:1
+  observed: 'GREEN at baseline 2026-06-30: non-stalled ''low'' kept despite higher-value ''high''
+    (pivot is for stuck items, not a re-sort)'
+  smallest_fix: 'pick_next only pivots when stalled is true; a non-stalled item stays even
+    if outranked.
+
+    '
+  probe: probes/st-10.sh
+  unlocks: healthy in-flight work is not thrashed by a per-cycle re-sort (found by adversarial
+    review)
+
+- id: ST-11
+  title: a stale current item is reconciled, not echoed
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/st-11.sh:1
+  observed: 'GREEN at baseline 2026-06-30: stale ''ghost'' reconciled to the real frontier
+    -> (PIVOT, ''high'')'
+  smallest_fix: 'pick_next returns (PIVOT, best) when current_id is not present in the frontier.
+
+    '
+  probe: probes/st-11.sh
+  unlocks: the loop never keeps working an item that is no longer on the frontier (found by
+    adversarial review)

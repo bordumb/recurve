@@ -1,0 +1,417 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: CL-1
+  title: the frontier is exactly the uncovered surface
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-1.sh:1
+  observed: 'GREEN at baseline 2026-06-30: frontier is exactly the uncovered point — covered
+    ''a'' and deferred ''b'' excluded'
+  smallest_fix: 'compute_frontier classifies a point onto the frontier iff its id is in neither
+    covered_ids nor deferred_ids.
+
+    '
+  probe: probes/cl-1.sh
+  unlocks: a green gate can no longer present a covered point as uncovered, nor leak covered
+    work onto the frontier
+
+- id: CL-2
+  title: the frontier is ranked highest-risk first
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-2.sh:1
+  observed: 'GREEN at baseline 2026-06-30: frontier ranked highest-weight first: [''high'',''mid'',''low'']'
+  smallest_fix: 'sort the frontier by descending weight, ties broken by id for determinism.
+
+    '
+  probe: probes/cl-2.sh
+  unlocks: the most valuable uncovered point is the one a burndown loop claims next
+
+- id: CL-3
+  title: coverage accounting is total
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-3.sh:1
+  observed: 'GREEN at baseline 2026-06-30: accounting is total: covered+deferred+uncovered
+    == total, uncovered == len(frontier)'
+  smallest_fix: 'classify every surface point exactly once so covered + deferred + uncovered
+    == total and uncovered == len(frontier).
+
+    '
+  probe: probes/cl-3.sh
+  unlocks: the gate can honestly report the precisely-bounded set it says nothing about
+
+- id: CL-4
+  title: equal-weight frontier points order deterministically by ascending id
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-4.sh:1
+  observed: 'GREEN at baseline 2026-06-30: equal-weight ties ordered by ascending id, deterministically'
+  smallest_fix: 'sort the frontier by (-weight, id) so equal weights resolve by ascending
+    id, deterministically.
+
+    '
+  probe: probes/cl-4.sh
+  unlocks: a burndown's next-frontier pick is the same run-to-run (found by adversarial review)
+
+- id: CL-5
+  title: duplicate ids are classified per-occurrence, never collapsed
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-5.sh:1
+  observed: 'GREEN at baseline 2026-06-30: duplicate ids each count: total=3, none erased
+    from the accounting'
+  smallest_fix: 'classify each surface point as it is iterated, not per unique id, so duplicates
+    each count toward total.
+
+    '
+  probe: probes/cl-5.sh
+  unlocks: a duplicate-id surface point can never be silently erased from coverage (found
+    by adversarial review)
+
+- id: CL-6
+  title: coverage claimed for an absent id never inflates the accounting
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-6.sh:1
+  observed: 'GREEN at baseline 2026-06-30: phantom covered ids ignored: covered=1, accounting
+    stays total (1)'
+  smallest_fix: 'count covered/deferred by surface membership, not by input-set size, so phantom
+    ids are ignored.
+
+    '
+  probe: probes/cl-6.sh
+  unlocks: phantom coverage can never inflate the accounting or hide a real gap (found by
+    adversarial review)
+
+- id: CL-7
+  title: public functions and methods both become surface points
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-7.sh:1
+  observed: 'GREEN at baseline 2026-06-30: public function + public method both surfaced,
+    qualified: alpha, Beta.gamma'
+  smallest_fix: 'the Python adapter descends into public ClassDef bodies, emitting a qualified
+    Class.method point per public method as well as each top-level function.
+
+    '
+  probe: probes/cl-7.sh
+  unlocks: the frontier ranks real units of the target, methods included, not just top-level
+    functions
+
+- id: CL-8
+  title: private code is not surface
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-8.sh:1
+  observed: 'GREEN at baseline 2026-06-30: privates excluded: only {shown, Pub.pub} surfaced
+    (no _hidden, Pub._priv, _Secret.meth)'
+  smallest_fix: 'skip underscore-prefixed functions/methods and the methods of underscore-prefixed
+    classes.
+
+    '
+  probe: probes/cl-8.sh
+  unlocks: the frontier never demands a claim for an implementation detail
+
+- id: CL-9
+  title: surface extraction is deterministic
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-9.sh:1
+  observed: 'GREEN at baseline 2026-06-30: deterministic: identical sorted sequence across
+    two extractions (4 points)'
+  smallest_fix: 'sort the extracted points by (id, location) so the surface map is identical
+    and diffable on every run.
+
+    '
+  probe: probes/cl-9.sh
+  unlocks: coverage regressions are detectable because the surface map is a stable measurement
+
+- id: CL-10
+  title: declared coverage aggregates from the claims
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-10.sh:1
+  observed: 'GREEN at baseline 2026-06-30: covered ids are the union of every claim''s covers:
+    {a, b, c}'
+  smallest_fix: 'covered_ids returns the union of every claim''s covers field.
+
+    '
+  probe: probes/cl-10.sh
+  unlocks: the completeness gate reads a real ledger of claims, with a measured coverage source
+    able to slot in later
+
+- id: CL-11
+  title: a cycle is complete iff nothing is uncovered
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-11.sh:1
+  observed: 'GREEN at baseline 2026-06-30: complete iff uncovered==0: incomplete when ''a''
+    is uncovered, complete when covered'
+  smallest_fix: 'completeness_report sets complete = (uncovered == 0).
+
+    '
+  probe: probes/cl-11.sh
+  unlocks: greenness is soundness AND completeness, not soundness alone
+
+- id: CL-12
+  title: an uncovered point is surfaced, never masked
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-12.sh:1
+  observed: 'GREEN at baseline 2026-06-30: the uncovered point ''c'' is on the frontier and
+    the cycle is flagged incomplete — no masking'
+  smallest_fix: 'completeness_report carries the frontier through unmodified and never declares
+    completeness with points still uncovered.
+
+    '
+  probe: probes/cl-12.sh
+  unlocks: a green gate can never silently hide a hole — the whole point of the completeness
+    layer
+
+- id: CL-13
+  title: an accepted goal-counterexample is divergence
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-13.sh:1
+  observed: 'GREEN at baseline 2026-06-30: an accepted goal-counterexample -> divergent (green
+    probes cannot hide a broken intent)'
+  smallest_fix: 'divergent() returns True when any goal-counterexample is accepted.
+
+    '
+  probe: probes/cl-13.sh
+  unlocks: green probes can never buy a stop when intent was broken — the controller reads
+    divergence and reverts
+
+- id: CL-14
+  title: no false divergence alarm
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-14.sh:1
+  observed: 'GREEN at baseline 2026-06-30: all goal-counterexamples rejected -> not divergent
+    (intent intact, progress allowed)'
+  smallest_fix: 'divergent() returns False when every goal-counterexample is rejected.
+
+    '
+  probe: probes/cl-14.sh
+  unlocks: a converging build is not forced into endless reverts by a spurious alarm
+
+- id: CL-15
+  title: divergence names exactly what broke, worst first
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-15.sh:1
+  observed: 'GREEN at baseline 2026-06-30: divergent_ids = exactly the accepted ones, worst
+    first: [''high'',''low'']'
+  smallest_fix: 'divergent_ids returns the accepted goal-counterexamples only, sorted by descending
+    weight then id.
+
+    '
+  probe: probes/cl-15.sh
+  unlocks: a revert can name the most severe intent breach instead of a vague failure
+
+- id: CL-16
+  title: an exercised surface point is measured as covered
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-16.sh:1
+  observed: 'GREEN at baseline 2026-06-30: the exercised function target_a is measured as
+    covered'
+  smallest_fix: 'measure_coverage traces the exercise and records the qualified names of the
+    functions it calls.
+
+    '
+  probe: probes/cl-16.sh
+  unlocks: coverage can be measured from what a probe runs, not just what a claim declares
+
+- id: CL-17
+  title: 'declared is not measured: an unexercised point is not covered'
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-17.sh:1
+  observed: 'GREEN at baseline 2026-06-30: target_b was never exercised, so it is not measured
+    as covered (a claim cannot just declare it)'
+  smallest_fix: 'measure_coverage returns only functions actually called, so an unexercised
+    surface point is absent.
+
+    '
+  probe: probes/cl-17.sh
+  unlocks: a claim can no longer earn coverage it does not exercise — the gameable gap in
+    declared coverage, closed
+
+- id: CL-18
+  title: measured coverage carries no phantom points
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-18.sh:1
+  observed: 'GREEN at baseline 2026-06-30: measured == {target_a}: the off-surface call ''helper''
+    is not phantom coverage'
+  smallest_fix: 'measure_coverage intersects the called names with the known surface ids.
+
+    '
+  probe: probes/cl-18.sh
+  unlocks: off-surface calls cannot inflate coverage or distort the frontier
+
+- id: CL-19
+  title: extraction descends into conditional bodies
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-19.sh:1
+  observed: 'GREEN at baseline 2026-06-30: a TYPE_CHECKING-guarded method is surfaced alongside
+    the plain one: C.guarded, C.real'
+  smallest_fix: 'walk through if/for/while/try/with wrappers (via _defs_in) when collecting
+    module- and class-level defs.
+
+    '
+  probe: probes/cl-19.sh
+  unlocks: a TYPE_CHECKING/try-fallback/platform-guarded method is no longer a silent coverage
+    hole (found by adversarial review)
+
+- id: CL-20
+  title: an unparseable target has a defined empty surface
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-20.sh:1
+  observed: 'GREEN at baseline 2026-06-30: unparseable target -> [] : a defined empty surface,
+    no crash'
+  smallest_fix: 'wrap ast.parse in try/except SyntaxError and return [].
+
+    '
+  probe: probes/cl-20.sh
+  unlocks: one bad file cannot abort the whole completeness pass (found by adversarial review)
+
+- id: CL-21
+  title: surface points carry a meaningful weight
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/cl-21.sh:1
+  observed: 'GREEN at baseline 2026-06-30: weights are meaningful: big=22 > small=4 > 0 (ranking
+    is not vacuous)'
+  smallest_fix: 'weight each point by AST size (_weight) so the frontier ranks by complexity,
+    not alphabetically.
+
+    '
+  probe: probes/cl-21.sh
+  unlocks: the frontier claims the most consequential uncovered unit first (found by adversarial
+    review)
+
+- id: CL-22
+  title: a string covers is one id, never character-exploded
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-22.sh:1
+  observed: 'GREEN at baseline 2026-06-30: a string covers is one id: {verify_chain} (not
+    exploded into characters)'
+  smallest_fix: 'in covered_ids, wrap a str covers in a one-element list before set.update.
+
+    '
+  probe: probes/cl-22.sh
+  unlocks: a bare-string covers no longer silently loses coverage and pollutes the set (found
+    by adversarial review)
+
+- id: CL-23
+  title: an empty surface is not vacuously complete
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-23.sh:1
+  observed: 'GREEN at baseline 2026-06-30: empty surface -> complete=False (no surface is
+    a measurement signal, not a finished cycle)'
+  smallest_fix: 'completeness_report sets complete = (total > 0 and uncovered == 0).
+
+    '
+  probe: probes/cl-23.sh
+  unlocks: a measurement failure (no surface) cannot present as a finished green cycle (found
+    by adversarial review)
+
+- id: CL-24
+  title: measured coverage aggregates across all the probes
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-24.sh:1
+  observed: 'GREEN at baseline 2026-07-01: covered_by = union of exercised points {fa, fb};
+    the un-run fc is not covered'
+  smallest_fix: 'covered_by runs measure_coverage on each exercise and unions the results
+    over the surface ids.
+
+    '
+  probe: probes/cl-24.sh
+  unlocks: the gate is fed measured coverage aggregated from every probe, not declarations
+
+- id: CL-25
+  title: a raising probe body does not crash the aggregate
+  class: broken-route
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-25.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a raising middle exercise is isolated: fa/fb coverage
+    survives, boom contributes nothing'
+  smallest_fix: covered_by wraps each measure_coverage call in try/except; a raising exercise
+    contributes nothing.
+  probe: probes/cl-25.sh
+  unlocks: one broken/RED probe body cannot take down measured coverage for every claim (found
+    by adversarial review)
+
+- id: CL-26
+  title: a sys.exit() probe body is isolated too
+  class: broken-route
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-26.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a sys.exit() probe body is isolated: fa/fb coverage
+    survives the whole pass'
+  smallest_fix: covered_by catches (Exception, SystemExit); KeyboardInterrupt still propagates.
+  probe: probes/cl-26.sh
+  unlocks: a skip-guarded probe body cannot crash the whole coverage pass (found by adversarial
+    review)

@@ -1,0 +1,291 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: AD-1
+  title: probe-ability is the conjunction of all three criteria
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-1.sh:1
+  observed: 'GREEN at baseline 2026-07-01: probe-able only when all three criteria hold; missing
+    any one disqualifies'
+  smallest_fix: 'Assertion.probeable returns falsifiable AND has_counterexample AND bounded.
+
+    '
+  probe: probes/ad-1.sh
+  unlocks: a vague assertion cannot pass on a single virtue
+
+- id: AD-2
+  title: gateability is the measured probe-able share
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-2.sh:1
+  observed: 'GREEN at baseline 2026-07-01: gateability = probeable/total: 0.5 for 2-of-4,
+    0.0 for empty'
+  smallest_fix: 'gateability returns probeable/total, 0.0 for empty.
+
+    '
+  probe: probes/ad-2.sh
+  unlocks: the verdict rests on a counted metric, not a rated score
+
+- id: AD-3
+  title: the worklist names exactly the un-probe-able assertions with their gaps
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-3.sh:1
+  observed: 'GREEN at baseline 2026-07-01: worklist = the un-probe-able assertions only, each
+    with its named gaps (bad1:1, bad2:2)'
+  smallest_fix: 'worklist emits (id, gaps) for each not-probeable assertion and excludes probe-able
+    ones.
+
+    '
+  probe: probes/ad-3.sh
+  unlocks: the human gets an actionable interview worklist, not an opaque score
+
+- id: AD-4
+  title: an all-probe-able goal is admitted
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-4.sh:1
+  observed: 'GREEN at baseline 2026-07-01: every assertion probe-able -> ADMIT (a good contract
+    is let through)'
+  smallest_fix: 'admit returns ADMIT when spine == total and spine >= min_invariants.
+
+    '
+  probe: probes/ad-4.sh
+  unlocks: a good contract is let through instead of blocked
+
+- id: AD-5
+  title: a gateable spine with a vague remainder is refused for interview
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-5.sh:1
+  observed: 'GREEN at baseline 2026-07-01: gateable spine + vague remainder -> REFUSE-AND-INTERVIEW
+    (do not admit an incomplete contract)'
+  smallest_fix: 'admit returns REFUSE_AND_INTERVIEW when spine >= min_invariants but spine
+    < total.
+
+    '
+  probe: probes/ad-5.sh
+  unlocks: an incomplete contract is never silently admitted
+
+- id: AD-6
+  title: a too-thin spine is refused as not gateable
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-6.sh:1
+  observed: 'GREEN at baseline 2026-07-01: spine of 1 (< min 2) -> REFUSE-NOT-GATEABLE (too
+    few invariants to gate honestly)'
+  smallest_fix: 'admit returns REFUSE_NOT_GATEABLE when spine < min_invariants.
+
+    '
+  probe: probes/ad-6.sh
+  unlocks: a goal with too few invariants is told to sharpen, not gated into a brittle proxy
+
+- id: AD-7
+  title: an empty goal is never gateable
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-7.sh:1
+  observed: 'GREEN at baseline 2026-07-01: empty goal -> REFUSE-NOT-GATEABLE, gateability
+    0.0 (no assertion is not every assertion)'
+  smallest_fix: 'admit checks spine < min_invariants before spine == total, so an empty goal
+    (0,0) is REFUSE_NOT_GATEABLE.
+
+    '
+  probe: probes/ad-7.sh
+  unlocks: a contract with zero assertions cannot be admitted as perfect (found by adversarial
+    review)
+
+- id: AD-8
+  title: an all-probe-able goal below the minimum is still refused
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-8.sh:1
+  observed: 'GREEN at baseline 2026-07-01: one perfect assertion (spine 1 < min 2) -> REFUSE-NOT-GATEABLE
+    (too thin to be a contract)'
+  smallest_fix: 'the thinness gate (spine < min_invariants) is checked first, so a single
+    perfect assertion is refused.
+
+    '
+  probe: probes/ad-8.sh
+  unlocks: a one-invariant goal cannot be admitted just because it is internally consistent
+    (found by adversarial review)
+
+- id: AD-9
+  title: the minimum is an inclusive floor
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-9.sh:1
+  observed: 'GREEN at baseline 2026-07-01: spine == min (2): all-probe-able -> ADMIT, vague-remainder
+    -> REFUSE-AND-INTERVIEW (inclusive floor)'
+  smallest_fix: 'use spine < min_invariants (strict), so a spine of exactly min_invariants
+    is gateable.
+
+    '
+  probe: probes/ad-9.sh
+  unlocks: a valid minimum-size goal is not wrongly refused by an off-by-one (found by adversarial
+    review)
+
+- id: AD-10
+  title: each worklist gap names the specific failed criterion
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-10.sh:1
+  observed: 'GREEN at baseline 2026-07-01: each gap names the actual failed criterion (oracle
+    / bound), not a constant placeholder'
+  smallest_fix: 'Assertion.gaps emits the criterion-specific string for each failed criterion;
+    worklist passes it through.
+
+    '
+  probe: probes/ad-10.sh
+  unlocks: the interview is directed at the actual failed criterion, not a mislabeled one
+    (found by adversarial review)
+
+- id: AD-11
+  title: the interview admits a fully probe-able round
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-11.sh:1
+  observed: 'GREEN at baseline 2026-07-01: latest round fully probe-able -> ADMIT (the goal
+    is now a contract)'
+  smallest_fix: 'interview_step returns ADMIT when the latest round has zero un-probe-able
+    assertions.
+
+    '
+  probe: probes/ad-11.sh
+  unlocks: the interview recognizes a finished contract instead of running past it
+
+- id: AD-12
+  title: the interview escalates instead of looping forever
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-12.sh:1
+  observed: 'GREEN at baseline 2026-07-01: three rounds, no reduction -> ESCALATE (not gateable;
+    do not interview forever)'
+  smallest_fix: 'interview_step returns ESCALATE when the un-probe-able count does not shrink
+    over max_rounds.
+
+    '
+  probe: probes/ad-12.sh
+  unlocks: a goal the human cannot make gateable terminates, instead of an endless interview
+
+- id: AD-13
+  title: the interview is not abandoned while converging
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-13.sh:1
+  observed: 'GREEN at baseline 2026-07-01: un-probe-able set shrinking 3->2->1 -> CONTINUE
+    (a converging interview is not abandoned)'
+  smallest_fix: 'interview_step returns CONTINUE while the un-probe-able set is still shrinking.
+
+    '
+  probe: probes/ad-13.sh
+  unlocks: a goal about to become gateable is not given up on prematurely
+
+- id: AD-14
+  title: only an admitted goal proceeds to synthesis
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-14.sh:1
+  observed: 'GREEN at baseline 2026-07-01: only ADMIT proceeds: (admit=True, interview=False,
+    not-gateable=False)'
+  smallest_fix: 'admitted returns True only when report.verdict is ADMIT.
+
+    '
+  probe: probes/ad-14.sh
+  unlocks: a REFUSE goal can never bypass the gate into synthesis
+
+- id: AD-15
+  title: an oscillating stuck history escalates
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-15.sh:1
+  observed: 'GREEN at baseline 2026-07-01: oscillating [2,1,2] -> ESCALATE (dip-and-return
+    is not progress; never loops forever)'
+  smallest_fix: 'interview_step escalates on window[-1] >= window[0] (endpoints), catching
+    dip-and-return oscillation.
+
+    '
+  probe: probes/ad-15.sh
+  unlocks: an interview cannot loop forever on a [2,1,2,1,...] history (found by adversarial
+    review)
+
+- id: AD-16
+  title: the no-progress window is the most recent rounds
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-16.sh:1
+  observed: 'GREEN at baseline 2026-07-01: [3,3,3,2,1] -> CONTINUE (the recent window is converging;
+    an old stuck stretch does not escalate)'
+  smallest_fix: 'the escalation window is remaining[-max_rounds:], not remaining[:max_rounds].
+
+    '
+  probe: probes/ad-16.sh
+  unlocks: an old stuck stretch that has since converged is not escalated (found by adversarial
+    review)
+
+- id: AD-17
+  title: ADMIT wins over ESCALATE at the round limit
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ad-17.sh:1
+  observed: 'GREEN at baseline 2026-07-01: [0,2,0] -> ADMIT (a contract that just re-gated
+    is admitted, not escalated)'
+  smallest_fix: 'interview_step checks remaining[-1] == 0 (ADMIT) before the escalate branch.
+
+    '
+  probe: probes/ad-17.sh
+  unlocks: a goal that just re-gated on the final round is admitted, not thrown out (found
+    by adversarial review)
+
+- id: AD-18
+  title: admitted fails closed on an unknown verdict
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ad-18.sh:1
+  observed: 'GREEN at baseline 2026-07-01: an unknown/None verdict -> admitted False (the
+    gate fails closed, never open)'
+  smallest_fix: 'admitted returns report.verdict is Verdict.ADMIT (whitelist), so None/unknown
+    fails closed.
+
+    '
+  probe: probes/ad-18.sh
+  unlocks: a malformed or future verdict can never bypass the gate into synthesis (found by
+    adversarial review)
