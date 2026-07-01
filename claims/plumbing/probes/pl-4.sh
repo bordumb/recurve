@@ -36,7 +36,7 @@ except ImportError:
 gate = {"open": 2, "regressed": 1, "broken": 0}
 surface = [SurfacePoint("a", 1), SurfacePoint("b", 9)]
 covered = {"a"}
-gcx = [GoalCounterexample("x", 5, accepted=True)]
+gcx = [GoalCounterexample("x", accepted=True, weight=5)]
 prog, _ = sense(gate, surface, covered, gcx)
 want = (prog.open, prog.regressed, prog.broken, prog.uncovered, prog.divergent)  # (2,1,0,1,True)
 try:
