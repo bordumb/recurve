@@ -11,6 +11,8 @@ probed, gated, burn-downable gaps.
                                    bypass-permissions Claude (--dry-run to preview)
     recurve decide [--open N …]    ask the stopping controller for its stop verdict
                                    from a measured progress vector (never blind)
+    recurve frontier [--point ID:W …]    surface the ranked uncovered ids — what
+                                   no claim covers (the completeness frontier)
     recurve probe [--suite S|--gap ID]   run gap probes, report RED/GREEN/BROKEN
     recurve matrix [--gate]        the conformance matrix; --gate exits nonzero on
                                    any regression, broken probe, or stale suite
@@ -165,6 +167,36 @@ def cmd_probe(args):
 def cmd_decide(args):
     from .decide_cli import verdict_for
     print(verdict_for(args.open, args.regressed, args.broken, args.uncovered, args.divergent))
+
+
+def _parse_point(spec: str):
+    """Parse one `ID[:WEIGHT]` surface point from the command line."""
+    from .frontier import SurfacePoint
+    id_part, _, w_part = spec.partition(":")
+    id_part = id_part.strip()
+    if not id_part:
+        _fail(f"empty surface point id in {spec!r} — use ID or ID:WEIGHT")
+    try:
+        weight = int(w_part) if w_part else 0
+    except ValueError:
+        _fail(f"non-integer weight in {spec!r} — use ID or ID:WEIGHT")
+    return SurfacePoint(id_part, weight)
+
+
+def cmd_frontier(args):
+    """Print the ranked uncovered ids for a surface given on flags — what no
+    claim covers, highest-risk first. A thin honest report over
+    `frontier_cli.frontier_ids`, which mirrors `compute_frontier`."""
+    from .frontier_cli import frontier_ids
+    surface = [_parse_point(s) for s in (args.point or [])]
+    covered = set(args.covered or [])
+    deferred = set(args.deferred or [])
+    ids = frontier_ids(surface, covered, deferred)
+    if not ids:
+        print("frontier empty — every surface point is covered or deferred.")
+        return
+    for i in ids:
+        print(i)
 
 
 def cmd_matrix(args):
@@ -1065,6 +1097,13 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.add_argument("--uncovered", type=int, default=0, help="frontier size (completeness signal)")
     s.add_argument("--divergent", action="store_true", help="a goal-counterexample passed (built the wrong thing)")
     s.set_defaults(fn=cmd_decide)
+
+    s = sub.add_parser("frontier", help="surface the ranked uncovered ids — what no claim covers")
+    s.add_argument("--point", action="append", metavar="ID[:WEIGHT]",
+                   help="a surface point (repeatable); WEIGHT ranks it (higher first, default 0)")
+    s.add_argument("--covered", action="append", metavar="ID", help="an id a claim covers (repeatable)")
+    s.add_argument("--deferred", action="append", metavar="ID", help="an id explicitly deferred (repeatable)")
+    s.set_defaults(fn=cmd_frontier)
 
     s = sub.add_parser("receipts", help="evidence chains: verify / list")
     s.add_argument("action", choices=["verify", "list"])

@@ -24,7 +24,7 @@ with the referee it exposes. Negative space (kept RED as a counterexample): a
 decide surface whose verdict disagrees with `controller.decide` (e.g. always
 STOP-SUCCESS) turns the probe RED.
 
-## PL-2 — recurve frontier surfaces the completeness frontier
+## PL-2 — recurve frontier surfaces the completeness frontier ✓
 
 `recurve frontier` reports the ranked uncovered surface for a target, so the loop
 — and a human — can see what no claim covers. The verb's logic
