@@ -171,3 +171,10 @@ space: a report that calls `total == 0` complete must turn the probe RED.
 point is covered iff *some* probe actually executes it, and a point every claim declares but none runs stays
 uncovered. This is what feeds the gate measured coverage instead of declared. Negative space: a `covered_by`
 that returns the whole surface (declaring what it never traced) must turn the probe RED.
+
+## CL-25 — a raising probe body does not crash the aggregate
+
+`covered_by` traces each exercise independently, so a probe body that *raises* (a RED/broken probe — the
+common case in a burndown) contributes no coverage but never aborts measurement for the other claims. Found
+by adversarial review: CL-24's fixtures only fed clean exercises. Negative space: a `covered_by` that lets a
+raising middle exercise (`[fa, boom, fb]`) propagate — losing the flanking coverage — must turn the probe RED.

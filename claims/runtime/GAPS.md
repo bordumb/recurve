@@ -112,3 +112,10 @@ Progress vector from it — so the frontier and `uncovered` reflect what the pro
 point declared covered but never exercised shows up on the measured frontier. Negative space: a
 `sense_measured` that marks the whole surface covered (ignoring the exercises) so an un-run point never
 reaches the frontier must turn the probe RED.
+
+## RT-17 — a raising probe body does not crash Sense
+
+`sense_measured` derives measured coverage resiliently, so an exercise that *raises* still yields a Progress
+vector (the raising probe's points simply uncovered), never propagating the exception and killing the gate
+pass. Found by adversarial review. Negative space: a `sense_measured` that lets a raising exercise abort the
+coverage aggregate — so no Progress is produced — must turn the probe RED.

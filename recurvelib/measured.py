@@ -65,5 +65,9 @@ def covered_by(exercises, surface_ids) -> set:
     surface_ids = set(surface_ids)
     covered: set = set()
     for exercise in exercises:
-        covered |= measure_coverage(exercise, surface_ids)
+        try:
+            covered |= measure_coverage(exercise, surface_ids)
+        except Exception:
+            continue   # a probe body that raises (a RED/broken probe) contributes no coverage — its points
+            #            stay on the frontier — but it never aborts measurement for the other claims
     return covered

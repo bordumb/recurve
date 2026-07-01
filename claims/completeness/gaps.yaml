@@ -386,3 +386,18 @@
     '
   probe: probes/cl-24.sh
   unlocks: the gate is fed measured coverage aggregated from every probe, not declarations
+
+- id: CL-25
+  title: a raising probe body does not crash the aggregate
+  class: broken-route
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-25.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a raising middle exercise is isolated: fa/fb coverage
+    survives, boom contributes nothing'
+  smallest_fix: covered_by wraps each measure_coverage call in try/except; a raising exercise
+    contributes nothing.
+  probe: probes/cl-25.sh
+  unlocks: one broken/RED probe body cannot take down measured coverage for every claim (found
+    by adversarial review)

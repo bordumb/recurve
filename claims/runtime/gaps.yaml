@@ -237,3 +237,18 @@
   probe: probes/rt-16.sh
   unlocks: the auto-wiring of measured coverage into the gate — an unexercised point reaches
     the frontier
+
+- id: RT-17
+  title: a raising probe body does not crash Sense
+  class: broken-route
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-17.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a raising probe body doesn''t crash Sense: fa/fb
+    measured covered, fc on the frontier'
+  smallest_fix: sense_measured relies on the resilient covered_by, so a raising exercise still
+    yields a Progress.
+  probe: probes/rt-17.sh
+  unlocks: a single erroring probe body cannot crash the Sense step of the gate (found by
+    adversarial review)
