@@ -1,19 +1,5 @@
 # Architecture
 
-## Vocabulary (one term, one meaning)
-
-| Term | Meaning |
-| --- | --- |
-| **Claim** | A falsifiable statement about the target. Exists in three synchronized places: prose (`GAPS.md`), ledger entry (`gaps.yaml`), probe. |
-| **Gap** | A claim whose probe is RED — the delta between claimed and proven. A *closed* gap is GREEN and guarded forever. |
-| **Probe** | An executable: exit 0 GREEN · 1 RED · anything else BROKEN. The map is total — a crash is never a verdict. |
-| **Trap** | A kept counterexample fixture the probe must turn RED. Mutation testing for the spec layer. |
-| **Suite** | One ledger + prose + probes + harness for one domain. |
-| **Ledger** | `gaps.yaml` — the machine record of verified observations, never intentions. |
-| **Gate** | The conjunction that must hold to promote: probe GREEN + fleet matrix (no regression / broken / stale / failed trap) + behavioral harness. |
-| **Cycle** | One fresh agent taking the ledger from N red to N−k, proven, snapshotted, committed. |
-| **Park** | Marking a gap un-greenable-this-run for human triage; the loop continues past it. |
-
 ## The loop
 
 ```mermaid
@@ -95,6 +81,40 @@ sit behind protocols; everything that *decides* from their output is fixed and i
 lets the loop be trusted rather than believed: it measures instead of trusting itself, and refuses when it
 cannot measure. Each module here is guarded by its own claims suite, hardened the same way the toolkit is
 (see "The system distrusts itself" in [About](about.md)).
+
+## Vocabulary (one term, one meaning)
+
+**The claim model** — the objects the base loop's phases act on (`GATE` is the gate box; a `Cycle` is one
+pass of the loop):
+
+| Term | Meaning |
+| --- | --- |
+| **Claim** | A falsifiable statement about the target. Exists in three synchronized places: prose (`GAPS.md`), ledger entry (`gaps.yaml`), probe. |
+| **Gap** | A claim whose probe is RED — the delta between claimed and proven. A *closed* gap is GREEN and guarded forever. |
+| **Probe** | An executable: exit 0 GREEN · 1 RED · anything else BROKEN. The map is total — a crash is never a verdict. |
+| **Trap** | A kept counterexample fixture the probe must turn RED. Mutation testing for the spec layer. |
+| **Suite** | One ledger + prose + probes + harness for one domain. |
+| **Ledger** | `gaps.yaml` — the machine record of verified observations, never intentions. |
+| **Gate** | The conjunction that must hold to promote: probe GREEN + fleet matrix (no regression / broken / stale / failed trap) + behavioral harness. |
+| **Cycle** | One fresh agent taking the ledger from N red to N−k, proven, snapshotted, committed. |
+| **Park** | Marking a gap un-greenable-this-run for human triage; the loop continues past it. |
+
+**The autonomous loop** — the boxes and edges of the verification-layer diagram above:
+
+| Term | In the diagram | Meaning |
+| --- | --- | --- |
+| **Admission** | `ADMISSION` | Layer 0: is a goal probe-able enough to become a contract? Verdict `ADMIT` / `REFUSE-AND-INTERVIEW` / `REFUSE-NOT-GATEABLE`. |
+| **Sense** | `SENSE` | Measure the world into a progress vector — never ask the actor how it went. |
+| **Frontier** | `SENSE` (completeness) | The ranked uncovered surface: what no claim covers. |
+| **Divergence** | `SENSE` (fidelity) | A goal-counterexample was accepted — the probes pass but the intent broke. |
+| **Progress vector** | `SENSE` output | The measured state of a cycle: open / regressed / broken claims, frontier size, divergence. |
+| **Controller** | `DECIDE` | Reads the progress vector and returns one verdict: `CONTINUE` / `STOP-SUCCESS` / `STOP-REVERT` / `PIVOT`. |
+| **Act** | `ACT` | The actor proposes one diff to the target tree; reached only on an `ADMIT`ted contract. |
+| **Write boundary** | `ACT` | The actor may change the target tree but never the referee surface (claims / probes / traps / gate). |
+| **Revert-to-last-green** | `STOP-REVERT` | Restore the last state the gate certified green; the actor's damage is rolled back, never shipped. |
+| **Receipt** | `STOP-SUCCESS` | The tamper-evident, hash-chained record of the run's evidence, emitted when the loop halts with success. |
+| **Interview** | `REFUSE` → human | On a non-ADMIT verdict, the human is asked "what would *wrong* look like?" until each vague assertion has a check — or the goal is declared un-gateable. |
+| **Capture rule** | the adversary | An adversary's finding counts only once it is a re-runnable trap — RED on the wrong impl, GREEN on the real. |
 
 ## Engine layout
 
