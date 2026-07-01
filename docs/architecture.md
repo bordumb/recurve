@@ -77,7 +77,19 @@ The **runtime** composes these into an autonomous burndown loop: **Sense** (gate
 the referee surface by a write boundary) → revert-to-last-green. The verdict is a pure function of what was
 measured; the actor's self-report is never an input.
 
-One principle runs through it: **the spine is deterministic, the judgment is pluggable.** The parts that need
+```mermaid
+flowchart LR
+    AD{ADMISSION<br/>goal gateable?} -- REFUSE --> HU[human:<br/>interview + sharpen]
+    AD -- ADMIT --> SE[SENSE<br/>gate + frontier + divergence<br/>→ progress vector]
+    SE --> DE{DECIDE<br/>controller}
+    DE -- CONTINUE / PIVOT --> AC[ACT<br/>actor: one diff,<br/>target tree only · write boundary]
+    AC --> SE
+    DE -- STOP-REVERT --> RV[revert to<br/>last green]
+    DE -- STOP-SUCCESS --> DN[receipt + halt]
+```
+
+A separate adversary periodically red-teams the new claims; anything it finds becomes a kept trap (the
+capture rule) before the loop trusts it. One principle runs through it: **the spine is deterministic, the judgment is pluggable.** The parts that need
 an LLM — the rater that reads a goal, the actor that writes a diff, the adversary that red-teams a claim —
 sit behind protocols; everything that *decides* from their output is fixed and itself gated. That is what
 lets the loop be trusted rather than believed: it measures instead of trusting itself, and refuses when it
