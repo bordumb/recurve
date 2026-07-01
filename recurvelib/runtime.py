@@ -16,6 +16,7 @@ from recurvelib.admission import admitted
 from recurvelib.completeness import completeness_report
 from recurvelib.controller import Progress, Verdict, decide
 from recurvelib.fidelity import divergent
+from recurvelib.measured import covered_by
 
 
 class World(Protocol):
@@ -98,6 +99,29 @@ def sense(gate_counts, surface, covered_ids, goal_counterexamples, deferred_ids=
         divergent=divergent(goal_counterexamples),
     )
     return progress, report.frontier
+
+
+def sense_measured(gate_counts, surface, exercises, goal_counterexamples, deferred_ids=()):
+    """Sense with **measured** coverage: derive the covered set by tracing each exercise, then assemble the
+    Progress vector — so the frontier reflects what the probes actually *run*, not what a claim declares.
+
+    This is the auto-wiring of measured coverage into the gate: ``covered_by`` traces every exercise (a claim's
+    probe body) to the surface points it executes, and that measured covered set is what feeds ``sense`` — a
+    point declared-covered but never exercised stays on the frontier.
+
+    Args:
+        gate_counts: Mapping with ``open``/``regressed``/``broken`` from the probe gate.
+        surface: Iterable of SurfacePoint — the full claimable surface.
+        exercises: Iterable of zero-argument callables — one per claim/probe.
+        goal_counterexamples: Iterable of GoalCounterexample (the fidelity signal).
+        deferred_ids: Iterable of surface ids explicitly deferred.
+
+    Returns:
+        ``(Progress, frontier)`` — the Progress vector with a *measured* ``uncovered``, and the frontier.
+    """
+    surface = list(surface)
+    covered = covered_by(exercises, {p.id for p in surface})
+    return sense(gate_counts, surface, covered, goal_counterexamples, deferred_ids)
 
 
 # --- A1: the minimal closed loop -------------------------------------------------------------------------

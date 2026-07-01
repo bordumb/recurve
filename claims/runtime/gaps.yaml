@@ -220,3 +220,20 @@
   probe: probes/rt-15.sh
   unlocks: the referee guard is correct regardless of trailing slash, and never over/under-matches
     (found by adversarial review)
+
+- id: RT-16
+  title: Sense derives coverage by tracing the probes, not by declaration
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-16.sh:1
+  observed: 'GREEN at baseline 2026-07-01: sense derives coverage by tracing: fc (never run)
+    is the measured-uncovered point on the frontier'
+  smallest_fix: 'sense_measured calls covered_by over the exercises, then feeds that measured
+    covered set into sense.
+
+    '
+  probe: probes/rt-16.sh
+  unlocks: the auto-wiring of measured coverage into the gate — an unexercised point reaches
+    the frontier

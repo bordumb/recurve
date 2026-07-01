@@ -44,3 +44,26 @@ def measure_coverage(exercise, surface_ids=None) -> set:
     if surface_ids is not None:
         return called & set(surface_ids)
     return called
+
+
+def covered_by(exercises, surface_ids) -> set:
+    """The surface ids covered by ANY of ``exercises`` — trace each one and union the surface points it runs.
+
+    This is the aggregate that feeds the completeness gate with *measured* coverage: a surface point is covered
+    iff some exercise (a claim's probe body) actually executes it. Deriving the covered set this way, instead
+    of trusting each claim's declaration, is what makes coverage non-gameable end to end — a point every claim
+    *says* it covers but none *runs* stays on the frontier.
+
+    Args:
+        exercises: Iterable of zero-argument callables — one per claim/probe.
+        surface_ids: The surface point ids to attribute coverage to.
+
+    Usage:
+        covered = covered_by(probe_bodies, {p.id for p in surface})
+        report = completeness_report(surface, covered)   # frontier = points no probe runs
+    """
+    surface_ids = set(surface_ids)
+    covered: set = set()
+    for exercise in exercises:
+        covered |= measure_coverage(exercise, surface_ids)
+    return covered

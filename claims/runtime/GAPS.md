@@ -104,3 +104,11 @@ so `claims/…` and an exact file named `claims` are refused while a sibling lik
 whether or not the caller wrote the root with a trailing slash. Negative space: a bare-`startswith` match that
 refuses `claims_backup/x` under `["claims"]`, or admits an exact-name `claims` file under `["claims/"]`, must
 turn the probe RED.
+
+## RT-16 — Sense derives coverage by tracing the probes, not by declaration
+
+`sense_measured` runs `covered_by` over the exercises to get the *measured* covered set, then assembles the
+Progress vector from it — so the frontier and `uncovered` reflect what the probes actually run. A surface
+point declared covered but never exercised shows up on the measured frontier. Negative space: a
+`sense_measured` that marks the whole surface covered (ignoring the exercises) so an un-run point never
+reaches the frontier must turn the probe RED.

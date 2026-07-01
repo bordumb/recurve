@@ -164,3 +164,10 @@ characters — exploding it both loses the intended coverage and pollutes the se
 A surface of size zero is a measurement signal (nothing extracted), not a finished cycle; `complete` requires
 a non-empty surface, so the controller cannot `STOP-SUCCESS` over a target nothing was measured on. Negative
 space: a report that calls `total == 0` complete must turn the probe RED.
+
+## CL-24 — measured coverage aggregates across all the probes
+
+`covered_by` traces every exercise (a claim's probe body) and unions the surface points each one runs — so a
+point is covered iff *some* probe actually executes it, and a point every claim declares but none runs stays
+uncovered. This is what feeds the gate measured coverage instead of declared. Negative space: a `covered_by`
+that returns the whole surface (declaring what it never traced) must turn the probe RED.
