@@ -1,5 +1,7 @@
 site_name: recurve
 site_description: Claims-driven recursive software improvement — point it at a repo or a PRD and burn down the gap between claimed and proven.
+repo_url: https://github.com/bordumb/recurve
+repo_name: bordumb/recurve
 
 # Internal repo documents that must NOT be published or indexed on the site.
 # plans/ holds the design spec (plan.md), the PRD (improvements.md), and the
@@ -27,7 +29,11 @@ theme:
   font:
     text: Inter
     code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
   features:
+    - navigation.tabs          # persistent top navbar — visible on the hero too
+    - navigation.tabs.sticky   # keep the tabs pinned while scrolling
     - navigation.instant
     - navigation.tracking
     - navigation.sections
