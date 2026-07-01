@@ -11,11 +11,32 @@ It also decides whether a goal is *gateable* before making any claims, surfaces
 what no claim covers, checks the build didn't drift from intent, and decides
 when to stop — the [verification layer](architecture.md#the-verification-layer).
 
+## From a spec to proof
+
+**1 — Write the spec.** A short PRD of what the software must do (`PRD.md`) —
+or skip it entirely and point recurve at an existing repo to mine the promises
+your README and docs already make.
+
+**2 — Turn intent into a gated backlog.**
+
 ```bash
-recurve ledger      # every claim and its status — the red backlog is the honest one
-recurve matrix      # run every probe: GREEN / RED / BROKEN / STALE, and the gate verdict
-recurve next        # the highest-value gap to work on right now
+recurve init --from-prd PRD.md --suite checkout --tree .
 ```
+
+Every *must* becomes a falsifiable **claim** with an executable **probe** — plus
+an adversarial twin for the negative space specs always omit. With no code yet,
+every claim is RED. That's correct: **the burndown is the build.**
+
+**3 — Record what's true, then burn the red down.**
+
+```bash
+recurve baseline checkout                      # GREEN promises → a regression suite; RED → your honest backlog
+AGENT_CMD='…' bash .recurve/workflows/burndown.sh   # one fresh agent per cycle, gated, until green
+```
+
+Nothing closes on anyone's say-so — a claim goes green only when its probe is
+GREEN *and* the gate holds fleet-wide. That's the whole point: **evidence, not
+belief.**
 
 ## Where to go
 

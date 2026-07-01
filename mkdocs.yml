@@ -2,12 +2,9 @@ site_name: recurve
 site_description: Claims-driven recursive software improvement — point it at a repo or a PRD and burn down the gap between claimed and proven.
 
 # Internal repo documents that must NOT be published or indexed on the site.
-# plan.md is the design spec and the designated provenance zone; improvements.md
-# is an internal PRD; plans/ holds internal design docs. All stay in-repo only,
-# never on the site.
+# plans/ holds the design spec (plan.md), the PRD (improvements.md), and the
+# internal design docs — the designated provenance zone, in-repo only.
 exclude_docs: |
-  plan.md
-  improvements.md
   plans/
 
 theme:
