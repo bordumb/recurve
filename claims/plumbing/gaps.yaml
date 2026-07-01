@@ -43,3 +43,21 @@
   probe: probes/pl-2.sh
   unlocks: the loop seeing what no claim covers (completeness surfaced) — the signal it needs
     to refuse STOP-SUCCESS while the frontier is nonempty
+
+- id: PL-3
+  title: the burndown loop's stop decision consults controller.decide (not the cap watchdog)
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers:
+  - PL-3
+  observed: 'RED at baseline 2026-07-01: ours=burndown.sh never calls the decide verb oracle=the
+    loop asks controller.decide for its stop verdict'
+  smallest_fix: burndown.sh computes the cycle's gate vector (open/regressed/broken parsed
+    from recurve matrix) and calls `{{PROG}} decide` with it; the success-halt is gated on
+    the verdict being STOP-SUCCESS, so controller.decide decides when the loop is done — not
+    the ad-hoc no-work/cap watchdog. Must keep every TK burndown-behavior claim green.
+  probe: probes/pl-3.sh
+  unlocks: 'the loop''s stop verdict coming from controller.decide — the core of #4, the verification
+    layer wired into the running loop (uncovered/divergent join the vector as PL-4 lands)'
