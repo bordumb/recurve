@@ -357,3 +357,26 @@
   probe: probes/tk-20.sh
   unlocks: a one-glance health read (open/closed, true gate verdict, broken/stale, pending
     drafts) that an operator or orchestrator trusts because it can never hide a failed gate
+
+- id: TK-21
+  title: recurve demo genuinely demonstrates one claim going RED then GREEN behind the gate
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-21
+  evidence:
+  - recurvelib/demo.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: ours=steps=RED->GREEN oracle=RED-then-GREEN — the
+    demo showed a failing probe going green'
+  smallest_fix: add recurvelib/demo.py with a pure run_demo(workdir) that builds a tiny claim
+    and probe inside workdir, runs the probe while the claim is unmet (RED), applies a trivial
+    fix so the same probe passes (GREEN), and returns a trace of that ordered RED -> GREEN
+    transition; cmd_demo creates a temp dir, calls run_demo, prints a compact narrative of
+    the loop's shape, removes the temp dir, and a `demo` subparser registers it — zero config,
+    no network, no cwd pollution
+  probe: probes/tk-21.sh
+  unlocks: a one-command sign-of-life a newcomer runs to understand recurve by watching one
+    claim go RED to GREEN

@@ -21,6 +21,8 @@ probed, gated, burn-downable gaps.
     recurve review <gap-id>        adversarial-review brief for review-gated gaps
     recurve import <suite>         seed a draft ledger from a suite's GAPS.md
     recurve cycle new <name> --gaps ID,ID    scaffold a sculpting-cycle plan
+    recurve demo                   zero-setup sign-of-life: watch one claim go
+                                   RED → GREEN behind the gate (temp dir, no config)
 
 Exit codes: 0 ok · 1 gate/validation failure · 2 usage/parse error.
 """
@@ -906,6 +908,45 @@ def cmd_drill(args):
     print(f"{C['green']}✓ drill clean — every audited guard still catches its defect.{C['reset']}")
 
 
+def cmd_demo(args):
+    """Zero-setup sign-of-life. Runs one claim from RED to GREEN inside a fresh
+    temp dir — no config, no network, no agent, no cwd pollution — and prints a
+    compact narrative of the loop's shape (claim → probe → gate → green). The
+    temp dir is removed before returning."""
+    import tempfile
+    from . import render
+    from .demo import run_demo
+    C = render.C
+    with tempfile.TemporaryDirectory(prefix="recurve-demo-") as tmp:
+        trace = run_demo(Path(tmp))
+    steps = trace["steps"]
+    before = next((s for s in steps if s["probe"] == "RED"), None)
+    after = next((s for s in steps if s["probe"] == "GREEN"), None)
+
+    def mark(probe: str) -> str:
+        return (f"{C['red']}RED{C['reset']}" if probe == "RED"
+                else f"{C['green']}GREEN{C['reset']}")
+
+    print(f"{C['bold']}recurve demo{C['reset']} — one claim, RED → GREEN, behind the gate")
+    print(render.dim("  (ran in a throwaway temp dir; nothing written to your cwd)"))
+    print(f"  claim   the target says 'ready'")
+    print(f"  probe   reads the tree and returns RED or GREEN")
+    if before:
+        print(f"  {mark(before['probe'])}     probe fails — the claim is unmet")
+    print(render.dim("  fix     write 'ready' to the target (the trivial change)"))
+    if after:
+        print(f"  {mark(after['probe'])}   same probe passes — the claim now holds")
+    verdict = (f"{C['green']}open{C['reset']}" if trace["gate_ok"]
+               else f"{C['red']}shut{C['reset']}")
+    print(f"  gate    {verdict} — a claim promotes only when its probe is GREEN")
+    if before and after:
+        print(f"\n{C['green']}✓ watched a failing probe go green.{C['reset']} "
+              f"That RED → GREEN transition, gated, is the whole loop.")
+    else:
+        print(f"\n{C['red']}✗ demo did not show a real RED → GREEN transition.{C['reset']}")
+        raise SystemExit(1)
+
+
 def _stub(args):
     _fail(f"{args.prog} {args.cmd}: not yet implemented — {_STUBS[args.cmd]} (plan.md §14)")
 
@@ -1026,6 +1067,8 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s = sub.add_parser("baseline", help="the promotion ceremony: drafts → measured ledger entries")
     s.add_argument("suite"); s.add_argument("--timeout", type=int, default=120)
     s.set_defaults(fn=cmd_baseline)
+
+    sub.add_parser("demo", help="zero-setup sign-of-life: watch one claim go RED → GREEN behind the gate (temp dir, no config)").set_defaults(fn=cmd_demo)
 
     s = sub.add_parser("park", help="park a gap (run state, not claim truth) / list parked")
     s.add_argument("gap_id", nargs="?")
