@@ -134,6 +134,86 @@ guarantees should be first-class, not library-only. *Size:* L. *Risk:* medium.
 *Gate:* the existing admission/completeness/fidelity/stopping suites + new CLI
 probes wrapping them.
 
+## Agent surfaces — terminal · single-cycle · in-session loop · MCP
+
+recurve's spine is deterministic; the agent is a pluggable **actor** behind a
+stable seam. So "who drives a cycle" is a *surface* choice, not an architecture
+change — the gate and the ledger are the arbiter no matter which one runs. Four
+surfaces, one seam:
+
+| Surface | What it is | Status |
+| --- | --- | --- |
+| **In-session loop** | your chat agent (Claude Code, …) drives the burndown, spawning a **fresh sub-agent per cycle** | *new — the missing piece* |
+| **MCP** | recurve verbs as MCP tools, so any chat host can be the driver | *new — a thin wrapper* |
+| **Single cycle** | the `cycle` skill: the in-session agent runs exactly one gated cycle | *exists (stamped by `init`)* |
+| **Terminal headless** | `recurve run` / `burndown.sh` spawns a fresh `claude -p` per cycle, unattended | *exists* |
+
+**The primary entry point flips to in-session.** Today the docs lead with the
+terminal loop; going forward they lead with the **in-session loop**. recurve
+should live *inside* the agent session the developer is already in, not off in a
+separate terminal: you stay in the loop (steer, adjudicate live, inspect between
+cycles) and the friction drops to "invoke a skill." MCP generalizes that to any
+host; terminal headless becomes the walk-away / CI / unattended option.
+
+**P8 — in-session `loop` skill.** A stamped skill that plays the orchestrator
+role `burndown.sh` plays headlessly, but from *within* a chat session: it fans
+out **one fresh sub-agent per cycle** (via the host's task/sub-agent tool), each
+handed only the ledger + `RUN.md`. *Why the fresh sub-agent matters:* a
+long-lived session accumulates context and starts "remembering" what is not in
+the ledger — the loop's contained-failure / no-context-rot property comes from a
+clean agent per cycle, and the skill must preserve it. *Size:* M. *Risk:* medium
+(hygiene is the whole point — a naive skill that just loops in-context silently
+loses it). *Gate:* a `loop` suite — probe: N cycles each run a distinct
+sub-agent that sees only the ledger; trap: a loop that reuses one context across
+cycles (context bleed), or starts a second cycle after a success without a fresh
+agent.
+
+**P9 — `recurve-mcp`.** An MCP server exposing the verbs (`next`, `status`,
+`gate`, `baseline`, `park`, `record`, `lock`) as tools, so Claude Desktop,
+claude.ai, other IDEs, and non-Claude agents can each be the driver — recurve as
+a first-class tool, not a Claude-Code-only skill. Architecturally it is just
+another `Actor` behind the seam the runtime already defines (`CommandActor` →
+`McpActor`). *Size:* M. *Risk:* low–medium. *Gate:* an `mcp` suite — probe: each
+tool call maps to its CLI verb and the gate still decides; trap: an MCP tool that
+closes a claim on the agent's word (bypassing `matrix --gate`).
+
+### Guardrails (enforced on every surface — not documented-and-hoped)
+
+The more powerful the driver, the harder the rails must hold. A chat session can
+wander further than a headless `claude -p`, so the embedded surfaces enforce the
+same invariants headless mode gets structurally:
+
+- **The lock** (`recurve lock`) — one loop per tree. This is what lets the
+  terminal and in-session/MCP surfaces coexist without clobbering each other: a
+  second driver refuses. Every surface acquires it.
+- **The write boundary** — the actor may change the target tree, never the
+  referee surface (claims / probes / traps / gate). The runtime's
+  `within_boundary` + the gate's trap re-runs are the backstop when an in-session
+  agent drifts toward its own probes.
+- **The gate is the only arbiter** — a claim closes via `matrix --gate` +
+  baseline, never an agent's self-report, on *every* surface. This is what keeps
+  an embedded agent from grading its own work.
+- **The ledger is the only memory** — a fresh sub-agent per cycle (P8); no
+  cross-cycle context bleed. The conversation is not state.
+
+### Documentation (part of this work, not a follow-on)
+
+Add a **"Ways to run"** page to the *published* docs (and rework `usage.md`
+Step 3), ordered by the new primary:
+
+1. **In-session loop** — the main entry point: invoke the `loop` skill in your
+   agent session and watch cycles land behind the gate.
+2. **MCP** — add `recurve-mcp` to any chat host; drive it in natural language.
+3. **Terminal headless** — `recurve run`, for walk-away / CI / unattended.
+
+The homepage Quick Tour re-leads with the in-session loop in the same change
+that lands P8.
+
+**Honesty gate:** the docs lead with the in-session loop *only once P8 ships* —
+we do not document a primary path that doesn't run yet. Until then the terminal
+path stays the documented default (as it is today), and the `cycle` single-cycle
+skill is the honest in-session entry we *can* point at now.
+
 ## The design bottleneck (the overhead that is *not* incidental)
 
 The human authoring claims + probes + traps is where "evidence not belief" is
@@ -162,11 +242,13 @@ Highest value, highest risk — it touches `claimify` + `admission`. Sequence la
 
 ## Sequencing & sizing
 
-- **Phase 1 — ergonomics, zero epistemics change:** P1 `run`, P2 `status`,
-  P4 grouping, P5 zero-config init. Small→medium, low risk, biggest drop in felt
-  overhead. Each gated by a new/extended suite.
-- **Phase 2 — reach & polish:** P3 `demo`, P6 one-line install, P7 verification
-  verbs.
+- **Phase 1 — ergonomics + the new primary surface:** P1 `run`, P2 `status`,
+  P4 grouping, P5 zero-config init, **P8 in-session `loop` skill**. Small→medium,
+  low risk, biggest drop in felt overhead. P8 is here (not Phase 2) because it is
+  the repositioned primary entry point — the "Ways to run" doc reorg and the
+  homepage re-lead land with it. Each gated by a new/extended suite.
+- **Phase 2 — reach & polish:** P3 `demo`, P9 `recurve-mcp`, P6 one-line install,
+  P7 verification verbs.
 - **Phase 3 — the deep one:** the design-bottleneck work (runnable scaffolds +
   gated agent-assist).
 
@@ -188,3 +270,7 @@ lists ≤ K verbs. Origin-agnostic throughout.
   installer worth maintaining?
 - **Agent-assist ceiling:** how far to take `recurve draft` before it risks the
   "human owns the claims" principle?
+- **Agent surfaces:** does the in-session `loop` skill fan out sub-agents via a
+  host-specific tool (Claude Code's Task) or a portable shim usable by any host?
+  MCP transport — stdio only, or also HTTP? Does the tree lock stay local, or
+  become a lease so terminal + in-session can't collide across machines?
