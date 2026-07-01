@@ -17,6 +17,16 @@ the cycles yourself, this one long session would accumulate context and start
 gets.** So: one fresh sub-agent per cycle, handed only the gap id and
 `.recurve/RUN.md` — never the prior cycles' conversation.
 
+**Permissions — let cycles flow.** So a cycle never stalls waiting for you to
+approve a file write or a command, run this session in a skip-permissions mode
+(start it with `claude --dangerously-skip-permissions`, or your host's
+equivalent). That is safe *here specifically* because the loop is a cage, not a
+trust exercise: each sub-agent is held off the referee surface by the write
+boundary, every cycle is a one-command rollback (per-cycle commits), the tree
+lock keeps a single writer, and nothing closes without `{{PROG}} matrix --gate`.
+The safety is the cage — keep `{{TREE}}` scoped and do not point the loop at
+paths it must not touch.
+
 ## Preconditions — never start on a broken baseline
 
 Run these; if any fails, STOP and report — do not start:
