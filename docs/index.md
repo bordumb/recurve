@@ -7,6 +7,10 @@ with executable probes, then burns down the gap between *claimed* and
 it can't prove, and reserving for humans exactly the judgments machines
 shouldn't make.
 
+It also decides whether a goal is *gateable* before making any claims, surfaces
+what no claim covers, checks the build didn't drift from intent, and decides
+when to stop — the [verification layer](architecture.md#the-verification-layer).
+
 ```bash
 recurve ledger      # every claim and its status — the red backlog is the honest one
 recurve matrix      # run every probe: GREEN / RED / BROKEN / STALE, and the gate verdict

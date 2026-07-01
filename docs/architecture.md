@@ -50,6 +50,40 @@ Three ceremonies keep the ledger honest:
    a tombstone. A ledger that silently rewrites its past is no longer a
    record of observations.
 
+## The verification layer
+
+The loop above proves claims GREEN and guards them — **soundness**. A sound gate has three blind spots, and a
+set of engine modules closes each; a fourth composes them into a loop that can run unattended.
+
+- **Admission — is the goal even gateable?** Before a single claim exists, the admission gate asks whether a
+  goal can become a faithful contract at all: each assertion must be *probe-able* — you can name a check that
+  goes RED if it were false. A goal too vague is refused with a per-assertion worklist (an interview), never
+  burned down into a brittle proxy. Verdict: `ADMIT` / `REFUSE-AND-INTERVIEW` / `REFUSE-NOT-GATEABLE`.
+- **Completeness — what does no claim cover?** A sound gate says nothing about the surface no claim touches.
+  Surface extraction enumerates a target's claimable points; measured coverage records which a probe actually
+  *runs* (traced, not declared); the **frontier** is the ranked uncovered remainder. Greenness becomes
+  *soundness ∧ completeness* — a cycle is not done while the frontier is nonempty; each uncovered point is
+  claimed or explicitly deferred, never silently ignored.
+- **Fidelity — did we build the right thing?** A probe can pass while the intent is broken. A
+  *goal-counterexample* is a behavior that must never be accepted; if one is, the cycle has **diverged**, and
+  no amount of green earns a success-stop.
+- **Stopping — stop, revert, or move on.** A controller reads a measured *progress vector*
+  (open / regressed / broken / uncovered / divergent) and returns exactly one verdict —
+  `CONTINUE` / `STOP-SUCCESS` / `STOP-REVERT` / `PIVOT` — so *when to stop* is decided by measurement, never
+  by the agent doing the work.
+
+The **runtime** composes these into an autonomous burndown loop: **Sense** (gate + completeness + fidelity) →
+**Decide** (the controller) → **Act** (a pluggable actor, reached only on an ADMITted contract and kept off
+the referee surface by a write boundary) → revert-to-last-green. The verdict is a pure function of what was
+measured; the actor's self-report is never an input.
+
+One principle runs through it: **the spine is deterministic, the judgment is pluggable.** The parts that need
+an LLM — the rater that reads a goal, the actor that writes a diff, the adversary that red-teams a claim —
+sit behind protocols; everything that *decides* from their output is fixed and itself gated. That is what
+lets the loop be trusted rather than believed: it measures instead of trusting itself, and refuses when it
+cannot measure. Each module here is guarded by its own claims suite, hardened the same way the toolkit is
+(see "The system distrusts itself" in [About](about.md)).
+
 ## Engine layout
 
 ```
@@ -70,6 +104,15 @@ recurvelib/            the engine (Python, stdlib + PyYAML only)
   claimify.py          PRD → draft claims (adversarial twins, forks)
   init.py              target scaffolding (blank / archaeology / claimify)
   pack.py              claim packs — claims as a distributable unit
+  # the verification layer (deterministic spine; LLM parts are pluggable)
+  admission.py         is the goal gateable? probe-ability, verdict, interview, synthesis guard
+  surface.py           extract a target's claimable surface points (adapter-based)
+  measured.py          which surface points a probe actually exercises (traced coverage)
+  frontier.py          the ranked uncovered region — what no claim covers
+  completeness.py      the completeness half of the gate: sound AND complete
+  fidelity.py          goal-counterexamples → divergence (did we build the right thing?)
+  controller.py        the stopping controller: stop / revert / pivot / continue, by measurement
+  runtime.py           the autonomous burndown loop spine (Sense → Decide → Act → revert)
 schema/                versioned: gap entry, run record, receipt
 templates/             everything `init` stamps (docs, workflows, skills)
 packs/                 shipped claim packs (cli-contract, perf-slo)
