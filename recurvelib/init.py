@@ -292,7 +292,7 @@ runaway_net_positive_cycles = {{RUNAWAY}}
     _stamp("workflows/burndown.sh", base / "workflows" / "burndown.sh", subs, executable=True)
     _stamp("workflows/burndown-parallel.sh", base / "workflows" / "burndown-parallel.sh", subs, executable=True)
     _stamp("workflows/burndown.js", base / "workflows" / "burndown.js", subs)
-    for skill in ("burndown", "cycle", "review"):
+    for skill in ("burndown", "cycle", "loop", "review"):
         _stamp(f"skills/{skill}.md", target / ".claude" / "skills" / skill / "SKILL.md", subs)
 
     qsrc = quality if quality in ("pre-launch", "stable") else None

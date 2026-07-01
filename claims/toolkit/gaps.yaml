@@ -273,3 +273,25 @@
   probe: probes/tk-16.sh
   unlocks: the first-class scaffold-sculpts-platform feedback loop — one loop gates a
     target's probes AND every secondary tree's own gate
+
+- id: TK-17
+  title: the stamped in-session loop skill spawns a fresh sub-agent per cycle, locks, and
+    gates
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-17
+  evidence:
+  - templates/skills/loop.md
+  - recurvelib/init.py:295
+  observed: 'GREEN at baseline 2026-07-01: stamped loop skill spawns a fresh sub-agent per
+    cycle, acquires the lock, and gates on matrix --gate'
+  smallest_fix: templates/skills/loop.md drives the loop in-session as the orchestrator, spawning
+    one fresh sub-agent per cycle (the ledger is the only memory), acquiring the tree lock,
+    and gating on matrix --gate; init.py stamps skills/loop.md into .claude/skills/loop/SKILL.md
+    alongside burndown/cycle/review
+  probe: probes/tk-17.sh
+  unlocks: the in-session loop as a first-class surface (the primary entry point of the command-surface
+    plan) without losing the clean-agent-per-cycle hygiene
