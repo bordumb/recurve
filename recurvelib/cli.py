@@ -508,19 +508,44 @@ def cmd_park(args):
 
 
 def cmd_init(args):
-    from .init import run_init
+    from .init import infer_init_mode, run_init
+
+    # An explicit mode flag always wins over the positional; --target likewise
+    # wins over an inferred directory. The positional is a convenience that
+    # resolves to one of the three explicit modes, and we ALWAYS say which.
+    explicit_mode = args.from_prd or args.from_repo
+    from_repo = args.from_repo
+    from_prd = args.from_prd
     target = Path(args.target).resolve()
+
+    if args.path is not None:
+        pos = Path(args.path)
+        mode, reason = infer_init_mode(pos)
+        if explicit_mode:
+            chose = "from-prd" if args.from_prd else "from-repo"
+            print(f"inferred: {mode} ({reason}) — overridden: --{chose} was given explicitly, "
+                  f"the flag wins")
+        else:
+            print(f"inferred: {mode} ({reason}) — use --from-repo/--from-prd/blank to override")
+            if mode == "from-prd":
+                from_prd = str(pos)
+            elif mode == "from-repo":
+                from_repo = True
+                target = pos.resolve()
+            else:  # blank
+                target = pos.resolve()
+
     name = args.name or target.name
-    suite = args.suite or ("claims" if args.from_prd else "core")
+    suite = args.suite or ("claims" if from_prd else "core")
     try:
         notes = run_init(target, name=name, suite=suite, tree=args.tree,
                          label=args.label, quality=args.quality, prog=args.prog,
-                         from_repo=args.from_repo)
+                         from_repo=from_repo)
     except FileExistsError as e:
         _fail(str(e))
-    if args.from_prd:
+    if from_prd:
         from .claimify import run_claimify
-        notes += run_claimify(target, Path(args.from_prd), suite=suite,
+        notes += run_claimify(target, Path(from_prd), suite=suite,
                               prog=args.prog, skip_review=args.no_review)
     print(f"initialized {name} at {target}")
     for n in notes:
@@ -971,6 +996,10 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.set_defaults(fn=cmd_next)
 
     s = sub.add_parser("init", help="stamp the loop into a target (blank, --from-repo archaeology, --from-prd claimify)")
+    s.add_argument("path", nargs="?",
+                   help="optional target: infers the mode — a spec FILE → --from-prd, a "
+                        "repo/docs DIR → --from-repo, an empty DIR → blank (always announced; "
+                        "an explicit mode flag overrides)")
     s.add_argument("--target", default=".")
     s.add_argument("--name"); s.add_argument("--suite")
     s.add_argument("--tree", default=".")

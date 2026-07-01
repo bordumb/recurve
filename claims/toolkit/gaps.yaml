@@ -380,3 +380,28 @@
   probe: probes/tk-21.sh
   unlocks: a one-command sign-of-life a newcomer runs to understand recurve by watching one
     claim go RED to GREEN
+
+- id: TK-22
+  title: recurve init <path> infers the mode from what path is, never silently ignoring a
+    spec
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-22
+  evidence:
+  - recurvelib/init.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: ours=file=from-prd,gitdir=from-repo,empty=blank
+    oracle=file=from-prd,gitdir=from-repo,empty=blank — init infers the mode and never silently
+    ignores a spec'
+  smallest_fix: add a pure infer_init_mode(path) to recurvelib/init.py that returns (mode,
+    reason) — from-prd for a FILE, from-repo for a directory that is a git repo or holds README/docs,
+    blank for an empty directory — doing no I/O beyond exists/is_file/is_dir and checking
+    for .git/README/docs; cli.py adds an optional positional `path` to the init subparser
+    and cmd_init calls infer_init_mode when no explicit mode flag is set, prints the inferred
+    line, and resolves to the matching mode (an explicit flag always overrides)
+  probe: probes/tk-22.sh
+  unlocks: zero-config `recurve init <path>` — a newcomer points at a PRD, a repo, or an empty
+    dir and the right mode is chosen and announced, never guessed silently

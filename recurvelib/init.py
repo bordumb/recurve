@@ -2,14 +2,18 @@
 
 Three modes share one ending (drafts → human skim → baseline → live ledger):
 
-  blank        an empty scaffold: config, one suite, docs, workflows
-  --from-repo  archaeology: mine the repo's already-made promises (README,
-               docs) into draft claims + a GAPS.md with stable anchors + an
-               agent brief for the deeper pass. The pitch: it makes a repo's
-               documentation falsifiable.
-  --from-prd   claimify: decompose a spec into observable claims with
-               adversarial twins; ambiguities become ADJUDICATE.md questions,
-               never guesses (see claimify.py).
+  blank            an empty scaffold: config, one suite, docs, workflows
+  --from-repo      archaeology: mine the repo's already-made promises (README,
+                   docs) into draft claims + a GAPS.md with stable anchors + an
+                   agent brief for the deeper pass. The pitch: it makes a repo's
+                   documentation falsifiable.
+  --from-prd       claimify: decompose a spec into observable claims with
+                   adversarial twins; ambiguities become ADJUDICATE.md questions,
+                   never guesses (see claimify.py).
+  init <path>      zero-config: infer the mode from what <path> is — a spec file
+                   becomes --from-prd, a repo/docs directory becomes --from-repo,
+                   an empty directory becomes blank. The inference is always
+                   announced, and an explicit mode flag always overrides it.
 
 Everything stamped is a template from templates/, interpolated with project
 facts. Commit policy is DETECTED, never assumed: a signing prompt hangs a
@@ -40,6 +44,32 @@ class MinedPromise:
     source: str   # file:line
     quote: str
     title: str
+
+
+def infer_init_mode(path: Path) -> tuple[str, str]:
+    """Decide which init mode a positional `path` means, and say why.
+
+    Returns (mode, reason) where mode is one of "from-prd", "from-repo", or
+    "blank" and reason is a short human string. Does no I/O beyond existence
+    and type checks plus looking for .git / README / docs inside a directory:
+
+      a FILE                        → "from-prd"  (claimify the spec)
+      a DIR that is a git repo,     → "from-repo" (mine its promises)
+        or holds README / docs
+      an empty/plain DIR (incl `.`  → "blank"     (a fresh scaffold)
+        with nothing to mine, or a
+        path that does not exist)
+    """
+    if path.is_file():
+        return ("from-prd", f"{path.name} is a file")
+    if path.is_dir():
+        if (path / ".git").exists():
+            return ("from-repo", f"{path.name} is a git repo")
+        if any((path / p).exists() for p in ("README", "README.md", "README.rst",
+                                             "README.txt", "docs")):
+            return ("from-repo", f"{path.name} has docs to mine (README/docs)")
+        return ("blank", f"{path.name} is an empty directory — nothing to mine")
+    return ("blank", f"{path} does not exist yet — scaffolding blank")
 
 
 def detect_commit_policy(target: Path) -> tuple[str, str]:
