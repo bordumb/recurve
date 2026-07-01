@@ -1,0 +1,21 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: PL-1
+  title: recurve decide surfaces the stopping controller (verdict_for mirrors controller.decide)
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers:
+  - PL-1
+  observed: 'RED at baseline 2026-07-01: ours=no `recurve decide` surface yet oracle=verdict_for
+    mirrors controller.decide'
+  smallest_fix: add recurvelib/decide_cli.py with verdict_for(open, regressed, broken, uncovered,
+    divergent) returning controller.decide([Progress(...)]).value; add cmd_decide in cli.py
+    that parses a progress vector from flags and prints verdict_for(...), register the `decide`
+    subparser, and add it to the module docstring usage list
+  probe: probes/pl-1.sh
+  unlocks: 'the loop asking recurve for its stop verdict from a measured vector (controller
+    wired) — the first step of #4, and the first #4 claim burned down BY the loop'
