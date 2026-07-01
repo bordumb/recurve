@@ -1,0 +1,28 @@
+/* Homepage hero — large, quiet, centered. Kept palette-safe (no gradient text)
+   so it reads well in both the slate (dark) and default (light) schemes. */
+.hero-text {
+  font-size: 2.7rem;
+  line-height: 1.12;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 1rem;
+}
+
+.hero-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.6;
+  color: var(--md-default-fg-color--light);
+  max-width: 42rem;
+  margin: 0 auto 2rem;
+}
+
+/* A little air under the hero buttons when they wrap on narrow screens. */
+.md-typeset .md-button {
+  margin-top: 0.4rem;
+}
+
+@media screen and (max-width: 44.98em) {
+  .hero-text {
+    font-size: 2.1rem;
+  }
+}

@@ -37,6 +37,9 @@ theme:
     - search.highlight
     - content.code.copy
 
+extra_css:
+  - stylesheets/extra.css
+
 plugins:
   - search
 
@@ -51,6 +54,10 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
   - attr_list
+  - md_in_html               # grid cards + the centered hero <div markdown>
+  - pymdownx.emoji:          # :material-*: icons on the landing page
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
