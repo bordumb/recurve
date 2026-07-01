@@ -168,11 +168,11 @@ forbidden_strings = ["GAP-", "FE-", "recurve"]
 rebuild = "npm ci && npm run build"
 
 [sculpts.platform]                        # a SECONDARY tree in another repo
-tree = "../auths"
+tree = "../platform"
 branch = "dev-platform"                   # its commits land here
 forbidden_strings = ["GAP-", "recurve"]   # its OWN leak vocabulary
 rebuild = "cargo build --release"
-gate = "cargo test && ../demos/rictl matrix --gate"   # its OWN gate, federated
+gate = "cargo test && recurve matrix --gate"          # its OWN gate, federated
 ```
 
 **`[target]` is what you build; `[sculpts.*]` is what you feed.** When a claim's
