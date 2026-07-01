@@ -23,3 +23,12 @@ verdict's string value, adding no policy of its own, so it can never disagree
 with the referee it exposes. Negative space (kept RED as a counterexample): a
 decide surface whose verdict disagrees with `controller.decide` (e.g. always
 STOP-SUCCESS) turns the probe RED.
+
+## PL-2 — recurve frontier surfaces the completeness frontier
+
+`recurve frontier` reports the ranked uncovered surface for a target, so the loop
+— and a human — can see what no claim covers. The verb's logic
+(`recurvelib.frontier_cli.frontier_ids`) mirrors `compute_frontier`'s ranked
+frontier exactly. Negative space (kept RED as a counterexample): a frontier
+surface that hides uncovered points (e.g. always returns an empty list) turns the
+probe RED.
