@@ -86,26 +86,34 @@ def build_run(cfg: Config, agent: str, cap: int, lanes: int | None,
 def materialize_workflow(cfg: Config, script: Path) -> Path:
     """Return a runnable workflow path. A stamped workflow is already
     interpolated in place and returned as-is; the shipped *template* is
-    interpolated with the config's facts into a temp file — the raw ``{{...}}``
-    template does not run under bash (``${VAR:-{{PROG}}}`` mis-parses) — so
-    ``recurve run`` works on the self-host repo too. ``PROG`` re-invokes recurve
+    interpolated with the config's facts into a temp dir — alongside an
+    interpolated per-cycle contract (``RUN.md``) that the workflow points a live
+    cycle at. Both are needed on the self-host repo: the raw ``${VAR:-{{PROG}}}``
+    mis-parses under bash, and ``{{RUN_CONTRACT}}`` would otherwise dangle at a
+    ``.recurve/RUN.md`` that does not exist here. ``PROG`` re-invokes recurve
     through the *current* interpreter, so it inherits this process's imports."""
     if script == cfg.assets_dir / "workflows" / script.name:
         return script
-    import os
     import tempfile
 
+    from . import resource_dir
     from .init import _interp, detect_commit_policy
     entry = Path(__file__).resolve().parent.parent / "recurve"
-    policy, _ = detect_commit_policy(cfg.tree or cfg.root)
-    subs = {
-        "PROG": f"{sys.executable} {entry}",
-        "CAP": str(cfg.burndown_cap),
+    prog = f"{sys.executable} {entry}"
+    policy, note = detect_commit_policy(cfg.tree or cfg.root)
+    tmp = Path(tempfile.mkdtemp(prefix="recurve-run-"))
+    # The per-cycle contract, interpolated, so a live cycle reads a real RUN.md.
+    contract = tmp / "RUN.md"
+    contract.write_text(_interp((resource_dir("templates") / "RUN.md").read_text(), {
+        "PROJECT": cfg.name, "LABEL": cfg.label, "PROG": prog,
+        "TREE": str(cfg.tree or cfg.root), "COMMIT_POLICY": policy, "COMMIT_NOTE": note,
+    }))
+    # The workflow, interpolated, pointing at the materialized contract.
+    workflow = tmp / script.name
+    workflow.write_text(_interp(script.read_text(), {
+        "PROG": prog, "CAP": str(cfg.burndown_cap),
         "MAX_FAILS": str(cfg.burndown_max_consecutive_failures),
         "RUNAWAY": str(cfg.burndown_runaway_net_positive_cycles),
-        "COMMIT_POLICY": policy,
-    }
-    fd, path = tempfile.mkstemp(prefix="recurve-burndown-", suffix=".sh")
-    with os.fdopen(fd, "w") as f:
-        f.write(_interp(script.read_text(), subs))
-    return Path(path)
+        "COMMIT_POLICY": policy, "RUN_CONTRACT": str(contract),
+    }))
+    return workflow

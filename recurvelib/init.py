@@ -245,6 +245,9 @@ def run_init(target: Path, name: str, suite: str, tree: str, label: str,
         "COMMIT_NOTE": policy_note if policy != "signed" else "",
         "CAP": "12", "MAX_FAILS": "3", "RUNAWAY": "2", "PARALLEL": "2",
         "QUALITY": quality,
+        # A stamped target's per-cycle contract lives here; `recurve run` on the
+        # self-host repo materializes an interpolated one and overrides this path.
+        "RUN_CONTRACT": ".recurve/RUN.md",
     }
 
     suite_dir = base / "claims" / suite

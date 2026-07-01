@@ -4,7 +4,7 @@
 # contract:
 #
 #   $AGENT_CMD is invoked once per cycle with the cycle prompt on stdin.
-#   It must sculpt exactly one gap per .recurve/RUN.md and write a run-record JSON
+#   It must sculpt exactly one gap per {{RUN_CONTRACT}} and write a run-record JSON
 #   (schema/run-record.schema.json) to the path in $RECURVE_RESULT_FILE.
 #   Its exit code is ignored; only the record and the gate are believed.
 #
@@ -69,7 +69,7 @@ print(" ".join(x["suite"] for x in d.get("drafts", [])))' "$next_json")"
   echo "burndown: arming wave $wave_n — drafts pend in: $suites"
 
   local arm_prompt="You are ARMING the next wave of an unattended burndown — authoring probes, never product code.
-Read .recurve/RUN.md for the probe contract, then for suite(s): $suites
+Read {{RUN_CONTRACT}} for the probe contract, then for suite(s): $suites
 1. Open each suite's gaps.draft.yaml and pick up to $WAVE drafts, highest severity first (feature before friction before cosmetic). Leave 'security-tradeoff' drafts alone — those wait for a human.
 2. For each picked draft: author probes/<id>.sh per the frozen probe contract (exit 0 GREEN / 1 RED with one 'ours=X oracle=Y' line / 2 BROKEN), mirroring the style of the suite's existing probes; author a known-bad trap fixture under probes/<id>.trap/<name>/; replace the smallest_fix TODO with the minimal observable slice; set 'probe:' on the draft entry and delete its 'needs_authoring' flag.
 3. Touch ONLY gaps.draft.yaml, probes/, and GAPS.md prose for the picked drafts. Never the product tree, never gaps.yaml — the baseline ceremony is the only door into the ledger.
@@ -122,7 +122,7 @@ while [ "$cycle" -lt "$CAP" ]; do
   cycle=$((cycle+1))
   echo "burndown cycle $cycle/$CAP: $GAP"
   RESULT_FILE="$(mktemp)"
-  PROMPT="You are running ONE improvement cycle. Read .recurve/RUN.md and obey it exactly.
+  PROMPT="You are running ONE improvement cycle. Read {{RUN_CONTRACT}} and obey it exactly.
 Your gap: $GAP  (details: \`$PROG show $GAP\`)
 Hard rules (non-negotiable, embedded because you are stateless):
 - never git reset/checkout shared state; never touch sacred paths
