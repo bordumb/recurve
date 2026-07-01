@@ -48,3 +48,28 @@ backstops. This is the #4 wiring: the loop's stop verdict comes from
 counterexample): a loop that calls `decide` but never branches on `STOP-SUCCESS`
 — the verdict computed for show while the watchdog still decides — turns the
 probe RED.
+
+## PL-4 — recurve sense assembles the full measured vector
+
+`recurve sense` assembles the measured progress vector — `open`/`regressed`/`broken`
+from the gate, `uncovered` from the frontier, `divergent` from fidelity — exactly as
+`runtime.sense` does, so the loop can feed the *whole* vector to the controller, not
+just the gate counts. The verb's logic (`recurvelib.sense_cli.sense_vector`) mirrors
+`runtime.sense`. Negative space (kept RED): a sense that drops the completeness
+(`uncovered`) or fidelity (`divergent`) signal — reporting 0 / False — turns the
+probe RED.
+
+## PL-5 — the loop feeds the full vector to the controller
+
+`burndown.sh`'s stop decision sources the full vector (via `recurve sense`) and
+passes `--uncovered` and `--divergent` to `recurve decide`, so an uncovered frontier
+or a divergence blocks `STOP-SUCCESS` — completeness and fidelity, not just the gate,
+gate the loop's success. Negative space (kept RED): a loop that calls `decide` with
+only `--open/--regressed/--broken` (dropping uncovered + divergent) turns the probe RED.
+
+## PL-6 — the loop admits the goal before it sculpts
+
+The loop runs the admission gate before the first cycle: a `REFUSE-AND-INTERVIEW` /
+`REFUSE-NOT-GATEABLE` goal never enters a sculpting cycle — it halts for the human
+instead of burning a vague aim into a brittle proxy. Negative space (kept RED): a
+loop that sculpts a non-`ADMIT` goal turns the probe RED.
