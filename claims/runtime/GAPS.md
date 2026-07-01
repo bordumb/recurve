@@ -96,3 +96,11 @@ against already-done code must turn the probe RED.
 
 `capture` is strict AND, so a trap that is green-on-wrong and red-on-real (nonsense on both axes) is rejected.
 Negative space: an XNOR-style capture that accepts the `(False, False)` trap must turn the probe RED.
+
+## RT-15 — the write boundary matches whole path components
+
+`within_boundary` refuses a referee root or anything under it (matched on path segments, not a bare prefix),
+so `claims/…` and an exact file named `claims` are refused while a sibling like `claims_backup/x` is allowed —
+whether or not the caller wrote the root with a trailing slash. Negative space: a bare-`startswith` match that
+refuses `claims_backup/x` under `["claims"]`, or admits an exact-name `claims` file under `["claims/"]`, must
+turn the probe RED.

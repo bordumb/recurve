@@ -56,3 +56,69 @@
     controller stops.'
   probe: probes/ap-4.sh
   unlocks: the autonomous loop runs end to end on a real tree, not just a stub world
+
+- id: AP-5
+  title: a misbehaving agent surfaces as AgentError
+  class: broken-route
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ap-5.sh:1
+  observed: 'GREEN at baseline 2026-07-01: malformed output and non-zero exit both -> AgentError;
+    a clean empty run -> {} (no change)'
+  smallest_fix: 'propose raises AgentError on non-zero exit or non-JSON/non-dict output; empty
+    stdout on a clean run -> {}.
+
+    '
+  probe: probes/ap-5.sh
+  unlocks: a malformed or crashed agent no longer kills the loop or hides as no-change (found
+    by adversarial review)
+
+- id: AP-6
+  title: restore fails safe on an unknown sha
+  class: broken-route
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ap-6.sh:1
+  observed: 'GREEN at baseline 2026-07-01: restore on an unknown sha -> RestoreError (the
+    revert path fails in a catchable way)'
+  smallest_fix: 'restore catches CalledProcessError and raises RestoreError.
+
+    '
+  probe: probes/ap-6.sh
+  unlocks: a bad checkpoint cannot turn the safety-revert path into a crash (found by adversarial
+    review)
+
+- id: AP-7
+  title: apply is atomic against write failures
+  class: missing-surface
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ap-7.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a failed multi-key patch is rolled back: ''a''
+    is absent after the raise (no partial mutation)'
+  smallest_fix: 'apply records prior file state and rolls back written files if a later write
+    raises.
+
+    '
+  probe: probes/ap-7.sh
+  unlocks: a partly-failed patch never leaves the tree in a mixed state (found by adversarial
+    review)
+
+- id: AP-8
+  title: the evidence serializer is total
+  class: missing-surface
+  status: closed
+  severity: friction
+  evidence:
+  - probes/ap-8.sh:1
+  observed: 'GREEN at baseline 2026-07-01: an object whose __str__ raises still serializes
+    to a placeholder string'
+  smallest_fix: '_jsonable wraps str(obj) in try/except and returns a placeholder on failure.
+
+    '
+  probe: probes/ap-8.sh
+  unlocks: serializing the evidence never crashes propose before the agent runs (found by
+    adversarial review)

@@ -32,3 +32,34 @@ turn the probe RED.
 `run` over a `GitWorld` + a `CommandActor` drives a RED file to GREEN on disk, returns STOP-SUCCESS, and never
 touches the referee surface. Negative space: a world whose apply drops the patch (so the tree is never fixed)
 must turn the probe RED.
+
+> AP-5..8 were found by an adversarial review of AP-1..4 (`docs/plans/separation-of-refereeing.md`), which
+> only fed the adapters well-behaved commands and clean patches. All four were real robustness bugs in the
+> shipped code — a live loop meets a messy real world (a misbehaving agent, a bad sha, a colliding patch) —
+> now fixed. (The referee-matching sibling of these lives in the runtime suite as RT-15.)
+
+## AP-5 — a misbehaving agent surfaces as AgentError
+
+`CommandActor.propose` raises `AgentError` when the command exits non-zero or prints output that is not a
+valid JSON patch — never an uncaught `JSONDecodeError`/`CalledProcessError` out of the loop, and never a
+silent `{}` that hides a crashed agent; a clean run that proposed nothing still returns `{}`. Negative space:
+a malformed-JSON command that crashes, or a non-zero-exit command read as `{}`, must turn the probe RED.
+
+## AP-6 — restore fails safe on an unknown sha
+
+`GitWorld.restore` raises `RestoreError` (not a raw `CalledProcessError`) when the checkpoint sha is
+unknown/unreachable, so the safety-revert path fails in a way the driver can catch. Negative space: a restore
+that lets a raw `CalledProcessError` escape on a bad sha must turn the probe RED.
+
+## AP-7 — apply is atomic against write failures
+
+`GitWorld.apply` is all-or-nothing not just for boundary rejections but for write failures: if a multi-key
+patch fails partway (e.g. a path both a file and a directory), the earlier writes are rolled back and the
+tree is left as it was. Negative space: an apply that leaves a partial write on disk after a mid-patch failure
+must turn the probe RED.
+
+## AP-8 — the evidence serializer is total
+
+`_jsonable` returns a string for any object — even one whose `__str__` raises — so serializing the evidence
+can never crash `propose` before the agent runs. Negative space: a `_jsonable` that re-raises on a
+non-str-able object must turn the probe RED.

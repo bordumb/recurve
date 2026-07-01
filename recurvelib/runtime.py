@@ -63,8 +63,10 @@ def within_boundary(diff_paths, target_root: str, referee_roots) -> bool:
             return False                          # a normalized path that climbs above the target tree
         if not p.startswith(target_root):
             return False
-        if any(p.startswith(r) for r in referee_roots):
-            return False
+        for r in referee_roots:
+            rr = r.rstrip("/")                       # match whole path components, not a bare prefix
+            if p == rr or p.startswith(rr + "/"):    # the referee root itself, or something under it
+                return False
     return True
 
 

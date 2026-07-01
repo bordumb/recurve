@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import posixpath
 import subprocess
 from pathlib import Path
 
@@ -19,14 +20,28 @@ from recurvelib.runtime import within_boundary
 
 
 def _jsonable(obj):
-    """Best-effort JSON fallback: dataclasses (e.g. the Progress evidence) become dicts, everything else str."""
+    """Total JSON fallback: dataclasses (e.g. the Progress evidence) become dicts, everything else a string —
+    even if the object's own ``__str__`` raises."""
     if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
         return dataclasses.asdict(obj)
-    return str(obj)
+    try:
+        return str(obj)
+    except Exception:
+        return f"<unserializable {type(obj).__name__}>"
 
 
 class BoundaryViolation(Exception):
     """Raised when a patch would write outside the target tree or onto the referee surface."""
+
+
+class AgentError(Exception):
+    """The agent command failed (non-zero exit) or returned output that isn't a valid patch — a controlled
+    signal the driver can act on, never a raw JSONDecodeError / CalledProcessError escaping the loop."""
+
+
+class RestoreError(Exception):
+    """A checkpoint sha could not be restored (unknown/unreachable) — a typed failure of the revert path,
+    never a raw CalledProcessError."""
 
 
 class GitWorld:
@@ -56,10 +71,22 @@ class GitWorld:
         rels = list(patch)
         if not within_boundary(rels, "", self.referee_roots):
             raise BoundaryViolation(f"patch touches the referee surface or escapes the tree: {rels}")
-        for rel, content in patch.items():
-            path = self.root / rel
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content)
+        written = []  # (path, prior_text_or_None) in write order, for rollback
+        try:
+            for rel, content in patch.items():
+                path = self.root / posixpath.normpath(rel)   # write the path the boundary approved
+                prior = path.read_text() if path.is_file() else None
+                written.append((path, prior))
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+        except Exception:
+            for path, prior in reversed(written):          # all-or-nothing: undo partial writes on failure
+                if prior is None:
+                    if path.exists():
+                        path.unlink()
+                else:
+                    path.write_text(prior)
+            raise
 
     def checkpoint(self):
         """Commit the current tree and return the commit sha — the state a later ``restore`` rolls back to.
@@ -72,8 +99,15 @@ class GitWorld:
         return self._git("rev-parse", "HEAD").strip()
 
     def restore(self, sha):
-        """Hard-reset the working tree back to ``sha`` (a checkpoint), discarding everything after it."""
-        self._git("reset", "--hard", sha)
+        """Hard-reset the working tree back to ``sha`` (a checkpoint), discarding everything after it.
+
+        Raises ``RestoreError`` (not a raw ``CalledProcessError``) if ``sha`` is unknown/unreachable, so the
+        revert path fails in a way the driver can catch.
+        """
+        try:
+            self._git("reset", "--hard", sha)
+        except subprocess.CalledProcessError as e:
+            raise RestoreError(f"could not restore checkpoint {sha!r}: {(e.stderr or '').strip()[:200]}") from e
 
     def _git(self, *args):
         out = subprocess.run(["git", "-C", str(self.root), *args], check=True, capture_output=True, text=True)
@@ -97,5 +131,15 @@ class CommandActor:
     def propose(self, contract, item, evidence):
         payload = json.dumps({"contract": contract, "item": item, "evidence": evidence}, default=_jsonable)
         out = subprocess.run(self.cmd, input=payload, capture_output=True, text=True)
+        if out.returncode != 0:
+            raise AgentError(f"agent command exited {out.returncode}: {(out.stderr or '').strip()[:200]}")
         text = out.stdout.strip()
-        return json.loads(text) if text else {}
+        if not text:
+            return {}                                    # a clean run that proposed nothing (no change)
+        try:
+            patch = json.loads(text)
+        except json.JSONDecodeError as e:
+            raise AgentError(f"agent output was not valid JSON: {e}") from e
+        if not isinstance(patch, dict):
+            raise AgentError(f"agent patch must be a JSON object, got {type(patch).__name__}")
+        return patch

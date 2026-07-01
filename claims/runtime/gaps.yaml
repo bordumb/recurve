@@ -204,3 +204,19 @@
   probe: probes/rt-14.sh
   unlocks: a trap that catches nothing is never accepted as evidence (found by adversarial
     review)
+
+- id: RT-15
+  title: the write boundary matches whole path components
+  class: security-tradeoff
+  status: closed
+  severity: headline
+  evidence:
+  - probes/rt-15.sh:1
+  observed: 'GREEN at baseline 2026-07-01: referee matches whole components: sibling allowed,
+    exact/under refused, trailing-slash-agnostic'
+  smallest_fix: 'within_boundary refuses r.rstrip("/") exactly or under it, not a bare startswith.
+
+    '
+  probe: probes/rt-15.sh
+  unlocks: the referee guard is correct regardless of trailing slash, and never over/under-matches
+    (found by adversarial review)
