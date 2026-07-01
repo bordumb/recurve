@@ -401,3 +401,17 @@
   probe: probes/cl-25.sh
   unlocks: one broken/RED probe body cannot take down measured coverage for every claim (found
     by adversarial review)
+
+- id: CL-26
+  title: a sys.exit() probe body is isolated too
+  class: broken-route
+  status: closed
+  severity: headline
+  evidence:
+  - probes/cl-26.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a sys.exit() probe body is isolated: fa/fb coverage
+    survives the whole pass'
+  smallest_fix: covered_by catches (Exception, SystemExit); KeyboardInterrupt still propagates.
+  probe: probes/cl-26.sh
+  unlocks: a skip-guarded probe body cannot crash the whole coverage pass (found by adversarial
+    review)

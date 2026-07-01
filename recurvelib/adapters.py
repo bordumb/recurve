@@ -51,6 +51,11 @@ class RestoreError(Exception):
     never a raw CalledProcessError."""
 
 
+class CheckpointError(Exception):
+    """A checkpoint (git snapshot) could not be made — git unavailable/failed — a typed failure of the
+    snapshot path, symmetric with RestoreError."""
+
+
 class GitWorld:
     """A ``World`` backed by a git working tree at ``root``.
 
@@ -78,11 +83,18 @@ class GitWorld:
         rels = list(patch)
         if not within_boundary(rels, "", self.referee_roots):
             raise BoundaryViolation(f"patch touches the referee surface or escapes the tree: {rels}")
+        if not all(isinstance(v, str) for v in patch.values()):
+            raise BoundaryViolation("patch values must be strings")
+        root_resolved = self.root.resolve()
         written = []          # (path, prior_bytes_or_None) in write order — bytes so a binary prior survives
         created_dirs = set()  # directories this apply created, so rollback can remove them
         try:
             for rel, content in patch.items():
                 path = self.root / posixpath.normpath(rel)   # write the path the boundary approved
+                # follow symlinks in the parent chain: a symlinked prefix must not escape the tree
+                resolved_parent = path.parent.resolve()
+                if resolved_parent != root_resolved and not str(resolved_parent).startswith(str(root_resolved) + "/"):
+                    raise BoundaryViolation(f"path escapes the tree through a symlink: {rel}")
                 prior = path.read_bytes() if path.is_file() else None
                 written.append((path, prior))
                 parent = path.parent
@@ -92,12 +104,15 @@ class GitWorld:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(content)
         except Exception:
-            for path, prior in reversed(written):          # all-or-nothing: undo partial writes on failure
-                if prior is None:
-                    if path.exists():
-                        path.unlink()
-                else:
-                    path.write_bytes(prior)
+            for path, prior in reversed(written):          # all-or-nothing: undo partial writes on failure,
+                try:                                        # each step guarded so one failure can't leave a mix
+                    if prior is None:
+                        if path.is_file():                  # only remove a file we wrote, not a pre-existing dir
+                            path.unlink()
+                    else:
+                        path.write_bytes(prior)
+                except OSError:
+                    pass
             for d in sorted(created_dirs, key=lambda p: len(str(p)), reverse=True):
                 try:
                     d.rmdir()                              # deepest-first; only removes if empty
@@ -109,13 +124,17 @@ class GitWorld:
         """Commit the current tree and return the commit sha — the state a later ``restore`` rolls back to.
 
         The snapshot commit is unsigned and skips hooks (``--no-gpg-sign --no-verify``): a checkpoint must not
-        depend on the host's commit-signing config, and signing a throwaway snapshot is meaningless.
+        depend on the host's commit-signing config, and signing a throwaway snapshot is meaningless. Raises a
+        typed ``CheckpointError`` (never a raw git failure), symmetric with ``restore``'s ``RestoreError``.
         """
-        self._git("add", "-A")
-        # supply a throwaway identity via -c, so a checkpoint works on a repo with no configured user.
-        self._git("-c", "user.name=recurve", "-c", "user.email=recurve@localhost",
-                  "commit", "-m", "runtime-checkpoint", "--allow-empty", "--no-verify", "--no-gpg-sign")
-        return self._git("rev-parse", "HEAD").strip()
+        try:
+            self._git("add", "-A")
+            # supply a throwaway identity via -c, so a checkpoint works on a repo with no configured user.
+            self._git("-c", "user.name=recurve", "-c", "user.email=recurve@localhost",
+                      "commit", "-m", "runtime-checkpoint", "--allow-empty", "--no-verify", "--no-gpg-sign")
+            return self._git("rev-parse", "HEAD").strip()
+        except GitError as e:
+            raise CheckpointError(f"could not checkpoint: {e}") from e
 
     def restore(self, sha):
         """Hard-reset the working tree back to ``sha`` (a checkpoint), discarding everything after it.
@@ -158,6 +177,8 @@ class CommandActor:
             out = subprocess.run(self.cmd, input=payload, capture_output=True, text=True, timeout=self.timeout)
         except subprocess.TimeoutExpired as e:
             raise AgentError(f"agent command timed out after {self.timeout}s") from e
+        except OSError as e:
+            raise AgentError(f"agent command could not be run: {e}") from e
         if out.returncode != 0:
             raise AgentError(f"agent command exited {out.returncode}: {(out.stderr or '').strip()[:200]}")
         text = out.stdout.strip()

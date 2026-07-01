@@ -67,7 +67,8 @@ def covered_by(exercises, surface_ids) -> set:
     for exercise in exercises:
         try:
             covered |= measure_coverage(exercise, surface_ids)
-        except Exception:
-            continue   # a probe body that raises (a RED/broken probe) contributes no coverage — its points
-            #            stay on the frontier — but it never aborts measurement for the other claims
+        except (Exception, SystemExit):
+            continue   # a probe body that raises OR calls sys.exit() (a RED/broken/skip-guarded probe)
+            #            contributes no coverage — its points stay on the frontier — but never aborts the
+            #            aggregate. A real KeyboardInterrupt still propagates and stops the run.
     return covered

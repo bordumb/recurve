@@ -178,3 +178,11 @@ that returns the whole surface (declaring what it never traced) must turn the pr
 common case in a burndown) contributes no coverage but never aborts measurement for the other claims. Found
 by adversarial review: CL-24's fixtures only fed clean exercises. Negative space: a `covered_by` that lets a
 raising middle exercise (`[fa, boom, fb]`) propagate — losing the flanking coverage — must turn the probe RED.
+
+## CL-26 — a sys.exit() probe body is isolated too
+
+`covered_by` isolates a probe body that calls `sys.exit()` (`SystemExit` is a `BaseException`, not an
+`Exception`) — a common skip-guard — so it contributes no coverage but never aborts the aggregate; a real
+`KeyboardInterrupt` still propagates. Found by adversarial review (CL-25 used only a `ValueError`). Negative
+space: a `covered_by` catching only `Exception`, so a `sys.exit()` exercise crashes the whole pass, must turn
+the probe RED.

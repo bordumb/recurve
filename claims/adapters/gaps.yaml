@@ -203,3 +203,57 @@
   smallest_fix: _jsonable wraps dataclasses.asdict in try/except, falling through to str.
   probe: probes/ap-14.sh
   unlocks: a recursive dataclass evidence cannot crash propose (found by adversarial review)
+
+- id: AP-15
+  title: a failed apply never leaves a mixed tree
+  class: missing-surface
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ap-15.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a failed apply restores ''top'' fully — rollback
+    completes despite the dir-collision on ''sub'''
+  smallest_fix: rollback guards each step and only unlinks a file it wrote, not a pre-existing
+    dir.
+  probe: probes/ap-15.sh
+  unlocks: a partly-failed patch always rolls back fully (found by adversarial review)
+
+- id: AP-16
+  title: a symlinked prefix cannot escape the tree
+  class: security-tradeoff
+  status: closed
+  severity: headline
+  evidence:
+  - probes/ap-16.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a symlinked prefix escape is refused (BoundaryViolation);
+    nothing written outside the tree'
+  smallest_fix: apply resolves the parent chain and refuses a write whose resolved parent
+    is outside root.
+  probe: probes/ap-16.sh
+  unlocks: the write boundary holds against symlink escapes (found by adversarial review)
+
+- id: AP-17
+  title: a command that cannot be run is a typed error
+  class: broken-route
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ap-17.sh:1
+  observed: 'GREEN at baseline 2026-07-01: a not-found agent command -> AgentError (typed),
+    not a raw FileNotFoundError'
+  smallest_fix: propose catches OSError (incl. FileNotFoundError) -> AgentError.
+  probe: probes/ap-17.sh
+  unlocks: a mistyped agent argv fails typed
+
+- id: AP-18
+  title: checkpoint fails typed, symmetric with restore
+  class: broken-route
+  status: closed
+  severity: feature
+  evidence:
+  - probes/ap-18.sh:1
+  observed: 'GREEN at baseline 2026-07-01: git missing on the snapshot path -> CheckpointError
+    (typed), symmetric with RestoreError'
+  smallest_fix: checkpoint wraps GitError into CheckpointError.
+  probe: probes/ap-18.sh
+  unlocks: the snapshot path fails typed like the revert path (found by adversarial review)

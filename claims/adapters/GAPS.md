@@ -103,3 +103,31 @@ run past the budget must turn the probe RED.
 `_jsonable` guards the dataclass branch, so a dataclass with a recursive/unserializable field still yields a
 string rather than a `RecursionError`. Negative space: a `_jsonable` that calls `asdict` unguarded and raises
 on a recursive dataclass must turn the probe RED.
+
+> AP-15..18 were found by a THIRD adversarial pass on the AP-9..14 fixes. All real bugs; a re-pass keeps
+> paying on this real-I/O surface.
+
+## AP-15 — a failed apply never leaves a mixed tree
+
+Rollback is itself failure-proof: each restore step is guarded and only removes a file it wrote (not a
+pre-existing directory), so even a patch key that collides with an existing dir rolls the whole tree back.
+Negative space: an unguarded rollback that aborts on a dir-collision, leaving an earlier key mutated, must
+turn the probe RED.
+
+## AP-16 — a symlinked prefix cannot escape the tree
+
+`apply` resolves the parent chain, so a patch key under a symlink pointing outside the tree is refused —
+nothing is written outside the write boundary. Negative space: an apply that follows a symlinked prefix and
+writes out of the tree must turn the probe RED.
+
+## AP-17 — a command that cannot be run is a typed error
+
+`CommandActor.propose` surfaces a missing/unexecutable command as `AgentError`, symmetric with the timeout
+path. Negative space: a `propose` catching only `TimeoutExpired`, so a not-found command leaks a raw
+`FileNotFoundError`, must turn the probe RED.
+
+## AP-18 — checkpoint fails typed, symmetric with restore
+
+`checkpoint` surfaces a git failure (missing binary, timeout, non-zero) as a typed `CheckpointError`, mirroring
+`restore`'s `RestoreError`. Negative space: a `checkpoint` that leaks a raw `GitError` on the snapshot path
+must turn the probe RED.
