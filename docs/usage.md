@@ -127,10 +127,12 @@ A terminal loop is there for walk-away / CI.
     ```
 
     The loop believes only the run-record and the gate, never the agent's word.
-    Watchdogs halt on: no work left, the cap, consecutive failures, or runaway
-    scope. Un-greenable gaps are parked; the loop moves on. (`AGENT_CMD` is any
-    harness that reads a prompt on stdin and writes a run-record to
-    `$RECURVE_RESULT_FILE`.)
+    It declares **done** only when the stopping controller returns `STOP-SUCCESS`
+    over the measured vector — the spec is *sound, complete, and not diverged* —
+    never merely because the backlog emptied. The cap, consecutive failures, and
+    runaway scope are backstops; un-greenable gaps are parked and the loop moves
+    on. (`AGENT_CMD` is any harness that reads a prompt on stdin and writes a
+    run-record to `$RECURVE_RESULT_FILE`.)
 
 === "Parallel lanes"
 
@@ -244,22 +246,25 @@ skips them.
     Stop the loop first. A sleeping machine mid-cycle is indistinguishable
     from a hung agent, and `caffeinate` cannot prevent lid-sleep on battery.
 
-## Beyond the CLI: the verification layer (library)
+## The verification layer
 
-The three steps above are the CLI workflow — claims, probes, the gate, the ledger. Recurve also ships a
-**verification layer** as importable modules (`recurvelib.*`) — these are library APIs, not (yet) CLI verbs:
+The three steps above are the everyday workflow — claims, probes, the gate, the ledger. Underneath, the
+**verification layer** is what decides *when the loop is done*: the burndown's success-halt is the stopping
+controller's `STOP-SUCCESS` over a measured vector, not an empty backlog. Two of its pieces are CLI verbs;
+the rest are importable (`recurvelib.*`):
 
+- **`recurve decide`** (`recurvelib.controller`) — stop / revert / pivot / continue from a measured progress
+  vector; the loop asks it every cycle, so *when to stop* is decided by measurement, not by the agent.
+- **`recurve frontier`** (`recurvelib.frontier` / `surface` / `measured`) — the ranked uncovered surface:
+  what no claim covers, so a green gate can't hide a hole. Coverage is what a probe *actually runs* (traced),
+  not what a claim declares.
 - **Admission** (`recurvelib.admission`) — *is a goal even gateable* before you write claims? Returns
   `ADMIT` / `REFUSE-AND-INTERVIEW` / `REFUSE-NOT-GATEABLE` with a per-assertion worklist, so a vague aim is
   refined instead of burned into a brittle proxy.
-- **Completeness** (`recurvelib.surface` / `measured` / `frontier` / `completeness`) — the target's claimable
-  surface, which points a probe *actually runs* (traced, not declared), and the ranked frontier of what no
-  claim covers, so a green gate can't hide a hole.
-- **Fidelity** (`recurvelib.fidelity`) — goal-counterexamples → divergence (did we build the *right* thing?).
-- **The stopping controller** (`recurvelib.controller`) — stop / revert / pivot / continue, decided by
-  measurement, not by the agent doing the work.
-- **The autonomous runtime** (`recurvelib.runtime` + `recurvelib.adapters`) — the loop spine wired to a real
-  git repo (`GitWorld`: snapshot/revert, boundary-enforced) and a BYO-agent command (`CommandActor`).
+- **Fidelity** (`recurvelib.fidelity`) — goal-counterexamples → divergence (did we build the *right* thing?);
+  a diverged cycle never earns a success-stop, however green the probes.
+- **The runtime** (`recurvelib.runtime` + `recurvelib.adapters`) — the Sense→Decide→Act spine on a real git
+  repo (`GitWorld`: snapshot/revert, boundary-enforced) and a BYO-agent command (`CommandActor`).
 
 These are the deterministic spine; the LLM pieces (the rater, the actor, the adversary) plug in behind
 protocols. See [Architecture](architecture.md#the-verification-layer) for how they compose.

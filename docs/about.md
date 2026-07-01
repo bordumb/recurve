@@ -77,4 +77,10 @@ recurve hosts itself: its own promises (the probe contract's totality, the
 lock's refusal, the tamper-evidence of receipts, the equivalence to the
 instances it was extracted from) live in a claims suite guarded by the same
 gate it offers everyone else. A claims tool whose own claims aren't probed
-would be a joke at its own expense. Recurve walks the walk.
+would be a joke at its own expense.
+
+It goes one step further: it **runs its own loop on its own repo**. `recurve run`
+drives recurve's development on the recurve tree itself — a fresh agent per cycle,
+each stop decided by the controller, each change proven by the gate before it
+lands. The tool improves itself the way it asks you to improve anything. Recurve
+walks the walk.
