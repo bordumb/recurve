@@ -2,14 +2,18 @@
 
 Three modes share one ending (drafts → human skim → baseline → live ledger):
 
-  blank        an empty scaffold: config, one suite, docs, workflows
-  --from-repo  archaeology: mine the repo's already-made promises (README,
-               docs) into draft claims + a GAPS.md with stable anchors + an
-               agent brief for the deeper pass. The pitch: it makes a repo's
-               documentation falsifiable.
-  --from-prd   claimify: decompose a spec into observable claims with
-               adversarial twins; ambiguities become ADJUDICATE.md questions,
-               never guesses (see claimify.py).
+  blank            an empty scaffold: config, one suite, docs, workflows
+  --from-repo      archaeology: mine the repo's already-made promises (README,
+                   docs) into draft claims + a GAPS.md with stable anchors + an
+                   agent brief for the deeper pass. The pitch: it makes a repo's
+                   documentation falsifiable.
+  --from-prd       claimify: decompose a spec into observable claims with
+                   adversarial twins; ambiguities become ADJUDICATE.md questions,
+                   never guesses (see claimify.py).
+  init <path>      zero-config: infer the mode from what <path> is — a spec file
+                   becomes --from-prd, a repo/docs directory becomes --from-repo,
+                   an empty directory becomes blank. The inference is always
+                   announced, and an explicit mode flag always overrides it.
 
 Everything stamped is a template from templates/, interpolated with project
 facts. Commit policy is DETECTED, never assumed: a signing prompt hangs a
@@ -40,6 +44,32 @@ class MinedPromise:
     source: str   # file:line
     quote: str
     title: str
+
+
+def infer_init_mode(path: Path) -> tuple[str, str]:
+    """Decide which init mode a positional `path` means, and say why.
+
+    Returns (mode, reason) where mode is one of "from-prd", "from-repo", or
+    "blank" and reason is a short human string. Does no I/O beyond existence
+    and type checks plus looking for .git / README / docs inside a directory:
+
+      a FILE                        → "from-prd"  (claimify the spec)
+      a DIR that is a git repo,     → "from-repo" (mine its promises)
+        or holds README / docs
+      an empty/plain DIR (incl `.`  → "blank"     (a fresh scaffold)
+        with nothing to mine, or a
+        path that does not exist)
+    """
+    if path.is_file():
+        return ("from-prd", f"{path.name} is a file")
+    if path.is_dir():
+        if (path / ".git").exists():
+            return ("from-repo", f"{path.name} is a git repo")
+        if any((path / p).exists() for p in ("README", "README.md", "README.rst",
+                                             "README.txt", "docs")):
+            return ("from-repo", f"{path.name} has docs to mine (README/docs)")
+        return ("blank", f"{path.name} is an empty directory — nothing to mine")
+    return ("blank", f"{path} does not exist yet — scaffolding blank")
 
 
 def detect_commit_policy(target: Path) -> tuple[str, str]:
@@ -195,8 +225,8 @@ def run_init(target: Path, name: str, suite: str, tree: str, label: str,
              quality: str, prog: str, from_repo: bool) -> list[str]:
     """Stamp everything — CONTAINED: the loop's whole footprint lives under
     .recurve/ so the target's root stays the product's own domain. The only
-    root touches are .gitignore (one state entry) and .claude/ (skills).
-    Returns human-facing notes."""
+    root touches are .gitignore (one state entry) and .claude/ (skills + a
+    bypass-permissions settings.json). Returns human-facing notes."""
     notes: list[str] = []
     target = target.resolve()
     base = target / ".recurve"
@@ -292,8 +322,13 @@ runaway_net_positive_cycles = {{RUNAWAY}}
     _stamp("workflows/burndown.sh", base / "workflows" / "burndown.sh", subs, executable=True)
     _stamp("workflows/burndown-parallel.sh", base / "workflows" / "burndown-parallel.sh", subs, executable=True)
     _stamp("workflows/burndown.js", base / "workflows" / "burndown.js", subs)
-    for skill in ("burndown", "cycle", "review"):
+    for skill in ("burndown", "cycle", "loop", "review"):
         _stamp(f"skills/{skill}.md", target / ".claude" / "skills" / skill / "SKILL.md", subs)
+    _stamp("settings.json", target / ".claude" / "settings.json", subs)
+    notes.append(
+        ".claude/settings.json sets permissions.defaultMode=bypassPermissions so cycles run "
+        "without permission prompts on the Claude Code CLI/desktop (claude.ai web ignores a "
+        "checked-in bypass default, by design). Delete it to require prompts.")
 
     qsrc = quality if quality in ("pre-launch", "stable") else None
     if qsrc:

@@ -7,9 +7,13 @@ probed, gated, burn-downable gaps.
     recurve show <gap-id>          one gap in full
     recurve validate               schema + invariants: every open gap has a probe
     recurve next                   value-first triage; flags review-gated gaps
+    recurve run [--agent CMD]      run the burndown loop; the agent defaults to a
+                                   bypass-permissions Claude (--dry-run to preview)
     recurve probe [--suite S|--gap ID]   run gap probes, report RED/GREEN/BROKEN
     recurve matrix [--gate]        the conformance matrix; --gate exits nonzero on
                                    any regression, broken probe, or stale suite
+    recurve status [--gate]        one-glance health: open/closed counts, the true
+                                   gate verdict, broken/stale counts, pending drafts
     recurve report [--narrate]     the run report: progress, durations, ETA,
                                    diff honesty — deterministic; --narrate adds prose
     recurve freshness [--gate]     are suite artifacts current with the tree?
@@ -17,6 +21,8 @@ probed, gated, burn-downable gaps.
     recurve review <gap-id>        adversarial-review brief for review-gated gaps
     recurve import <suite>         seed a draft ledger from a suite's GAPS.md
     recurve cycle new <name> --gaps ID,ID    scaffold a sculpting-cycle plan
+    recurve demo                   zero-setup sign-of-life: watch one claim go
+                                   RED → GREEN behind the gate (temp dir, no config)
 
 Exit codes: 0 ok · 1 gate/validation failure · 2 usage/parse error.
 """
@@ -502,19 +508,44 @@ def cmd_park(args):
 
 
 def cmd_init(args):
-    from .init import run_init
+    from .init import infer_init_mode, run_init
+
+    # An explicit mode flag always wins over the positional; --target likewise
+    # wins over an inferred directory. The positional is a convenience that
+    # resolves to one of the three explicit modes, and we ALWAYS say which.
+    explicit_mode = args.from_prd or args.from_repo
+    from_repo = args.from_repo
+    from_prd = args.from_prd
     target = Path(args.target).resolve()
+
+    if args.path is not None:
+        pos = Path(args.path)
+        mode, reason = infer_init_mode(pos)
+        if explicit_mode:
+            chose = "from-prd" if args.from_prd else "from-repo"
+            print(f"inferred: {mode} ({reason}) — overridden: --{chose} was given explicitly, "
+                  f"the flag wins")
+        else:
+            print(f"inferred: {mode} ({reason}) — use --from-repo/--from-prd/blank to override")
+            if mode == "from-prd":
+                from_prd = str(pos)
+            elif mode == "from-repo":
+                from_repo = True
+                target = pos.resolve()
+            else:  # blank
+                target = pos.resolve()
+
     name = args.name or target.name
-    suite = args.suite or ("claims" if args.from_prd else "core")
+    suite = args.suite or ("claims" if from_prd else "core")
     try:
         notes = run_init(target, name=name, suite=suite, tree=args.tree,
                          label=args.label, quality=args.quality, prog=args.prog,
-                         from_repo=args.from_repo)
+                         from_repo=from_repo)
     except FileExistsError as e:
         _fail(str(e))
-    if args.from_prd:
+    if from_prd:
         from .claimify import run_claimify
-        notes += run_claimify(target, Path(args.from_prd), suite=suite,
+        notes += run_claimify(target, Path(from_prd), suite=suite,
                               prog=args.prog, skip_review=args.no_review)
     print(f"initialized {name} at {target}")
     for n in notes:
@@ -546,6 +577,39 @@ def cmd_install(args):
     if str(bin_dir) not in path_dirs:
         print(f"\033[33m⚠ {bin_dir} is not on $PATH — add it, e.g. "
               f"export PATH=\"{bin_dir}:$PATH\"\033[0m")
+
+
+def cmd_run(args):
+    """Run the burndown loop with sensible defaults — the friendly wrapper over
+    the stamped workflow (`recurvelib.run`). Resolves the agent (defaulting to a
+    bypass-permissions Claude so an unattended cycle never stalls on a prompt),
+    the cap, and the script, then execs it. `--dry-run` prints the resolution
+    and exits."""
+    import os
+    import subprocess
+
+    from .run import build_run, bypasses_permissions, resolve_agent
+
+    cfg = _config(args)
+    agent, source = resolve_agent(args.agent, os.environ.get("AGENT_CMD"))
+    cap = args.cap if args.cap is not None else cfg.burndown_cap
+    argv, overrides = build_run(cfg, agent, cap, args.lanes, args.parked,
+                                caffeinate=not args.no_caffeinate)
+    script = Path(argv[-1])
+    if not script.exists():
+        _fail(f"no workflow at {script} — run `{args.prog} init` in the target first", 1)
+
+    warn = "  \033[33m⚠ permissions bypassed\033[0m" if bypasses_permissions(agent) else ""
+    lanes = f"   lanes: {args.lanes}" if args.lanes and args.lanes > 1 else ""
+    print(f"agent: {agent}   [{source}]{warn}")
+    print(f"cap: {cap}   script: {script.name}{lanes}")
+    if args.dry_run:
+        print(" ".join(argv))
+        return
+
+    env = dict(os.environ)
+    env.update(overrides)
+    raise SystemExit(subprocess.run(argv, env=env).returncode)
 
 
 def cmd_record(args):
@@ -683,6 +747,43 @@ def cmd_stats(args):
         f"\n{len(records)} cycle records · {total_closed} self-grading tasks accumulated "
         f"(snapshot + RED probe + gate-as-oracle) · {regressions} regression(s) caught at the gate"))
     print(render.dim("close-rate by class is triage prior material; the dataset is the product."))
+
+
+def cmd_status(args):
+    """One-glance health: open/closed claim counts, the TRUE gate verdict
+    (computed from a full matrix run, never hardcoded), any broken/stale
+    counts, and the pending draft backlog."""
+    from . import render
+    from .status import summarize
+    C = render.C
+    cfg = _config(args)
+    ledger = _load(cfg)
+    matrix = run_matrix(list(ledger.gaps), cfg, timeout_s=args.timeout)
+    s = summarize(ledger, matrix)
+    drafts, _forks = _draft_backlog(cfg)
+    pending = sum(d["pending"] for d in drafts)
+
+    verdict = (f"{C['green']}PASS{C['reset']}" if s["gate_ok"]
+               else f"{C['red']}FAIL{C['reset']}")
+    print(f"{C['bold']}{cfg.name} — health{C['reset']}")
+    print(f"  claims     {C['red']}{s['open']} open{C['reset']} · "
+          f"{C['green']}{s['closed']} closed{C['reset']}")
+    print(f"  gate       {verdict}")
+    trouble = []
+    if s["regressions"]:
+        trouble.append(f"{s['regressions']} regression")
+    if s["broken"]:
+        trouble.append(f"{s['broken']} broken")
+    if s["stale"]:
+        trouble.append(f"{s['stale']} stale")
+    if s["failed_traps"]:
+        trouble.append(f"{s['failed_traps']} failed-trap")
+    if trouble:
+        print(f"  trouble    {C['amber']}{', '.join(trouble)}{C['reset']}")
+    if pending:
+        print(f"  drafts     {C['amber']}{pending} pending{C['reset']}")
+    if args.gate and not s["gate_ok"]:
+        raise SystemExit(1)
 
 
 def cmd_report(args):
@@ -832,6 +933,45 @@ def cmd_drill(args):
     print(f"{C['green']}✓ drill clean — every audited guard still catches its defect.{C['reset']}")
 
 
+def cmd_demo(args):
+    """Zero-setup sign-of-life. Runs one claim from RED to GREEN inside a fresh
+    temp dir — no config, no network, no agent, no cwd pollution — and prints a
+    compact narrative of the loop's shape (claim → probe → gate → green). The
+    temp dir is removed before returning."""
+    import tempfile
+    from . import render
+    from .demo import run_demo
+    C = render.C
+    with tempfile.TemporaryDirectory(prefix="recurve-demo-") as tmp:
+        trace = run_demo(Path(tmp))
+    steps = trace["steps"]
+    before = next((s for s in steps if s["probe"] == "RED"), None)
+    after = next((s for s in steps if s["probe"] == "GREEN"), None)
+
+    def mark(probe: str) -> str:
+        return (f"{C['red']}RED{C['reset']}" if probe == "RED"
+                else f"{C['green']}GREEN{C['reset']}")
+
+    print(f"{C['bold']}recurve demo{C['reset']} — one claim, RED → GREEN, behind the gate")
+    print(render.dim("  (ran in a throwaway temp dir; nothing written to your cwd)"))
+    print(f"  claim   the target says 'ready'")
+    print(f"  probe   reads the tree and returns RED or GREEN")
+    if before:
+        print(f"  {mark(before['probe'])}     probe fails — the claim is unmet")
+    print(render.dim("  fix     write 'ready' to the target (the trivial change)"))
+    if after:
+        print(f"  {mark(after['probe'])}   same probe passes — the claim now holds")
+    verdict = (f"{C['green']}open{C['reset']}" if trace["gate_ok"]
+               else f"{C['red']}shut{C['reset']}")
+    print(f"  gate    {verdict} — a claim promotes only when its probe is GREEN")
+    if before and after:
+        print(f"\n{C['green']}✓ watched a failing probe go green.{C['reset']} "
+              f"That RED → GREEN transition, gated, is the whole loop.")
+    else:
+        print(f"\n{C['red']}✗ demo did not show a real RED → GREEN transition.{C['reset']}")
+        raise SystemExit(1)
+
+
 def _stub(args):
     _fail(f"{args.prog} {args.cmd}: not yet implemented — {_STUBS[args.cmd]} (plan.md §14)")
 
@@ -856,6 +996,10 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.set_defaults(fn=cmd_next)
 
     s = sub.add_parser("init", help="stamp the loop into a target (blank, --from-repo archaeology, --from-prd claimify)")
+    s.add_argument("path", nargs="?",
+                   help="optional target: infers the mode — a spec FILE → --from-prd, a "
+                        "repo/docs DIR → --from-repo, an empty DIR → blank (always announced; "
+                        "an explicit mode flag overrides)")
     s.add_argument("--target", default=".")
     s.add_argument("--name"); s.add_argument("--suite")
     s.add_argument("--tree", default=".")
@@ -871,6 +1015,15 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.add_argument("--bin-dir", default="~/.local/bin",
                    help="directory to link recurve into (default: ~/.local/bin)")
     s.set_defaults(fn=cmd_install)
+
+    s = sub.add_parser("run", help="run the burndown loop with sensible defaults (agent defaults to a bypass-permissions Claude)")
+    s.add_argument("--agent", help="agent invocation (reads a cycle prompt on stdin); overrides $AGENT_CMD and the default")
+    s.add_argument("--cap", type=int, help="max sculpting cycles (default: [burndown] cap)")
+    s.add_argument("--lanes", type=int, help="run N parallel lanes (uses burndown-parallel.sh)")
+    s.add_argument("--parked", help="comma-separated parked gap ids to seed this run")
+    s.add_argument("--no-caffeinate", action="store_true", help="do not keep the machine awake (macOS)")
+    s.add_argument("--dry-run", action="store_true", help="print the resolved agent + cap + script and exit, without running")
+    s.set_defaults(fn=cmd_run)
 
     s = sub.add_parser("record", help="run records: append (schema-validated) / list")
     s.add_argument("action", choices=["append", "list"])
@@ -900,6 +1053,11 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s.set_defaults(fn=cmd_receipts)
 
     sub.add_parser("stats", help="the run-record dataset: close rates, attempts, cost by class").set_defaults(fn=cmd_stats)
+
+    s = sub.add_parser("status", help="one-glance health: open/closed counts, the true gate verdict, broken/stale/drafts")
+    s.add_argument("--gate", action="store_true", help="exit nonzero if the gate does not pass")
+    s.add_argument("--timeout", type=int, default=120)
+    s.set_defaults(fn=cmd_status)
 
     s = sub.add_parser("report", help="the run report: progress, durations, ETA, diff honesty (deterministic; --narrate adds prose)")
     s.add_argument("--suite")
@@ -938,6 +1096,8 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s = sub.add_parser("baseline", help="the promotion ceremony: drafts → measured ledger entries")
     s.add_argument("suite"); s.add_argument("--timeout", type=int, default=120)
     s.set_defaults(fn=cmd_baseline)
+
+    sub.add_parser("demo", help="zero-setup sign-of-life: watch one claim go RED → GREEN behind the gate (temp dir, no config)").set_defaults(fn=cmd_demo)
 
     s = sub.add_parser("park", help="park a gap (run state, not claim truth) / list parked")
     s.add_argument("gap_id", nargs="?")

@@ -74,12 +74,15 @@ recurve init --from-prd PRD.md --suite checkout
 # 2 · record what's true today — GREEN promises become a regression suite
 recurve baseline checkout
 
-# 3 · walk away — one agent per cycle burns red → green, behind the gate
-AGENT_CMD='claude -p --permission-mode bypassPermissions' bash .recurve/workflows/burndown.sh
+# 3 · burn red → green: from your agent session (the loop skill), or headless:
+recurve run                       # agent defaults to a bypass-permissions Claude
 ```
 
-The loop believes the run-record and the gate, never the agent's word. That is
-the whole point: **evidence, not belief.**
+The primary way to run recurve is **inside your agent session**: invoke the
+stamped `loop` skill and it drives gated cycles, one fresh sub-agent each.
+Prefer to walk away? `recurve run` does the same headless. Either way the loop
+believes the run-record and the gate, never the agent's word — that is the whole
+point: **evidence, not belief.** ([ways to run](usage.md#step-3-kick-off-the-loop))
 
 ---
 

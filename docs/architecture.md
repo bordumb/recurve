@@ -141,6 +141,7 @@ recurvelib/            the engine (Python, stdlib + PyYAML only)
   receipts.py          receipt emission, chain verification, pluggable signer
   claimify.py          PRD → draft claims (adversarial twins, forks)
   init.py              target scaffolding (blank / archaeology / claimify)
+  run.py               `recurve run` — the loop wrapper (agent + cap defaults; bypass-permissions agent)
   pack.py              claim packs — claims as a distributable unit
   # the verification layer (deterministic spine; LLM parts are pluggable)
   admission.py         is the goal gateable? probe-ability, verdict, interview, synthesis guard

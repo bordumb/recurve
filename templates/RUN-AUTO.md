@@ -2,9 +2,23 @@
 
 You are the operator starting an unattended burndown on **{{PROJECT}}**. Your
 first action: read .recurve/RUN.md (the per-cycle contract), then start the
-loop with `.recurve/workflows/burndown.sh` (any agent harness) or
-`.recurve/workflows/burndown.js`
-(orchestrator runtime). Your stop condition: the loop halts itself.
+loop. The simplest way:
+
+```bash
+{{PROG}} run                 # agent defaults to a bypass-permissions Claude; --dry-run to preview
+```
+
+`{{PROG}} run` is a thin wrapper over the stamped workflow — it fills in a
+bypass-permissions agent (an unattended cycle cannot answer a permission prompt,
+and the loop is a cage: write boundary, per-cycle rollback, tree lock, the gate
+decides) and the cap, then execs `.recurve/workflows/burndown.sh`. To drive the
+workflow yourself, set the agent explicitly:
+
+```bash
+AGENT_CMD='claude -p --permission-mode bypassPermissions' bash .recurve/workflows/burndown.sh
+```
+
+Your stop condition: the loop halts itself.
 
 ## Before you start
 
