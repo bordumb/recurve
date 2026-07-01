@@ -82,6 +82,12 @@ lets the loop be trusted rather than believed: it measures instead of trusting i
 cannot measure. Each module here is guarded by its own claims suite, hardened the same way the toolkit is
 (see "The system distrusts itself" in [About](about.md)).
 
+The loop's **World** and **Actor** are protocols, so it runs on a real target: `adapters.py` supplies a
+**git-backed World** (checkpoint = commit, revert = reset-to-last-green, the write boundary enforced on
+disk against `..`/symlink escapes) and a **BYO-agent `CommandActor`** (an external agent command behind a
+stable seam). The agent stays external — recurve is BYO-agent — but everything around it is deterministic and
+gated, including graceful, *typed* failures when the agent misbehaves or git is unavailable.
+
 ## Vocabulary (one term, one meaning)
 
 **The claim model** — the objects the base loop's phases act on (`GATE` is the gate box; a `Cycle` is one
@@ -145,6 +151,7 @@ recurvelib/            the engine (Python, stdlib + PyYAML only)
   fidelity.py          goal-counterexamples → divergence (did we build the right thing?)
   controller.py        the stopping controller: stop / revert / pivot / continue, by measurement
   runtime.py           the autonomous burndown loop spine (Sense → Decide → Act → revert)
+  adapters.py          real-world adapters: a git-backed World (snapshot/restore, boundary-enforced) + a BYO-agent CommandActor
 schema/                versioned: gap entry, run record, receipt
 templates/             everything `init` stamps (docs, workflows, skills)
 packs/                 shipped claim packs (cli-contract, perf-slo)
