@@ -43,6 +43,7 @@ class FailedMatrix:
     regressions = ["a-closed-gap-went-red"]
     broken = []
     stale = []
+    skipped = []
     failed_traps = []
     gate_ok = False
 

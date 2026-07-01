@@ -25,6 +25,7 @@ def summarize(ledger: Ledger, matrix_result: Any) -> dict:
       regressions — closed gaps whose probe went RED
       broken      — probes that could not decide
       stale       — probes skipped because their artifacts predate the tree
+      skipped     — probes whose external oracle was absent (declared oracle_waiver)
       failed_traps— closed probes that blessed their own counterexample
     """
     open_count = sum(
@@ -45,5 +46,6 @@ def summarize(ledger: Ledger, matrix_result: Any) -> dict:
         "regressions": len(matrix_result.regressions),
         "broken": len(matrix_result.broken),
         "stale": len(matrix_result.stale),
+        "skipped": len(matrix_result.skipped),
         "failed_traps": len(matrix_result.failed_traps),
     }

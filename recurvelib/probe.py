@@ -9,8 +9,11 @@ Probe exit-code contract (frozen):
     0  GREEN   — the desired behavior is present
     1  RED     — the desired behavior is absent (expected while the gap is open)
     2  BROKEN  — the probe could not decide (setup failed, artifact missing)
+    3  SKIP    — the probe's EXTERNAL oracle is absent (not-applicable here). It
+               is non-blocking ONLY when the claim declares an `oracle_waiver`;
+               an undeclared skip is treated as BROKEN, so nothing dodges the gate.
   any other exit — crash, signal, 127, timeout (124) — coerces to BROKEN,
-  never to a verdict. The map is total; there is no fourth state.
+  never to a verdict. The map is total; there is no verdict beyond these.
 
 A probe must be hermetic: build nothing, mutate no sacred space, and finish in
 seconds against already-built artifacts. Slow setup belongs in the suite's own
@@ -36,10 +39,12 @@ class Outcome(str, Enum):
     BROKEN = "BROKEN"    # exit 2 / timeout / crash — undecidable
     MISSING = "MISSING"  # no probe file on disk
     STALE = "STALE"      # suite artifacts older than the tree — verdict untrustworthy
+    SKIP = "SKIP"        # exit 3 — external oracle absent; non-blocking only with an oracle_waiver
 
     @property
     def glyph(self) -> str:
-        return {"GREEN": "●", "RED": "○", "BROKEN": "▲", "MISSING": "·", "STALE": "≈"}[self.value]
+        return {"GREEN": "●", "RED": "○", "BROKEN": "▲", "MISSING": "·",
+                "STALE": "≈", "SKIP": "⊘"}[self.value]
 
 
 @dataclass(frozen=True)
@@ -65,7 +70,7 @@ class ProbeResult:
 
     @property
     def matches_status(self) -> bool:
-        if self.outcome in (Outcome.BROKEN, Outcome.MISSING, Outcome.STALE):
+        if self.outcome in (Outcome.BROKEN, Outcome.MISSING, Outcome.STALE, Outcome.SKIP):
             return False
         if self.gap.expects_red:
             return self.outcome is Outcome.RED
@@ -120,9 +125,10 @@ class ShellProbeRunner:
                                f"timed out after {timeout_s}s")
         dur = time.monotonic() - start
         tail = _tail(proc.stdout, proc.stderr)
-        # The total map: 0 GREEN, 1 RED, anything else BROKEN. A segfault must
-        # never read as a verdict.
-        outcome = {0: Outcome.GREEN, 1: Outcome.RED}.get(proc.returncode, Outcome.BROKEN)
+        # The total map: 0 GREEN, 1 RED, 3 SKIP (external oracle absent), anything
+        # else BROKEN. A segfault must never read as a verdict.
+        outcome = {0: Outcome.GREEN, 1: Outcome.RED, 3: Outcome.SKIP}.get(
+            proc.returncode, Outcome.BROKEN)
         return ProbeResult(gap, outcome, proc.returncode, dur, tail)
 
 

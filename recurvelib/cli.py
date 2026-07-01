@@ -588,7 +588,7 @@ def cmd_run(args):
     import os
     import subprocess
 
-    from .run import build_run, bypasses_permissions, resolve_agent
+    from .run import build_run, bypasses_permissions, materialize_workflow, resolve_agent
 
     cfg = _config(args)
     agent, source = resolve_agent(args.agent, os.environ.get("AGENT_CMD"))
@@ -608,6 +608,9 @@ def cmd_run(args):
         print(" ".join(argv))
         return
 
+    # Interpolate the shipped template (if un-stamped) into a runnable script.
+    runnable = materialize_workflow(cfg, script)
+    argv = [str(runnable) if a == str(script) else a for a in argv]
     env = dict(os.environ)
     env.update(overrides)
     raise SystemExit(subprocess.run(argv, env=env).returncode)

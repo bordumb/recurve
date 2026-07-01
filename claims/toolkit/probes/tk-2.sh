@@ -9,7 +9,7 @@ fi
 OUT="$(bash "$ROOT/acceptance/diff.sh" --fast 2>&1)"
 case "$?" in
   0) echo "live-equivalent to both ancestors (fast subset)"; exit 0 ;;
-  3) echo "ancestor instances not present at this checkout — cannot measure"; exit 2 ;;
+  3) echo "ancestor instances not present at this checkout — external oracle absent (SKIP)"; exit 3 ;;
   1) echo "ours=divergence oracle=byte-identical — $(printf '%s' "$OUT" | grep FAIL | head -1)"; exit 1 ;;
   *) echo "comparison harness failed to run"; exit 2 ;;
 esac

@@ -65,20 +65,12 @@ def build_run(cfg: Config, agent: str, cap: int, lanes: int | None,
     """Return ``(argv, env_overrides)`` for the burndown workflow; ``argv`` is
     ``None`` when no workflow can be found. ``--lanes N`` selects the parallel
     script; on macOS the run is wrapped in ``caffeinate`` (a sleeping host reads
-    as a hung agent). When the workflow is the un-stamped engine template,
-    ``RECURVE_BIN``/``MAX_FAILS``/``RUNAWAY`` are set so it runs without stamp-time
-    interpolation and re-invokes this engine."""
+    as a hung agent). ``argv``'s last element is the *resolved* workflow — the
+    caller runs it through ``materialize_workflow`` so an un-stamped template is
+    interpolated before it is executed."""
     parallel = bool(lanes and lanes > 1)
-    name = "burndown-parallel.sh" if parallel else "burndown.sh"
     script = resolve_workflow(cfg, parallel)
-    env: dict[str, str] = {
-        "AGENT_CMD": agent,
-        "CAP": str(cap),
-        "MAX_FAILS": str(cfg.burndown_max_consecutive_failures),
-        "RUNAWAY": str(cfg.burndown_runaway_net_positive_cycles),
-    }
-    if not (cfg.assets_dir / "workflows" / name).exists():
-        env["RECURVE_BIN"] = str(Path(__file__).resolve().parent.parent / "recurve")
+    env: dict[str, str] = {"AGENT_CMD": agent, "CAP": str(cap)}
     if parallel:
         env["PARALLEL"] = str(lanes)
     if parked:
@@ -89,3 +81,31 @@ def build_run(cfg: Config, agent: str, cap: int, lanes: int | None,
     if caffeinate and sys.platform == "darwin" and shutil.which("caffeinate"):
         argv = ["caffeinate", "-dimsu", *argv]
     return argv, env
+
+
+def materialize_workflow(cfg: Config, script: Path) -> Path:
+    """Return a runnable workflow path. A stamped workflow is already
+    interpolated in place and returned as-is; the shipped *template* is
+    interpolated with the config's facts into a temp file — the raw ``{{...}}``
+    template does not run under bash (``${VAR:-{{PROG}}}`` mis-parses) — so
+    ``recurve run`` works on the self-host repo too. ``PROG`` re-invokes recurve
+    through the *current* interpreter, so it inherits this process's imports."""
+    if script == cfg.assets_dir / "workflows" / script.name:
+        return script
+    import os
+    import tempfile
+
+    from .init import _interp, detect_commit_policy
+    entry = Path(__file__).resolve().parent.parent / "recurve"
+    policy, _ = detect_commit_policy(cfg.tree or cfg.root)
+    subs = {
+        "PROG": f"{sys.executable} {entry}",
+        "CAP": str(cfg.burndown_cap),
+        "MAX_FAILS": str(cfg.burndown_max_consecutive_failures),
+        "RUNAWAY": str(cfg.burndown_runaway_net_positive_cycles),
+        "COMMIT_POLICY": policy,
+    }
+    fd, path = tempfile.mkstemp(prefix="recurve-burndown-", suffix=".sh")
+    with os.fdopen(fd, "w") as f:
+        f.write(_interp(script.read_text(), subs))
+    return Path(path)
