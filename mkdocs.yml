@@ -6,8 +6,10 @@ repo_name: bordumb/recurve
 # Internal repo documents that must NOT be published or indexed on the site.
 # plans/ holds the design spec (plan.md), the PRD (improvements.md), and the
 # internal design docs — the designated provenance zone, in-repo only.
+# research/ holds internal market/competitive notes — local-only (also gitignored).
 exclude_docs: |
   plans/
+  research/
 
 theme:
   name: material
