@@ -275,9 +275,34 @@ def cmd_admit(args):
 def cmd_matrix(args):
     from . import render
     cfg = _config(args)
+    # Refresh each sculpt's artifacts before probing. A sculpt's rebuild turns
+    # its source into what the target's probes and the sculpt's own gate consume,
+    # so it runs before the target matrix — a probe must never read a stale
+    # artifact. A failing rebuild fails the gate. This runs only in gate mode and
+    # is a no-op when no sculpts are configured, so single-tree behavior is
+    # unchanged.
+    rebuild_ok = True
+    failed_rebuilds = set()
+    if args.gate and cfg.sculpts:
+        import subprocess
+        for sname, sc in cfg.sculpts.items():
+            if not sc.rebuild:
+                continue
+            cwd = sc.tree if sc.tree.is_dir() else cfg.root
+            try:
+                rb = subprocess.run(sc.rebuild, shell=True, cwd=str(cwd),
+                                    capture_output=True, text=True, timeout=args.timeout)
+                rrc = rb.returncode
+            except subprocess.TimeoutExpired:
+                rrc = 124
+            ok = rrc == 0
+            print(f"sculpt {sname}: rebuild {'OK' if ok else 'FAILED'} (exit {rrc})")
+            rebuild_ok = rebuild_ok and ok
+            if not ok:
+                failed_rebuilds.add(sname)
     matrix = run_matrix(list(_load(cfg).gaps), cfg, timeout_s=args.timeout)
     print(render.matrix_table(matrix))
-    gate_ok = matrix.gate_ok
+    gate_ok = matrix.gate_ok and rebuild_ok
     if getattr(args, "receipts", False):
         from .receipts import emit_for_matrix
         n = emit_for_matrix(cfg, matrix)
@@ -306,6 +331,9 @@ def cmd_matrix(args):
     if args.gate:
         import subprocess
         for sname, sc in cfg.sculpts.items():
+            # A failed rebuild has already failed the gate; skip its gate.
+            if sname in failed_rebuilds:
+                continue
             if not sc.gate:
                 continue
             cwd = sc.tree if sc.tree.is_dir() else cfg.root
@@ -806,7 +834,7 @@ def cmd_lock(args):
 
 def cmd_receipts(args):
     from . import render
-    from .receipts import ReceiptChain
+    from .receipts import ReceiptChain, verify_signatures
     C = render.C
     cfg = _config(args)
     suites = [args.suite] if args.suite else list(cfg.suites)
@@ -821,17 +849,25 @@ def cmd_receipts(args):
                       f"tree={r['tree']['kind']}:{r['tree']['value'][:12]} "
                       f"{r['self_sha256'][:12]}{sig}")
         else:
-            probs = chain.verify()
+            chain_probs = chain.verify()
+            sig_probs = verify_signatures(cfg, rs)
+            probs = chain_probs + sig_probs
             problems += probs
-            print(f"  {'●' if not probs else '▲'} {s}: {len(rs)} receipt(s), "
-                  f"{'chain holds' if not probs else f'{len(probs)} problem(s)'}")
+            status = "chain holds" if not chain_probs else f"{len(chain_probs)} chain problem(s)"
+            if cfg.receipts_verifier:
+                status += (", signatures verify" if not sig_probs
+                           else f", {len(sig_probs)} signature problem(s)")
+            print(f"  {'●' if not probs else '▲'} {s}: {len(rs)} receipt(s), {status}")
             for p in probs:
                 print(f"    {C['red']}{p}{C['reset']}")
     if args.action == "verify":
         if problems:
-            print(f"{C['red']}✗ evidence chain broken — someone edited it after the fact.{C['reset']}")
+            print(f"{C['red']}✗ evidence failed verification — the chain was edited or a "
+                  f"signature does not hold.{C['reset']}")
             raise SystemExit(1)
-        print(f"{C['green']}✓ every chain holds — the evidence is what it was when written.{C['reset']}")
+        print(f"{C['green']}✓ every chain holds"
+              f"{' and every signature verifies' if cfg.receipts_verifier else ''} — "
+              f"the evidence is what it was when written.{C['reset']}")
 
 
 def cmd_stats(args):

@@ -1,0 +1,23 @@
+# Known-bad fixture for TK-26: a suite with an authored gaps.draft.yaml, paired
+# with an `import-exit` file claiming `recurve import s` returned 0 (clobbered the
+# draft without --force). A correct engine refuses (non-zero), so TK-26's probe
+# goes RED against this fixture.
+[project]
+name = "fixture"
+label = "suite"
+default_reads = "none"
+cycles_dir = "claims/s/cycles"
+schema = "1"
+
+[target]
+tree = "."
+
+[gate]
+traps = "off"
+quality = "pre-launch"
+
+[reads.none]
+method = "none"
+
+[suites.s]
+dir = "claims/s"

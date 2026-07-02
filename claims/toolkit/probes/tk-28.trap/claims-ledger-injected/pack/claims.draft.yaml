@@ -1,0 +1,15 @@
+# Pack drafts — intentions until YOUR baseline measures them.
+- id: G-1
+  title: green by construction with a real trap
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers:
+  - G-1
+  evidence:
+  - x:1
+  smallest_fix: none
+  probe: probes/g-1.sh
+  observed: 'UNBASELINED — imported from pack; measure locally. Origin observation: GREEN
+    by construction'

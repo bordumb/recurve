@@ -1,0 +1,30 @@
+# Known-bad fixture for TK-23: a config whose sculpt rebuild FAILS
+# (rebuild = "false") while the companion `federated-verdict` file claims the
+# gate came back GREEN (exit 0). That pairing is the counterexample — an engine
+# that reported GREEN here ran the (passing) gate without first running the
+# failing rebuild. TK-23's probe MUST go RED against it (the real engine runs the
+# rebuild, sees it fail, and returns non-zero, contradicting the claimed 0).
+[project]
+name = "fixture"
+label = "suite"
+default_reads = "none"
+cycles_dir = "claims/s/cycles"
+schema = "1"
+
+[target]
+tree = "."
+
+[gate]
+traps = "off"
+quality = "pre-launch"
+
+[reads.none]
+method = "none"
+
+[suites.s]
+dir = "claims/s"
+
+[sculpts.x]
+tree = "."
+rebuild = "false"
+gate = "true"

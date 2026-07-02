@@ -1,0 +1,5 @@
+# AUTHORED-MARKER — hand-written, must not be clobbered
+- id: G-1
+  title: authored
+  status: open
+  probe: probes/g-1.sh

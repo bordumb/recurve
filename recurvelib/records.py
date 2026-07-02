@@ -92,9 +92,11 @@ def validate_receipt(receipt: dict) -> None:
 
 
 def receipt_hash(receipt: dict) -> str:
-    """SHA-256 over canonical JSON with self_sha256 (and any countersignature
-    over it) absent — the signature signs the hash, so it cannot be inside it."""
-    body = {k: v for k, v in receipt.items() if k not in ("self_sha256", "signature", "signer")}
+    """SHA-256 over canonical JSON with self_sha256, the countersignature over it,
+    and any signer-added fields absent — the signer runs after the hash is fixed,
+    so nothing it produces can be inside the hash it signs."""
+    body = {k: v for k, v in receipt.items()
+            if k not in ("self_sha256", "signature", "signer", "signer_fields")}
     canon = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(canon.encode()).hexdigest()
 

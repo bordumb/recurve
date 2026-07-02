@@ -126,6 +126,10 @@ class Config:
     # its stdout is stored as the signature. recurve defines the receipt,
     # never the signature scheme.
     receipts_signer: str = ""
+    # [receipts] verifier: the dual of signer. It receives a receipt's
+    # self_sha256 on stdin and its signature as the first argument, and exits 0
+    # iff the signature is valid. recurve defines the seam, never the scheme.
+    receipts_verifier: str = ""
     # [report] — the deterministic run report. narrator: optional command fed
     # the rendered report + the cycle records on stdin; its stdout becomes the
     # Narrative section. recurve defines the report, never the narration.
@@ -299,6 +303,7 @@ def load(path: Path) -> Config:
         burndown_max_consecutive_failures=int(burndown.get("max_consecutive_failures", 3)),
         burndown_runaway_net_positive_cycles=int(burndown.get("runaway_net_positive_cycles", 2)),
         receipts_signer=str(receipts.get("signer", "")),
+        receipts_verifier=str(receipts.get("verifier", "")),
         report_narrator=str(report.get("narrator", "")),
         report_narrator_timeout=int(report.get("narrator_timeout", 120)),
         report_suppression_patterns=suppression,

@@ -1,0 +1,23 @@
+# Known-bad fixture for TK-24: the draft repeats G-1 (already closed in the
+# ledger) and adds G-2. `ledger-g1-count` claims the buggy result — G-1 listed
+# twice (2). A correct baseline keeps G-1 single, so TK-24's probe goes RED
+# against this fixture.
+[project]
+name = "fixture"
+label = "suite"
+default_reads = "none"
+cycles_dir = "claims/s/cycles"
+schema = "1"
+
+[target]
+tree = "."
+
+[gate]
+traps = "off"
+quality = "pre-launch"
+
+[reads.none]
+method = "none"
+
+[suites.s]
+dir = "claims/s"
