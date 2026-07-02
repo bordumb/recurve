@@ -519,3 +519,25 @@
   probe: probes/tk-27.sh
   unlocks: the signer contract is richer without breaking the old one — a signing adapter
     can drop its sidecar
+
+- id: TK-28
+  title: a suite exports to a portable pack and installs+gates in a different project
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-28
+  evidence:
+  - recurvelib/pack.py
+  observed: 'GREEN at baseline 2026-07-02: a suite exports to a pack and installs+gates in
+    a different project (probes+traps travel); install writes drafts only — the receiver re-measures'
+  smallest_fix: 'pack export bundles a suite (claims demoted to drafts + probes + traps +
+    manifest) into a portable pack; pack install unpacks it into a different project as drafts
+    and registers the suite, never touching the ledger. So a claim pack round-trips across
+    projects carrying its adversarial traps, and the receiver re-measures for itself — install
+    writes drafts only, and the baseline ceremony stays the only door into the ledger.
+
+    '
+  probe: probes/tk-28.sh
+  unlocks: claims become a distributable, re-measured unit — the seed of a shared claim registry
