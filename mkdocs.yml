@@ -78,6 +78,12 @@ markdown_extensions:
 nav:
   - Home: index.md
   - About: about.md
-  - Architecture: architecture.md
-  - Installation: install.md
-  - How to Use: usage.md
+  - User guide:
+      - Installation: install.md
+      - Getting started: usage.md
+      - Multi-repo: multi-repo.md
+      - Claim packs: packs.md
+  - Developer guide:
+      - The verification layer: verification-layer.md
+      - Evidence & receipts: evidence.md
+      - Architecture: architecture.md

@@ -36,61 +36,14 @@ Three ceremonies keep the ledger honest:
    a tombstone. A ledger that silently rewrites its past is no longer a
    record of observations.
 
-## The verification layer
+## Beyond the base loop
 
-The loop above proves claims GREEN and guards them — **soundness**. A sound gate has three blind spots, and a
-set of engine modules closes each; a fourth composes them into a loop that can run unattended.
-
-- **Admission — is the goal even gateable?** Before a single claim exists, the admission gate asks whether a
-  goal can become a faithful contract at all: each assertion must be *probe-able* — you can name a check that
-  goes RED if it were false. A goal too vague is refused with a per-assertion worklist (an interview), never
-  burned down into a brittle proxy. Verdict: `ADMIT` / `REFUSE-AND-INTERVIEW` / `REFUSE-NOT-GATEABLE`.
-- **Completeness — what does no claim cover?** A sound gate says nothing about the surface no claim touches.
-  Surface extraction enumerates a target's claimable points; measured coverage records which a probe actually
-  *runs* (traced, not declared); the **frontier** is the ranked uncovered remainder. Greenness becomes
-  *soundness ∧ completeness* — a cycle is not done while the frontier is nonempty; each uncovered point is
-  claimed or explicitly deferred, never silently ignored.
-- **Fidelity — did we build the right thing?** A probe can pass while the intent is broken. A
-  *goal-counterexample* is a behavior that must never be accepted; if one is, the cycle has **diverged**, and
-  no amount of green earns a success-stop.
-- **Stopping — stop, revert, or move on.** A controller reads a measured *progress vector*
-  (open / regressed / broken / uncovered / divergent) and returns exactly one verdict —
-  `CONTINUE` / `STOP-SUCCESS` / `STOP-REVERT` / `PIVOT` — so *when to stop* is decided by measurement, never
-  by the agent doing the work.
-
-The **runtime** composes these into an autonomous burndown loop: **Sense** (gate + completeness + fidelity) →
-**Decide** (the controller) → **Act** (a pluggable actor, reached only on an ADMITted contract and kept off
-the referee surface by a write boundary) → revert-to-last-green. The verdict is a pure function of what was
-measured; the actor's self-report is never an input.
-
-This is not a parallel spine that sits unused: the burndown loop that actually runs **consults it**. The
-loop's success-halt is `controller.decide`'s `STOP-SUCCESS` over the measured vector — never an empty backlog
-or the cap alone — and the pieces are reachable on the CLI (`recurve decide`, `recurve frontier`).
-
-```mermaid
-flowchart LR
-    AD{ADMISSION<br/>goal gateable?} -- REFUSE --> HU[human:<br/>interview + sharpen]
-    AD -- ADMIT --> SE[SENSE<br/>gate + frontier + divergence<br/>→ progress vector]
-    SE --> DE{DECIDE<br/>controller}
-    DE -- CONTINUE / PIVOT --> AC[ACT<br/>actor: one diff,<br/>target tree only · write boundary]
-    AC --> SE
-    DE -- STOP-REVERT --> RV[revert to<br/>last green]
-    DE -- STOP-SUCCESS --> DN[receipt + halt]
-```
-
-A separate adversary periodically red-teams the new claims; anything it finds becomes a kept trap (the
-capture rule) before the loop trusts it. One principle runs through it: **the spine is deterministic, the judgment is pluggable.** The parts that need
-an LLM — the rater that reads a goal, the actor that writes a diff, the adversary that red-teams a claim —
-sit behind protocols; everything that *decides* from their output is fixed and itself gated. That is what
-lets the loop be trusted rather than believed: it measures instead of trusting itself, and refuses when it
-cannot measure. Each module here is guarded by its own claims suite, hardened the same way the toolkit is
-(see "The system distrusts itself" in [About](about.md)).
-
-The loop's **World** and **Actor** are protocols, so it runs on a real target: `adapters.py` supplies a
-**git-backed World** (checkpoint = commit, revert = reset-to-last-green, the write boundary enforced on
-disk against `..`/symlink escapes) and a **BYO-agent `CommandActor`** (an external agent command behind a
-stable seam). The agent stays external — recurve is BYO-agent — but everything around it is deterministic and
-gated, including graceful, *typed* failures when the agent misbehaves or git is unavailable.
+The loop above proves claims GREEN and guards them — **soundness**. That is the
+everyday model this page describes. A sound gate still has three blind spots
+(*is the goal gateable? · what does no claim cover? · did we build the right
+thing?*), and a **verification layer** closes each and decides *when the loop is
+done* by measurement. It is its own subject — see
+[The verification layer](verification-layer.md).
 
 ## Vocabulary (one term, one meaning)
 
@@ -109,29 +62,17 @@ pass of the loop):
 | **Oracle waiver** | Exit 3 = SKIP: the probe's external oracle is absent (not-applicable here). It blocks the gate like BROKEN *unless* the claim declares an `oracle_waiver` — then it is a visible, non-blocking skip. A probe can never silently dodge the gate. |
 | **Cycle** | One fresh agent taking the ledger from N red to N−k, proven, snapshotted, committed. |
 | **Park** | Marking a gap un-greenable-this-run for human triage; the loop continues past it. |
+| **Receipt** | A tamper-evident, hash-chained record of a verdict's evidence. See [Evidence & receipts](evidence.md). |
 
-**The autonomous loop** — the boxes and edges of the verification-layer diagram above:
-
-| Term | In the diagram | Meaning |
-| --- | --- | --- |
-| **Admission** | `ADMISSION` | Layer 0: is a goal probe-able enough to become a contract? Verdict `ADMIT` / `REFUSE-AND-INTERVIEW` / `REFUSE-NOT-GATEABLE`. |
-| **Sense** | `SENSE` | Measure the world into a progress vector — never ask the actor how it went. |
-| **Frontier** | `SENSE` (completeness) | The ranked uncovered surface: what no claim covers. |
-| **Divergence** | `SENSE` (fidelity) | A goal-counterexample was accepted — the probes pass but the intent broke. |
-| **Progress vector** | `SENSE` output | The measured state of a cycle: open / regressed / broken claims, frontier size, divergence. |
-| **Controller** | `DECIDE` | Reads the progress vector and returns one verdict: `CONTINUE` / `STOP-SUCCESS` / `STOP-REVERT` / `PIVOT`. |
-| **Act** | `ACT` | The actor proposes one diff to the target tree; reached only on an `ADMIT`ted contract. |
-| **Write boundary** | `ACT` | The actor may change the target tree but never the referee surface (claims / probes / traps / gate). |
-| **Revert-to-last-green** | `STOP-REVERT` | Restore the last state the gate certified green; the actor's damage is rolled back, never shipped. |
-| **Receipt** | `STOP-SUCCESS` | The tamper-evident, hash-chained record of the run's evidence, emitted when the loop halts with success. |
-| **Interview** | `REFUSE` → human | On a non-ADMIT verdict, the human is asked "what would *wrong* look like?" until each vague assertion has a check — or the goal is declared un-gateable. |
-| **Capture rule** | the adversary | An adversary's finding counts only once it is a re-runnable trap — RED on the wrong impl, GREEN on the real. |
+The verification layer adds its own vocabulary (admission, frontier, divergence,
+the progress vector, the controller) — see
+[The verification layer](verification-layer.md#vocabulary).
 
 ## Engine layout
 
 ```
 recurvelib/            the engine (Python, stdlib + PyYAML only)
-  config.py            recurve.toml — all per-target variability
+  config.py            recurve.toml — all per-target variability (target, sculpts, receipts seam)
   model.py             Gap/Ledger; parse-don't-validate boundary
   probe.py             runner: total exit map, timeouts, traps
   freshness.py         artifact currency — STALE blocks lying verdicts
@@ -143,7 +84,7 @@ recurvelib/            the engine (Python, stdlib + PyYAML only)
   lock.py              one loop per tree, human-only steal
   parked.py            sidecar run state + attempt journals
   records.py           run records + hash-chained evidence receipts
-  receipts.py          receipt emission, chain verification, pluggable signer
+  receipts.py          receipt emission, chain verification, pluggable signer + verifier
   claimify.py          PRD → draft claims (adversarial twins, forks)
   init.py              target scaffolding (blank / archaeology / claimify)
   run.py               `recurve run` — the loop wrapper (agent + cap defaults; bypass-permissions agent)

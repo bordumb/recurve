@@ -44,7 +44,7 @@ A stopping *controller* reads these measurements and decides — continue, stop,
 agent doing the work never grades its own doneness. Wired together, that loop runs on a real repository:
 git-backed snapshots and revert-to-last-green, a write boundary that keeps the agent off its own probes, and
 a BYO agent behind a stable seam. The deciding logic is deterministic; the LLM pieces around it are pluggable.
-See [Architecture](architecture.md#the-verification-layer).
+See [The verification layer](verification-layer.md).
 
 ## The bet
 

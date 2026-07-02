@@ -79,9 +79,9 @@ This is the human-owned step; it is deliberately the bottleneck.
 
 !!! tip "Claim packs"
     Recurring claim shapes ship as installable packs:
-    `recurve pack install <path-to-pack> --suite cli` drops drafts + probes +
-    traps; your baseline measures them locally. Packs never touch the ledger
-    directly.
+    `recurve pack install <path> --suite cli` drops drafts + probes + traps, and
+    your baseline measures them locally. See [Claim packs](packs.md) for the full
+    export/install round-trip and the `import` guard.
 
 ## Step 3 — Kick off the loop
 
@@ -175,49 +175,11 @@ The human queue, in order: adjudications first (one sentence unblocks the
 most agent-work), then review-gated promotions (see `.recurve/REVIEW.md`),
 then parked triage.
 
-## Multi-tree: build one tree, sculpt another
-
-To give an analogy: You have a car with a working engine, but you need to rebuild 
-the transmission. You would rebuilt the transmission, then check that it integrates
-and works properly with the engine. If you find an issue in the transmission, you
-use the working model from the engine as a feedback loop to inform your work on 
-the transmission. Multi-tree workflows work the same.
-
-Some loops live in two repos: a **scaffold** you build — a frontend, a demo, a
-conformance suite — that *exercises* a **platform** in another repo, where the
-honest fix for a gap the scaffold reveals is to harden the platform. recurve
-models this directly. A config declares one primary `[target]` (the tree the
-loop builds) plus zero or more `[sculpts.<name>]` (secondary trees, in other
-repos, the loop may sculpt when a claim demands it):
-
-```toml
-[target]                                  # the PRIMARY tree the loop BUILDS
-tree = "web"
-forbidden_strings = ["GAP-", "FE-", "recurve"]
-rebuild = "npm ci && npm run build"
-
-[sculpts.platform]                        # a SECONDARY tree in another repo
-tree = "../platform"
-branch = "dev-platform"                   # its commits land here
-forbidden_strings = ["GAP-", "recurve"]   # its OWN leak vocabulary
-rebuild = "cargo build --release"
-gate = "cargo test && recurve matrix --gate"          # its OWN gate, federated
-```
-
-**`[target]` is what you build; `[sculpts.*]` is what you feed.** When a claim's
-honest fix is in a sculpt tree, the cycle sculpts there and commits to that repo
-on its own branch — one commit per repo touched, never a cross-tree change in
-one commit. Each tree carries its own `forbidden_strings`, so loop vocabulary is
-kept out of every product the loop touches.
-
-The gate **federates**: `recurve matrix --gate` is green only when the target's
-probes pass **and** every declared sculpt's own `gate` command exits zero. A
-sculpt that breaks the platform's gate turns the federated gate red even if the
-scaffold's own probes are green — so a scaffold can never "pass" by hardening
-itself while regressing the platform it feeds.
-
-With no `[sculpts.*]`, a config is exactly single-tree; federation is opt-in and
-costs nothing until you declare a sculpt.
+!!! tip "Keep the evidence"
+    Gate with `recurve matrix --gate --receipts` to chain a tamper-evident
+    receipt per verdict, then `recurve receipts verify` to re-check the trail.
+    You can pin each receipt to a signer of your choice — see
+    [Evidence & receipts](evidence.md).
 
 ## Cancel and resume
 
@@ -246,25 +208,12 @@ skips them.
     Stop the loop first. A sleeping machine mid-cycle is indistinguishable
     from a hung agent, and `caffeinate` cannot prevent lid-sleep on battery.
 
-## The verification layer
+## What decides when it's done
 
-The three steps above are the everyday workflow — claims, probes, the gate, the ledger. Underneath, the
-**verification layer** is what decides *when the loop is done*: the burndown's success-halt is the stopping
-controller's `STOP-SUCCESS` over a measured vector, not an empty backlog. Two of its pieces are CLI verbs;
-the rest are importable (`recurvelib.*`):
-
-- **`recurve decide`** (`recurvelib.controller`) — stop / revert / pivot / continue from a measured progress
-  vector; the loop asks it every cycle, so *when to stop* is decided by measurement, not by the agent.
-- **`recurve frontier`** (`recurvelib.frontier` / `surface` / `measured`) — the ranked uncovered surface:
-  what no claim covers, so a green gate can't hide a hole. Coverage is what a probe *actually runs* (traced),
-  not what a claim declares.
-- **Admission** (`recurvelib.admission`) — *is a goal even gateable* before you write claims? Returns
-  `ADMIT` / `REFUSE-AND-INTERVIEW` / `REFUSE-NOT-GATEABLE` with a per-assertion worklist, so a vague aim is
-  refined instead of burned into a brittle proxy.
-- **Fidelity** (`recurvelib.fidelity`) — goal-counterexamples → divergence (did we build the *right* thing?);
-  a diverged cycle never earns a success-stop, however green the probes.
-- **The runtime** (`recurvelib.runtime` + `recurvelib.adapters`) — the Sense→Decide→Act spine on a real git
-  repo (`GitWorld`: snapshot/revert, boundary-enforced) and a BYO-agent command (`CommandActor`).
-
-These are the deterministic spine; the LLM pieces (the rater, the actor, the adversary) plug in behind
-protocols. See [Architecture](architecture.md#the-verification-layer) for how they compose.
+The three steps above are the everyday workflow — claims, probes, the gate, the
+ledger. Underneath, a **verification layer** is what decides *when the loop is
+done*: the success-halt is a stopping controller's `STOP-SUCCESS` over a measured
+vector — sound, complete, and not diverged — never an empty backlog. It also
+tracks what no claim covers (the frontier) and whether the build diverged from
+intent. That machinery is for people extending recurve; see
+[The verification layer](verification-layer.md).
