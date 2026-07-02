@@ -1,0 +1,24 @@
+- id: G-1
+  title: already promoted
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers: [G-1]
+  evidence: ["x:1"]
+  observed: ''
+  smallest_fix: none
+  probe: probes/g-1.sh
+  trap_waiver: fixture
+- id: G-2
+  title: newly authored
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers: [G-2]
+  evidence: ["x:1"]
+  observed: ''
+  smallest_fix: none
+  probe: probes/g-2.sh
+  trap_waiver: fixture

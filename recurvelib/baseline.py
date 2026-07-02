@@ -73,9 +73,25 @@ def run_baseline(config: Config, suite_name: str, today: str,
     promoted: list[dict] = []
     ok = True
 
+    # Ids already recorded in the ledger. A draft entry repeating one of these is
+    # not re-promoted, so re-running baseline over a full draft never duplicates a
+    # ledger line.
+    existing_ids = set()
+    if ledger_path.exists():
+        led = yaml.safe_load(ledger_path.read_text()) or []
+        if isinstance(led, list):
+            existing_ids = {str(e.get("id")) for e in led if isinstance(e, dict)}
+
     with TreeLock(config.tree or config.root):
         for raw in doc:
             gid = str(raw.get("id", "?"))
+            # A draft entry whose id is already in the ledger is not re-promoted;
+            # appending it again would duplicate the ledger line.
+            if gid in existing_ids:
+                remaining.append(raw)
+                outcomes.append(BaselineOutcome(gid, "kept-draft",
+                                                "already in the ledger — not re-promoted"))
+                continue
             if raw.get("needs_authoring") or not raw.get("probe"):
                 remaining.append(raw)
                 outcomes.append(BaselineOutcome(gid, "skipped",

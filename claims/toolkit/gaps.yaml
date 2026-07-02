@@ -432,3 +432,24 @@
   probe: probes/tk-23.sh
   unlocks: a sculpt's artifact is produced by the loop, not by hand — the multi-repo produce
     path, not only the verify path
+
+- id: TK-24
+  title: baseline does not re-promote a draft id already in the ledger
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-24
+  evidence:
+  - recurvelib/baseline.py:76
+  observed: 'GREEN at baseline 2026-07-02: baseline does not re-promote an id already in the
+    ledger; new draft entries still promote'
+  smallest_fix: 'run_baseline loads the ledger''s ids before the promote loop and keeps (does
+    not re-promote) any draft entry whose id already appears, so re-running baseline over
+    a full draft never appends a duplicate ledger line.
+
+    '
+  probe: probes/tk-24.sh
+  unlocks: a full draft can be re-baselined idempotently — no backup-and-reconstruct dance
+    to add one claim

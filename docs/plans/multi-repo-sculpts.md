@@ -171,3 +171,30 @@ tree. The federated gate could *verify* the upstream once built, but the autonom
 *build* it, so the upstream change was made by hand and the loop resumed to confirm the target probes.
 That hand-off is precisely the gap G1–G5 close. (Concretely: the `auths-curve` suite's DSSE-verdict
 and tlog-inclusion claims, whose fixes lived in the `auths` SDK + its Python extension.)
+
+---
+
+## Friction log — from shipping G1
+
+Building the rebuild-execution phase surfaced two things worth folding back in.
+
+- **Shipped alongside: baseline is now idempotent over a full draft.** `recurve baseline` re-promoted a
+  draft entry whose id was already in the ledger, appending a duplicate line — so adding one new claim
+  meant backing up the draft, writing an id-only draft, and reconstructing. `run_baseline` now keeps
+  (does not re-promote) a draft id already present, so a full draft re-baselines idempotently. Guarded
+  by a self-hosted claim with a duplicates-a-promoted-id counterexample.
+- **Open: gate scoping.** `matrix --gate` runs every suite; iterating on one suite's claim reran the
+  whole matrix each time. A `matrix --gate --suite <name>` (or `--gap <id>`) would tighten the inner
+  loop without weakening the full-gate default.
+
+Remaining sculpt phases (from the delivery list above), in value order:
+
+- **G3 — cross-tree freshness.** A `reads: content-hash` rule naming a sculpt `source`, so a rebuild
+  that produced nothing new is a fast no-op and a stale consumed artifact is RED. Highest remaining
+  value: it makes rebuilds cheap and the artifact-landed check measured, not assumed.
+- **G2 — run-loop surface.** `matrix --gate` now *builds* a secondary tree, but the autonomous `run`
+  loop still hands its agent only the target tree, so a claim whose fix is upstream *source* (not just
+  a rebuild) cannot be closed unattended. Passing each sculpt's tree/rebuild/gate/branch into the run
+  contract is the next step toward a loop that originates a cross-tree change.
+- **G4 / G5 — per-tree commit + leakcheck.** Land each tree's change on its own branch; grep each tree
+  for its own forbidden vocabulary.
