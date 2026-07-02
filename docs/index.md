@@ -98,21 +98,29 @@ point: **evidence, not belief.** ([ways to run](usage.md#step-3-kick-off-the-loo
 
     [The idea →](about.md)
 
--   :material-sitemap-outline: **Architecture**
-
-    ---
-
-    The vocabulary, the loop, and the engine.
-
-    [How it works →](architecture.md)
-
--   :material-rocket-launch-outline: **How to use**
+-   :material-rocket-launch-outline: **Getting started**
 
     ---
 
     Initialize, design the claims, kick off the loop — and stop it safely.
 
     [Walk through it →](usage.md)
+
+-   :material-source-branch: **Multi-repo & packs**
+
+    ---
+
+    Build one tree while sculpting another; distribute claims as installable packs.
+
+    [Scale it →](multi-repo.md)
+
+-   :material-sitemap-outline: **Architecture**
+
+    ---
+
+    The model, the verification layer, the evidence trail, and the engine.
+
+    [How it works →](architecture.md)
 
 </div>
 
