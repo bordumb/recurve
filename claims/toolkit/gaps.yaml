@@ -475,3 +475,23 @@
   probe: probes/tk-25.sh
   unlocks: the receipts seam verifies, not only signs — a countersignature is checkable, the
     dual of the signer
+
+- id: TK-26
+  title: import refuses to overwrite an authored gaps.draft.yaml without --force
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-26
+  evidence:
+  - recurvelib/cli.py:556
+  observed: 'GREEN at baseline 2026-07-02: import refuses to overwrite an authored gaps.draft.yaml
+    without --force; the authored draft is preserved'
+  smallest_fix: 'cmd_import checks `out.exists() and not args.force` and refuses (exit non-zero)
+    before regenerating, so a hand-authored draft is never silently clobbered with stubs;
+    --force is required to overwrite.
+
+    '
+  probe: probes/tk-26.sh
+  unlocks: re-running import is safe — an authored draft is not lost to regenerated stubs
