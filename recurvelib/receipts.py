@@ -101,6 +101,18 @@ class ReceiptChain:
         return problems
 
 
+def _signer_fields(stdout: str) -> dict:
+    """Interpret a [receipts] signer's stdout. A JSON object is returned as-is (to
+    be merged onto the receipt, so a signer can record e.g. its signer_did and a
+    link to the verifiable envelope); anything else is an opaque signature string
+    (the legacy contract)."""
+    try:
+        parsed = json.loads(stdout)
+    except (ValueError, TypeError):
+        return {"signature": stdout}
+    return parsed if isinstance(parsed, dict) else {"signature": stdout}
+
+
 def _sign(config: Config, receipt: dict) -> dict:
     if not config.receipts_signer:
         return receipt
@@ -108,9 +120,18 @@ def _sign(config: Config, receipt: dict) -> dict:
         r = subprocess.run(shlex.split(config.receipts_signer),
                            input=receipt["self_sha256"], capture_output=True,
                            text=True, timeout=60)
-        if r.returncode == 0 and r.stdout.strip():
-            receipt["signature"] = r.stdout.strip()
+        out = r.stdout.strip()
+        if r.returncode == 0 and out:
+            fields = _signer_fields(out)
+            receipt["signature"] = fields.pop("signature", out)
             receipt["signer"] = config.receipts_signer
+            # Anything else the signer returned (signer_did, envelope_ref, …) is
+            # recorded under a reserved key that is EXCLUDED from the receipt hash:
+            # the signer runs after self_sha256 is fixed, so nothing it adds may
+            # change the chain, and it can never touch the receipt's own fields.
+            extra = {k: v for k, v in fields.items() if v is not None}
+            if extra:
+                receipt["signer_fields"] = extra
     except Exception:
         pass  # an unsigned receipt is still a receipt; signing failures are visible by absence
     return receipt

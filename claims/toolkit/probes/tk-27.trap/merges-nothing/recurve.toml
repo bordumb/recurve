@@ -1,0 +1,27 @@
+# Known-bad fixture for TK-27: a [receipts] signer that returns a JSON object
+# whose `signer-did-claim` file claims the merged signer_did is EMPTY — i.e. an
+# engine that treated the whole stdout as one opaque signature string and never
+# merged the object. A correct engine merges signer_did="did:test:agent",
+# contradicting the empty claim, so TK-27's probe goes RED against this fixture.
+[project]
+name = "fixture"
+label = "suite"
+default_reads = "none"
+cycles_dir = "claims/s/cycles"
+schema = "1"
+
+[target]
+tree = "."
+
+[gate]
+traps = "off"
+quality = "pre-launch"
+
+[reads.none]
+method = "none"
+
+[receipts]
+signer = "bash signer.sh"
+
+[suites.s]
+dir = "claims/s"

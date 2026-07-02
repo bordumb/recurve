@@ -495,3 +495,27 @@
     '
   probe: probes/tk-26.sh
   unlocks: re-running import is safe — an authored draft is not lost to regenerated stubs
+
+- id: TK-27
+  title: the receipts signer may return a JSON object recurve merges onto the receipt
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-27
+  evidence:
+  - recurvelib/receipts.py
+  observed: 'GREEN at baseline 2026-07-02: the [receipts] signer may return a JSON object
+    (signer_did + envelope_ref merged, chain fields protected); a bare-string signer still
+    works'
+  smallest_fix: '_sign interprets the signer''s stdout: a JSON object is merged onto the receipt
+    (add-only — it may add signer_did, envelope_ref, … but never overwrite the receipt''s
+    own chain/identity fields), while any non-object output is the opaque signature string
+    as before. So a signer records its identity and a link to the verifiable envelope ON the
+    receipt instead of in a sidecar, and legacy bare-string signers keep working.
+
+    '
+  probe: probes/tk-27.sh
+  unlocks: the signer contract is richer without breaking the old one — a signing adapter
+    can drop its sidecar

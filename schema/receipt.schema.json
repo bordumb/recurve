@@ -30,8 +30,9 @@
     },
     "observed_at": { "type": "string", "description": "ISO 8601." },
     "prev": { "type": ["string", "null"], "description": "self_sha256 of the previous receipt in this suite's chain; null for the first." },
-    "self_sha256": { "type": "string", "description": "SHA-256 over the canonical JSON of this receipt with self_sha256/signature/signer absent." },
+    "self_sha256": { "type": "string", "description": "SHA-256 over the canonical JSON of this receipt with self_sha256/signature/signer/signer_fields absent." },
     "signature": { "type": "string", "description": "Optional countersignature over self_sha256, produced by the project's pluggable signer. recurve defines the receipt, never the signature scheme." },
-    "signer": { "type": "string", "description": "The signer command/identity that produced `signature`." }
+    "signer": { "type": "string", "description": "The signer command/identity that produced `signature`." },
+    "signer_fields": { "type": "object", "additionalProperties": true, "description": "Optional annotations the signer added alongside the signature (e.g. signer_did, envelope_ref). Excluded from self_sha256 — the signer runs after the hash is fixed." }
   }
 }
