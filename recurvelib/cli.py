@@ -834,7 +834,7 @@ def cmd_lock(args):
 
 def cmd_receipts(args):
     from . import render
-    from .receipts import ReceiptChain
+    from .receipts import ReceiptChain, verify_signatures
     C = render.C
     cfg = _config(args)
     suites = [args.suite] if args.suite else list(cfg.suites)
@@ -849,17 +849,25 @@ def cmd_receipts(args):
                       f"tree={r['tree']['kind']}:{r['tree']['value'][:12]} "
                       f"{r['self_sha256'][:12]}{sig}")
         else:
-            probs = chain.verify()
+            chain_probs = chain.verify()
+            sig_probs = verify_signatures(cfg, rs)
+            probs = chain_probs + sig_probs
             problems += probs
-            print(f"  {'●' if not probs else '▲'} {s}: {len(rs)} receipt(s), "
-                  f"{'chain holds' if not probs else f'{len(probs)} problem(s)'}")
+            status = "chain holds" if not chain_probs else f"{len(chain_probs)} chain problem(s)"
+            if cfg.receipts_verifier:
+                status += (", signatures verify" if not sig_probs
+                           else f", {len(sig_probs)} signature problem(s)")
+            print(f"  {'●' if not probs else '▲'} {s}: {len(rs)} receipt(s), {status}")
             for p in probs:
                 print(f"    {C['red']}{p}{C['reset']}")
     if args.action == "verify":
         if problems:
-            print(f"{C['red']}✗ evidence chain broken — someone edited it after the fact.{C['reset']}")
+            print(f"{C['red']}✗ evidence failed verification — the chain was edited or a "
+                  f"signature does not hold.{C['reset']}")
             raise SystemExit(1)
-        print(f"{C['green']}✓ every chain holds — the evidence is what it was when written.{C['reset']}")
+        print(f"{C['green']}✓ every chain holds"
+              f"{' and every signature verifies' if cfg.receipts_verifier else ''} — "
+              f"the evidence is what it was when written.{C['reset']}")
 
 
 def cmd_stats(args):

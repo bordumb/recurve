@@ -1,0 +1,27 @@
+# Known-bad fixture for TK-25: a signer/verifier pair (sig = "sig-<hash>") whose
+# `tampered-verify-exit` file claims `receipts verify` returns 0 even after a
+# signature is flipped. A correct engine catches the tampered signature and exits
+# non-zero, so TK-25's probe goes RED against this fixture.
+[project]
+name = "fixture"
+label = "suite"
+default_reads = "none"
+cycles_dir = "claims/s/cycles"
+schema = "1"
+
+[target]
+tree = "."
+
+[gate]
+traps = "off"
+quality = "pre-launch"
+
+[reads.none]
+method = "none"
+
+[receipts]
+signer = "bash signer.sh"
+verifier = "bash verifier.sh"
+
+[suites.s]
+dir = "claims/s"

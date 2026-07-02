@@ -116,6 +116,37 @@ def _sign(config: Config, receipt: dict) -> dict:
     return receipt
 
 
+def verify_signatures(config: Config, receipts: list[dict]) -> list[str]:
+    """Check each signed receipt against the configured [receipts] verifier.
+
+    The verifier is the dual of the signer: it receives a receipt's self_sha256
+    on stdin and its signature as the first argument, and exits 0 iff the
+    signature is valid. recurve defines the seam, not the scheme. A receipt with
+    no signature is skipped (nothing to check); with no verifier configured this
+    returns no problems. Returns the problems found (empty means every present
+    signature verified).
+    """
+    if not config.receipts_verifier:
+        return []
+    problems: list[str] = []
+    argv = shlex.split(config.receipts_verifier)
+    for i, r in enumerate(receipts):
+        sig = r.get("signature")
+        if not sig:
+            continue
+        gap = r.get("gap", "?")
+        try:
+            res = subprocess.run(argv + [sig], input=r["self_sha256"],
+                                 capture_output=True, text=True, timeout=60)
+        except Exception as e:
+            problems.append(f"{gap}[{i}]: verifier failed to run: {e}")
+            continue
+        if res.returncode != 0:
+            problems.append(f"{gap}[{i}]: signature did not verify "
+                            f"(self={r['self_sha256'][:12]})")
+    return problems
+
+
 def emit_for_matrix(config: Config, matrix: Matrix) -> int:
     """Append one receipt per verdict, chained per suite. Returns count."""
     now = time.strftime("%Y-%m-%dT%H:%M:%S%z")

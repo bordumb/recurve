@@ -453,3 +453,25 @@
   probe: probes/tk-24.sh
   unlocks: a full draft can be re-baselined idempotently — no backup-and-reconstruct dance
     to add one claim
+
+- id: TK-25
+  title: receipts verify checks each signature against the configured verifier
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-25
+  evidence:
+  - recurvelib/receipts.py:120
+  - recurvelib/cli.py:835
+  observed: 'GREEN at baseline 2026-07-02: receipts verify checks each signature against the
+    [receipts] verifier; a tampered signature is caught'
+  smallest_fix: 'config parses [receipts] verifier; verify_signatures shells it per signed
+    receipt (self_sha256 on stdin, signature as argv, exit 0 = valid); cmd_receipts folds
+    signature problems into `receipts verify`.
+
+    '
+  probe: probes/tk-25.sh
+  unlocks: the receipts seam verifies, not only signs — a countersignature is checkable, the
+    dual of the signer
