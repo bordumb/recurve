@@ -1,0 +1,12 @@
+- id: G-1
+  title: the fixture target is green by construction
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers: [G-1]
+  evidence: ["x:1"]
+  observed: GREEN by construction
+  smallest_fix: none
+  probe: probes/g-1.sh
+  trap_waiver: fixture probe — rebuild execution, not this probe, is under test

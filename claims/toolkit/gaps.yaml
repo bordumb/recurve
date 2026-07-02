@@ -408,3 +408,27 @@
   probe: probes/tk-22.sh
   unlocks: zero-config `recurve init <path>` — a newcomer points at a PRD, a repo, or an empty
     dir and the right mode is chosen and announced, never guessed silently
+
+- id: TK-23
+  title: matrix --gate runs each sculpt's rebuild before probing; a failing rebuild fails
+    the gate
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-23
+  evidence:
+  - recurvelib/cli.py:275
+  - recurvelib/config.py:67
+  observed: 'GREEN at baseline 2026-07-02: matrix --gate runs each sculpt''s rebuild before
+    probing; a failing rebuild fails the gate'
+  smallest_fix: 'cmd_matrix''s --gate path runs each sculpt''s rebuild (cwd = the sculpt tree)
+    before run_matrix, so the target''s probes and the sculpt''s own gate read a fresh artifact;
+    a non-zero rebuild is ANDed into gate_ok as a failure and that sculpt''s gate is skipped.
+    config.py already parses rebuild into SculptConfig.
+
+    '
+  probe: probes/tk-23.sh
+  unlocks: a sculpt's artifact is produced by the loop, not by hand — the multi-repo produce
+    path, not only the verify path

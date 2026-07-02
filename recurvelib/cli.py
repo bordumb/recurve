@@ -275,9 +275,34 @@ def cmd_admit(args):
 def cmd_matrix(args):
     from . import render
     cfg = _config(args)
+    # Refresh each sculpt's artifacts before probing. A sculpt's rebuild turns
+    # its source into what the target's probes and the sculpt's own gate consume,
+    # so it runs before the target matrix — a probe must never read a stale
+    # artifact. A failing rebuild fails the gate. This runs only in gate mode and
+    # is a no-op when no sculpts are configured, so single-tree behavior is
+    # unchanged.
+    rebuild_ok = True
+    failed_rebuilds = set()
+    if args.gate and cfg.sculpts:
+        import subprocess
+        for sname, sc in cfg.sculpts.items():
+            if not sc.rebuild:
+                continue
+            cwd = sc.tree if sc.tree.is_dir() else cfg.root
+            try:
+                rb = subprocess.run(sc.rebuild, shell=True, cwd=str(cwd),
+                                    capture_output=True, text=True, timeout=args.timeout)
+                rrc = rb.returncode
+            except subprocess.TimeoutExpired:
+                rrc = 124
+            ok = rrc == 0
+            print(f"sculpt {sname}: rebuild {'OK' if ok else 'FAILED'} (exit {rrc})")
+            rebuild_ok = rebuild_ok and ok
+            if not ok:
+                failed_rebuilds.add(sname)
     matrix = run_matrix(list(_load(cfg).gaps), cfg, timeout_s=args.timeout)
     print(render.matrix_table(matrix))
-    gate_ok = matrix.gate_ok
+    gate_ok = matrix.gate_ok and rebuild_ok
     if getattr(args, "receipts", False):
         from .receipts import emit_for_matrix
         n = emit_for_matrix(cfg, matrix)
@@ -306,6 +331,9 @@ def cmd_matrix(args):
     if args.gate:
         import subprocess
         for sname, sc in cfg.sculpts.items():
+            # A failed rebuild has already failed the gate; skip its gate.
+            if sname in failed_rebuilds:
+                continue
             if not sc.gate:
                 continue
             cwd = sc.tree if sc.tree.is_dir() else cfg.root
