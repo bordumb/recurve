@@ -541,3 +541,22 @@
     '
   probe: probes/tk-28.sh
   unlocks: claims become a distributable, re-measured unit — the seed of a shared claim registry
+
+- id: TK-29
+  title: recurve install writes the global /recurve-plan and /recurve-work skills
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-29
+  evidence:
+  - recurvelib/cli.py
+  - templates/global-skills
+  observed: 'GREEN at baseline 2026-07-03: recurve install writes /recurve-plan and /recurve-work
+    into the skills dir (idempotent), each carrying its template'
+  smallest_fix: recurve install copies templates/global-skills/*.md into <skills-dir>/<name>/SKILL.md
+    after linking the binary; idempotent; --no-skills to skip, --skills-dir to relocate
+  probe: probes/tk-29.sh
+  unlocks: a fresh clone gets the CLI AND the /recurve-* slash commands from one `recurve
+    install`
