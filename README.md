@@ -68,9 +68,21 @@ pip install --editable .
 
 </details>
 
-Working from a clone without a package install? Install: `python3 recurve
-install` puts `recurve` on PATH (symlinks the entrypoint into `~/.local/bin`
-by default; `--bin-dir DIR` to choose another, idempotent).
+Working from a clone without a package install? `python3 recurve install` puts
+`recurve` on PATH (symlinks the entrypoint into `~/.local/bin` by default;
+`--bin-dir DIR` to choose another, idempotent).
+
+**Claude Code slash commands.** `recurve install` *also* installs two global
+skills into `~/.claude/skills/`, so they work in any repo — no per-repo setup:
+
+- **`/recurve-plan`** — verify the CLI, `recurve init` the repo, then interview
+  you toward a `docs/PRD.md` that passes the admission gate (`recurve admit`).
+- **`/recurve-work`** — run the burndown loop under the gate; asks whether to run
+  endless-until-complete or stop for your approval after each claim.
+
+So a fresh clone is just `pip install -e . && recurve install` → the CLI **and**
+both commands. (`recurve install --no-skills` to skip them; `--skills-dir DIR`
+to install elsewhere.)
 
 Verify the install by running recurve against its own promises — the
 toolkit is built with itself, and its claims are probed like anyone else's:

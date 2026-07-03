@@ -718,6 +718,23 @@ def cmd_install(args):
         print(f"\033[33m⚠ {bin_dir} is not on $PATH — add it, e.g. "
               f"export PATH=\"{bin_dir}:$PATH\"\033[0m")
 
+    # Also install the global slash-command skills (/recurve-plan, /recurve-work)
+    # so they are available in every repo, not only recurve-initialized ones.
+    if not getattr(args, "no_skills", False):
+        import shutil
+        skills_src = entry.parent / "templates" / "global-skills"
+        if skills_src.is_dir():
+            skills_dir = Path(getattr(args, "skills_dir", None)
+                              or "~/.claude/skills").expanduser().resolve()
+            installed = []
+            for tmpl in sorted(skills_src.glob("*.md")):
+                dest = skills_dir / tmpl.stem
+                dest.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(tmpl, dest / "SKILL.md")
+                installed.append("/" + tmpl.stem)
+            if installed:
+                print(f"installed global skills into {skills_dir}: {', '.join(installed)}")
+
 
 def cmd_run(args):
     """Run the burndown loop with sensible defaults — the friendly wrapper over
@@ -1163,9 +1180,13 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
                    help="skip the human draft review (NOT recommended — the skim is a security boundary)")
     s.set_defaults(fn=cmd_init)
 
-    s = sub.add_parser("install", help="symlink the recurve entrypoint onto PATH (idempotent)")
+    s = sub.add_parser("install", help="symlink the recurve entrypoint onto PATH and install the global /recurve-* skills (idempotent)")
     s.add_argument("--bin-dir", default="~/.local/bin",
                    help="directory to link recurve into (default: ~/.local/bin)")
+    s.add_argument("--skills-dir", default="~/.claude/skills",
+                   help="where to install the global /recurve-plan and /recurve-work skills (default: ~/.claude/skills)")
+    s.add_argument("--no-skills", action="store_true",
+                   help="only link the binary; skip installing the global skills")
     s.set_defaults(fn=cmd_install)
 
     s = sub.add_parser("run", help="run the burndown loop with sensible defaults (agent defaults to a bypass-permissions Claude)")
