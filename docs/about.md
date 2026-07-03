@@ -12,6 +12,20 @@ Recurve is named as a combination of the "re-" in "recursive" and "curve", which
 
 ## What recurve does
 
+```mermaid
+flowchart TD
+    P["Promise<br/>(README, spec, docstring…)"] -->|"must become falsifiable"| C["Claim<br/>prose · ledger entry · executable probe"]
+    C --> BASE{"baseline<br/>ceremony"}
+    BASE -->|"records a dated measurement,<br/>never an intention"| LED[("Ledger")]
+    LED --> PR[["probe runs"]]
+    PR --> GREEN(["GREEN — proven"])
+    PR --> RED(["RED — not yet true"])
+    PR --> BROKEN(["BROKEN — could not measure"])
+    RED -->|"burndown loop:<br/>one fresh agent per cycle"| GREEN
+    GREEN -->|"kept forever"| GUARD["regression guard<br/>+ trap counterexample"]
+    GUARD -.->|"a weakened probe is caught mechanically"| PR
+```
+
 recurve makes promises **falsifiable, then keeps them that way**:
 
 - Every promise becomes a **claim**: prose a human owns, a ledger entry a
@@ -30,6 +44,21 @@ recurve makes promises **falsifiable, then keeps them that way**:
 
 ## Beyond soundness
 
+```mermaid
+flowchart TD
+    GATE{{"A green gate proves claims SOUND —<br/>but stays silent about three things"}}
+    GATE -.-> Q1["Is the goal even<br/>worth gating?"]
+    GATE -.-> Q2["What does<br/>no claim cover?"]
+    GATE -.-> Q3["Did we build<br/>the right thing?"]
+    Q1 --> A["Admission gate<br/>interviews a vague aim<br/>into falsifiable claims"]
+    Q2 --> CP["Completeness<br/>surfaces the uncovered region,<br/>by what probes actually run"]
+    Q3 --> F["Fidelity<br/>flags behaviors that<br/>must never be accepted"]
+    A --> CTRL{{"stopping controller"}}
+    CP --> CTRL
+    F --> CTRL
+    CTRL --> D["continue · stop · revert · pivot<br/>— the agent never grades its own doneness"]
+```
+
 Proving a claim GREEN makes it **sound** — but a sound gate stays silent about three things, and recurve
 closes each:
 
@@ -47,6 +76,16 @@ a BYO agent behind a stable seam. The deciding logic is deterministic; the LLM p
 See [The verification layer](verification-layer.md).
 
 ## The bet
+
+```mermaid
+flowchart TD
+    OLD["Unit of work today:<br/>the pull request"] ==>|"recurve's bet"| NEW["Unit of work:<br/>the claim"]
+    NEW --> H["Humans own & review<br/>claims · quality constitution · adjudications"]
+    NEW --> AG["Agents own<br/>everything from a RED probe to a green gate"]
+    H --> SHIP{{"What ships"}}
+    AG --> SHIP
+    SHIP --> EV["not &quot;code that passed CI&quot; but<br/>code + its evidence:<br/>falsifiable claims · re-runnable probes ·<br/>verdicts chained into tamper-evident receipts"]
+```
 
 If this shape installs anywhere, the unit of software work stops being the
 pull request and becomes the **claim**. 
