@@ -10,7 +10,7 @@ own project against it.
 
 Installing a pack drops **drafts**, never observations. A pack is *someone else's
 intentions*; intentions become observations only by being measured **here**,
-through the [baseline ceremony](usage.md#step-2-design). So a pack you install is
+through the [baseline ceremony](usage-provider-agnostic.md#step-2-design). So a pack you install is
 never trusted on the author's word — you re-run its probes on your own tree and
 promote what actually holds. This is what makes packs safe to share: the receiver
 always measures for itself.

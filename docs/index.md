@@ -14,7 +14,7 @@ then burns the gap between <em>claimed</em> and <em>proven</em> down to zero —
 one fresh agent per cycle, behind a gate that never lies.
 </p>
 
-[Get Started](usage.md){ .md-button .md-button--primary }
+[Get Started](usage-provider-agnostic.md){ .md-button .md-button--primary }
 &nbsp;&nbsp;
 [Architecture](architecture.md){ .md-button }
 
@@ -82,7 +82,7 @@ The primary way to run recurve is **inside your agent session**: invoke the
 stamped `loop` skill and it drives gated cycles, one fresh sub-agent each.
 Prefer to walk away? `recurve run` does the same headless. Either way the loop
 believes the run-record and the gate, never the agent's word — that is the whole
-point: **evidence, not belief.** ([ways to run](usage.md#step-3-kick-off-the-loop))
+point: **evidence, not belief.** ([ways to run](usage-provider-agnostic.md#step-3-kick-off-the-loop))
 
 ---
 
@@ -104,7 +104,7 @@ point: **evidence, not belief.** ([ways to run](usage.md#step-3-kick-off-the-loo
 
     Initialize, design the claims, kick off the loop — and stop it safely.
 
-    [Walk through it →](usage.md)
+    [Walk through it →](usage-provider-agnostic.md)
 
 -   :material-source-branch: **Multi-repo & packs**
 

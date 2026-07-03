@@ -80,7 +80,9 @@ nav:
   - About: about.md
   - User guide:
       - Installation: install.md
-      - Getting started: usage.md
+      - Usage:
+          - Claude skill: usage-claude-skill.md
+          - Provider-agnostic: usage-provider-agnostic.md
       - Multi-repo: multi-repo.md
       - Claim packs: packs.md
   - Developer guide:

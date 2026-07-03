@@ -1,4 +1,15 @@
-# How to Use
+# Provider-agnostic (the CLI)
+
+recurve is driven entirely by its **CLI plus any agent** — `recurve init`,
+`baseline`, `run`, `matrix --gate` — with no dependency on any model or vendor.
+The agent is a swappable `$AGENT_CMD` (any harness that reads a prompt on stdin
+and writes a run-record), and a human following `RUN.md` works too. This page is
+that portable core.
+
+!!! tip "In Claude Code?"
+    The [Claude skill](usage-claude-skill.md) commands — `/recurve-plan` and
+    `/recurve-work` — wrap this exact flow with a guided prompt. Everything below
+    still runs anywhere; the skills are a convenience, not a lock-in.
 
 Three steps: **initialize** a target, **design** the claims, **kick off the
 loop**. Then go for a walk — and know how to stop safely when you're back.
