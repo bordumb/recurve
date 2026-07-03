@@ -15,8 +15,8 @@ Recurve is named as a combination of the "re-" in "recursive" and "curve", which
 ```mermaid
 flowchart TD
     P["Promise<br/>(README, spec, docstring…)"] -->|"must become falsifiable"| C["Claim<br/>prose · ledger entry · executable probe"]
-    C --> BASE{"baseline<br/>ceremony"}
-    BASE -->|"records a dated measurement,<br/>never an intention"| LED[("Ledger")]
+    C --> BASE{"baseline"}
+    BASE -->|"run the probe once,<br/>record its dated verdict"| LED[("Ledger")]
     LED --> PR[["probe runs"]]
     PR --> GREEN(["GREEN — proven"])
     PR --> RED(["RED — not yet true"])
@@ -26,21 +26,30 @@ flowchart TD
     GUARD -.->|"a weakened probe is caught mechanically"| PR
 ```
 
-recurve makes promises **falsifiable, then keeps them that way**:
+recurve makes promises **falsifiable, then keeps them that way**. The diagram
+traces a single promise through the system:
 
-- Every promise becomes a **claim**: prose a human owns, a ledger entry a
-  machine reads, and an **executable probe** that emits GREEN (proven), RED
-  (not yet true), or BROKEN (could not measure). If it can't be probed, it
-  isn't a claim yet.
-- Nothing enters the ledger except through the **baseline ceremony**: drafts
-  are intentions; the ledger records *measurements* — actual, dated output.
-- Closed claims keep their probes forever as **regression guards**, and every
-  probe keeps a **trap** — a counterexample it must turn RED — so a weakened
-  probe is caught mechanically. A probe that has never been seen to fail is
-  not yet evidence.
-- A **burndown loop** works the backlog: one fresh agent per cycle takes the
-  highest-value RED claim and turns it GREEN without breaking any guarded
-  other. The fleet gate is the arbiter; the ledger is the only memory.
+- **A promise becomes a claim.** Any promise — a line in a README, a spec, a
+  docstring — is turned into a *claim*: a sentence a human owns, an entry a
+  machine reads, and an **executable probe** that settles the sentence by
+  *running*. The probe returns one of three verdicts — **GREEN** (true now),
+  **RED** (not true yet), or **BROKEN** (it couldn't even measure: a missing
+  build, a crashed check). No probe, no claim — it stays a draft.
+- **`baseline` is how a claim earns its ledger entry.** A draft is only an
+  intention. A claim enters the ledger through *baseline* — the step that runs
+  its probe once and records the **actual, dated verdict** it produced. The
+  ledger stores measurements, never hopes: nothing is "tracked" until it has
+  really been checked at least once.
+- **Every green is defended; every probe must be able to fail.** A closed claim
+  keeps its probe forever as a **regression guard**, re-run each cycle so a
+  change that quietly breaks it is caught. And every probe carries a **trap** —
+  a known-bad input it is *required* to turn RED. A probe never seen to fail
+  proves nothing, so weakening a probe until it passes everything makes its trap
+  stop failing, and the tampering is caught mechanically.
+- **The burndown loop clears the backlog.** Each cycle a *fresh* agent takes the
+  highest-value RED claim and turns it GREEN without breaking any guarded claim.
+  The **gate** — every probe plus its trap — is the arbiter of what may land;
+  the ledger is the only memory an agent carries between cycles.
 
 ## Beyond soundness
 
@@ -59,21 +68,29 @@ flowchart TD
     CTRL --> D["continue · stop · revert · pivot<br/>— the agent never grades its own doneness"]
 ```
 
-Proving a claim GREEN makes it **sound** — but a sound gate stays silent about three things, and recurve
-closes each:
+Proving a claim GREEN makes it **sound** — the promise really holds. But
+soundness is silent about three things a green gate alone cannot see, and recurve
+adds a check for each (the three branches above):
 
-- **Is the goal even worth gating?** An *admission* gate refuses a goal too vague to become falsifiable
-  claims and interviews you toward one, instead of burning a fuzzy aim into a brittle proxy.
-- **What does no claim cover?** A *completeness* half surfaces the uncovered region of a target — measured by
-  what a probe actually runs, not what a claim declares — so a green gate can never quietly hide a hole.
-- **Did we build the right thing?** A *fidelity* check tracks behaviors that must never be accepted; if one
-  slips through, the cycle is flagged as diverged no matter how green the probes are.
+- **Is the goal even worth gating?** Before any probing, an **admission** check
+  refuses a goal too vague to become falsifiable claims and *interviews* you
+  toward one — so a fuzzy aim is never burned into a brittle, gameable proxy.
+- **What does no claim cover?** A **completeness** check surfaces the part of the
+  target that *no probe touches* — measured by what probes actually run, not by
+  what claims declare — so an all-green gate can't quietly hide a hole.
+- **Did we build the right thing?** A **fidelity** check watches for behaviors
+  that must *never* be accepted; if one slips through, the cycle is flagged as
+  **diverged**, however green the probes are.
 
-A stopping *controller* reads these measurements and decides — continue, stop, revert, or pivot — so the
-agent doing the work never grades its own doneness. Wired together, that loop runs on a real repository:
-git-backed snapshots and revert-to-last-green, a write boundary that keeps the agent off its own probes, and
-a BYO agent behind a stable seam. The deciding logic is deterministic; the LLM pieces around it are pluggable.
-See [The verification layer](verification-layer.md).
+These three feed a **stopping controller** — the box every measurement flows
+into. It reads them (gate, coverage, divergence) and decides the next move:
+continue, stop, revert, or pivot. That is the point: the agent doing the work
+never grades its own doneness — a separate, deterministic controller does. Wired
+together, the loop runs on a real repository: git-backed snapshots with
+revert-to-last-green, a write boundary that keeps the agent off its own probes,
+and a bring-your-own agent behind a stable seam. The deciding logic is
+deterministic; the LLM pieces around it are pluggable. See
+[The verification layer](verification-layer.md).
 
 ## The bet
 
@@ -87,21 +104,26 @@ flowchart TD
     SHIP --> EV["not &quot;code that passed CI&quot; but<br/>code + its evidence:<br/>falsifiable claims · re-runnable probes ·<br/>verdicts chained into tamper-evident receipts"]
 ```
 
-If this shape installs anywhere, the unit of software work stops being the
-pull request and becomes the **claim**. 
+recurve's bet: if this shape installs anywhere, the **unit of software work
+stops being the pull request and becomes the claim** — the thing you propose,
+defend, and ship is a falsifiable statement, not a diff.
 
-Humans own three artifacts — the
-claims, the quality constitution, and the adjudications — and review *those*.
+That redraws who owns what — the two lanes in the diagram. **Humans own three
+artifacts**, and review only those: the **claims** (what must be true), the
+**quality constitution** (the standing rules every cycle obeys), and the
+**adjudications** (the judgment calls a gate can't make). **Agents own
+everything between a RED probe and a green gate** — the mechanical work of
+turning a claim true.
 
-Agents own everything between a RED probe and a green gate. The artifact that
-ships is not "code that passed CI" but **code accompanied by its evidence**:
-a ledger of falsifiable claims, each with a probe anyone can re-run, each
-verdict chained into a tamper-evident receipt.
+And what ships changes with it: not "code that passed CI," but **code
+accompanied by its evidence** — a ledger of falsifiable claims, each with a
+probe anyone can re-run, each verdict chained into a tamper-evident **receipt**.
+The reviewer never has to take the diff's word for it.
 
 ## What recurve is not
 
 - **Not a test framework.** Probes are plain executables in any language;
-  recurve supplies the epistemics around them — ceremony, gate, traps,
+  recurve supplies the epistemics around them — baseline, gate, traps,
   triage — not an assertion library.
 - **Not an agent.** recurve is the harness agents run inside. Any agent that
   can read a prompt and write a JSON record can drive a cycle; a human
