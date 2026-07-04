@@ -15,6 +15,105 @@
 
 ---
 
+## 0 · POC first — one model, one benchmark, gate-on vs gate-off
+
+Before any of the general machinery below: a minimal experiment that proves
+the pipeline and produces the first real ΔFDR number. One model (**Claude
+Haiku 4.5** — fastest/cheapest, and scientifically the right pick: the
+hypothesis is that the gate's value is *largest* for weaker models, so Haiku
+maximizes expected effect size per dollar), two arms (**0% recurve** vs
+**100% recurve**), one benchmark.
+
+### 0.1 · Benchmark choice: BigCodeBench-Hard
+
+**Recommendation: `bigcode/bigcodebench-hard` (148 tasks, HuggingFace).**
+Why it beats the alternatives *for this POC specifically*:
+
+| Candidate | Verdict for POC |
+|---|---|
+| HumanEval+ / MBPP+ | ✗ too easy + contaminated — Haiku near ceiling, no headroom for a delta to show up |
+| SWE-bench Lite/Verified | ✗ for POC (✓ for phase 2) — most credible substrate, but docker-image-per-task, long trajectories, and a weak model in a large repo = slow, expensive, noisy first run |
+| LiveCodeBench | ◐ good backup — clean stdin/stdout oracle, contamination-resistant, but algorithmic puzzles fit the claims/probes model less naturally |
+| **BigCodeBench-Hard** | ✓ realistic library-usage tasks; small models fail often (real headroom for ΔFDR); each task carries its own hidden `unittest` suite in the dataset (`test` field) = a ready-made held-out oracle; one shared environment for all tasks (no per-task docker); official eval harness exists (`pip install bigcodebench`) |
+
+Exact sources: dataset <https://huggingface.co/datasets/bigcode/bigcodebench-hard>,
+harness <https://github.com/bigcode-project/bigcodebench>. Pin the dataset
+revision hash in the loader claim.
+
+### 0.2 · The two arms
+
+Both arms run **Claude Haiku 4.5** (`claude-haiku-4-5`) through the existing
+BYO-agent seam — `claude -p --bare --permission-mode bypassPermissions
+--model claude-haiku-4-5` — under an **identical token cap** per task
+(budget-matched; start at 60k tokens/task, revisit after the pilot).
+
+- **Arm A0 — 0% recurve.** Fresh workspace containing only the task
+  statement (`instruct_prompt`) and an empty `solution.py`. The agent solves
+  the task however it likes (it may write and run informal tests) and exits.
+  Exiting with a non-empty solution = *declared done*.
+- **Arm A3 — 100% recurve.** Same workspace, but `recurve init`-ed. The
+  agent must express the task as a claim with a **RED-first probe it authors
+  itself from the task statement** (its own tests — it never sees the hidden
+  suite) plus **at least one trap** (a deliberately wrong implementation the
+  probe must reject), then burn down until `recurve matrix --gate` is green.
+  Gate green = *declared done*; budget exhausted with a red gate = *refused
+  to declare* (this is the gate doing its job — count it, don't hide it).
+
+### 0.3 · Oracle quarantine and metrics
+
+The dataset's hidden `test` field **never enters either workspace**. After
+the agent process exits, a separate evaluator venv (built once from the
+bigcodebench requirements) runs the hidden unittest suite against the final
+`solution.py`. Flake control: 3× oracle runs, majority verdict, flake rate
+reported.
+
+Per arm, over the same pinned task set:
+
+- **Shipped-bad-work rate** (headline): `P(declared done ∧ hidden tests fail)`
+  — this is what the gate exists to prevent, and it handles the asymmetry
+  that A3 sometimes refuses to declare.
+- **FDR** conditional form: `P(hidden fail | declared done)`.
+- **Oracle pass rate** at the matched budget (does the gate's overhead cost
+  outcomes?).
+- **Price of trust**: tokens, cost (Haiku: $1/M in, $5/M out), wall-clock,
+  A3/A0 ratios.
+- **Gate activity in A3**: rejections (attempts − closes), refused-to-declare
+  count, and — for each A0 shipped-bad task — whether A3 on the same task
+  passed, refused, or also shipped bad (the paired table).
+
+Stats: all 148 tasks (or a pinned-seed n=50 pilot first), paired design,
+McNemar on paired oracle outcomes, Wilson 95% intervals on rates, raw
+fractions always shown. Estimated cost: ~148 tasks × 2 arms × ≤60k Haiku
+tokens ≈ **$25–75 total**; wall-clock manageable by running ~8 tasks
+concurrently.
+
+### 0.4 · What has to be built (each a claim in a `bench` suite)
+
+1. **TaskStore** — `datasets.load_dataset("bigcode/bigcodebench-hard")`
+   pinned to a revision hash; probe asserts the hash and task count.
+2. **Materializer** — task → fresh workspace (git-init'd tmpdir; the A3
+   variant adds `recurve init` + the arm's config); trap: a workspace that
+   contains the hidden `test` text must be refused.
+3. **Arm runner** — drives the adapter with the token cap; records
+   declared/refused, tokens, wall-clock into one JSONL row per (task, arm).
+4. **Quarantine evaluator** — the separate venv + 3× unittest runs; trap: a
+   tampered oracle (edited `test` text) must be caught by a checksum against
+   the pinned dataset.
+5. **Analysis script** — deterministic: `results.jsonl` in → the §0.3 table
+   + paired McNemar out. Byte-stable given the same input.
+
+### 0.5 · What the POC does and doesn't prove
+
+Proves: the pipeline end-to-end (fetch → materialize → run → quarantine →
+analyze), and a first directional ΔFDR on an external benchmark with a real
+held-out oracle. Doesn't prove: generality (one model, one benchmark — that
+is E2/E4's job), contamination-immunity (BigCodeBench predates Haiku's
+cutoff; the paired design means both arms share the advantage, and the
+LiveCodeBench sensitivity arm comes later). **A ΔFDR ≈ 0 result is a result
+— it gets reported, not shelved.**
+
+---
+
 ## 1 · What is missing, exactly
 
 Mapping the four dimensions of the reference papers onto recurve:
@@ -22,7 +121,7 @@ Mapping the four dimensions of the reference papers onto recurve:
 | Dimension | What they have | What we're missing | What fills it (this doc) |
 |---|---|---|---|
 | External benchmark | AlphaEvolve: 50+ open problems, prod systems. λ²: 40+ synthesis tasks | Any task set not authored by us | §3: SWE-bench Verified, Defects4J/BugsInPy, HumanEval+/MBPP+, LiveCodeBench, miniF2F/PutnamBench |
-| Effect size vs baseline | improved/matched counts; % solved vs prior tools | A control arm: the same agent *without* the gate | §5 arms: gate-off, plain-CI, gate-on; headline = **false-done rate delta** |
+| Effect size vs baseline | improved/matched counts; % solved vs prior tools | A control arm: the same agent *without* the gate | §0 POC + §4 arms: gate-off, plain-CI, gate-on; headline = **false-done rate delta** |
 | Ablations | evolution off / context off / model size | Component-off switches wired into an arm matrix | §4: the ablation switch inventory (5 exist, 3 to build) |
 | Scaling / cost curves | compute budget vs quality | Budget-capped runs + token/wall-clock telemetry per arm | §6: budget grid × pass-rate curves; price-of-trust |
 
@@ -71,26 +170,29 @@ model version string, recurve commit, task revision, seed.
 ## 3 · Benchmark substrate — where tasks and oracles come from
 
 Two properties qualify a benchmark here: (a) a **machine-checkable held-out
-oracle**, (b) tasks we didn't author. Sources, by role:
+oracle**, (b) tasks we didn't author. All locations below verified online
+2026-07-04. Sources, by role:
 
-| Benchmark | Source | Size | Held-out oracle | Role here | Cost/run |
+| Benchmark | Exact location (verified) | Size | Held-out oracle | Role here | Cost/run |
 |---|---|---|---|---|---|
-| **SWE-bench Verified** | HuggingFace `princeton-nlp/SWE-bench_Verified` (+ official harness, github `SWE-bench/SWE-bench`) | 500 human-validated real GitHub issues | FAIL_TO_PASS + PASS_TO_PASS tests, run in the official docker images | **The flagship A/B substrate** (M2): real repos, real defects, trusted oracle | High (docker builds, agent runs) |
-| SWE-bench Lite | HF `princeton-nlp/SWE-bench_Lite` | 300 | same | cheaper pilot of the same design | Med |
-| **HumanEval+ / MBPP+** | HF `evalplus/humanevalplus`, `evalplus/mbppplus` (evalplus harness) | 164 / ~400 fn-level | extended hidden test suites | **Smoke tier**: cheap end-to-end pipeline validation; NOT headline material (contaminated, small) | Low |
-| BigCodeBench | HF `bigcode/bigcodebench` | ~1.1k | hidden tests, library-usage tasks | mid-tier realism between EvalPlus and SWE-bench | Med |
-| **LiveCodeBench** | HF `livecodebench/*` (rolling releases) | rolling | hidden tests, post-cutoff problems | **contamination sensitivity arm**: re-run headline cells on post-training-cutoff tasks; if effects vanish, contamination was doing the work | Med |
-| **Defects4J** | github `rjust/defects4j` (Java) | 835 real bugs | dev-written failing→passing tests | **M1 with *real* defects**: interception on human bugs, not synthetic mutants | Med |
-| BugsInPy | github `soarsmu/BugsInPy` (Python) | ~500 real bugs | same pattern | Python twin of Defects4J; closer to our tooling | Med |
-| mutmut / cosmic-ray | PyPI tools | unbounded | mutants are known-bad by construction | **M1 synthetic tier**: seeded-defect generation at volume, per-layer ablations | Low |
-| **miniF2F** | github `openai/miniF2F` (Lean4 ports exist; verify exact repo at build time) | 488 olympiad statements | the Lean kernel | **strong-oracle track**: the oracle-spectrum thesis measured at its strong end | Med |
-| PutnamBench | github `trishullab/PutnamBench` | ~600 | Lean/Isabelle/Coq kernels | harder strong-oracle tier | High |
+| **BigCodeBench-Hard** | HF: <https://huggingface.co/datasets/bigcode/bigcodebench-hard> · harness: <https://github.com/bigcode-project/bigcodebench> (`pip install bigcodebench`) | 148 tasks | hidden `unittest` suite per task (`test` field) | **The POC substrate (§0)** | Low–Med |
+| BigCodeBench (full) | HF: <https://huggingface.co/datasets/bigcode/bigcodebench> (v0.1.4, 1,140 tasks) | ~1.1k | same | mid-tier realism between EvalPlus and SWE-bench | Med |
+| **SWE-bench Verified** | HF: <https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified> (also mirrored at `SWE-bench/SWE-bench_Verified`) · harness: <https://github.com/SWE-bench/SWE-bench> (`pip install swebench`; docker eval via `swebench.harness.run_evaluation`) · docs: <https://www.swebench.com> | 500 human-validated real GitHub issues | FAIL_TO_PASS + PASS_TO_PASS tests in official docker images | **The flagship A/B substrate** (E2): real repos, real defects, trusted oracle | High |
+| SWE-bench Lite | HF: <https://huggingface.co/datasets/princeton-nlp/SWE-bench_Lite> | 300 | same | cheaper pilot of the same design | Med |
+| **HumanEval+ / MBPP+** | HF: <https://huggingface.co/datasets/evalplus/humanevalplus> / <https://huggingface.co/datasets/evalplus/mbppplus> · harness: <https://github.com/evalplus/evalplus> (`pip install evalplus`) | 164 / 378 fn-level | extended hidden test suites (80×/35× the originals) | **Smoke tier**: cheap pipeline validation; NOT headline material (contaminated, near-ceiling) | Low |
+| **LiveCodeBench** | HF: <https://huggingface.co/datasets/livecodebench/code_generation_lite> (versioned: `release_v1`…`v6+`, use post-cutoff releases) · repo: <https://github.com/LiveCodeBench/LiveCodeBench> | rolling (600+ problems) | hidden stdin/stdout tests, post-cutoff problems | **contamination sensitivity arm**: if effects vanish on post-cutoff tasks, contamination was doing the work | Med |
+| **Defects4J** | github: <https://github.com/rjust/defects4j> | 854 real Java bugs | dev-written failing→passing triggering tests | **E1 with *real* defects**: interception on human bugs, not synthetic mutants | Med |
+| BugsInPy | github: <https://github.com/soarsmu/BugsInPy> | ~500 real Python bugs | same pattern | Python twin of Defects4J; closer to our tooling | Med |
+| Aider polyglot | github: <https://github.com/Aider-AI/polyglot-benchmark> · runner: <https://github.com/Aider-AI/aider/blob/main/benchmark/README.md> | 225 Exercism problems, 6 languages | per-exercise unit tests | multi-language breadth arm (C++/Go/Java/JS/Py/Rust) | Med |
+| mutmut / cosmic-ray | PyPI: <https://pypi.org/project/mutmut/> / <https://pypi.org/project/cosmic-ray/> | unbounded | mutants are known-bad by construction | **E1 synthetic tier**: seeded defects at volume, per-layer ablations | Low |
+| **miniF2F** | Lean 4 port: <https://github.com/yangky11/miniF2F-lean4> (LeanDojo; lightly maintained — pin a commit) · original (Lean 3 era): <https://github.com/openai/miniF2F> | 488 olympiad statements | the Lean kernel | **strong-oracle track**: the oracle-spectrum thesis measured at its strong end | Med |
+| PutnamBench | github: <https://github.com/trishullab/PutnamBench> | Putnam 1962–2025; 1,724 formalizations across Lean 4/Isabelle/Coq | proof-assistant kernels | harder strong-oracle tier | High |
 
 Notes: exact HF dataset revisions get **pinned by a probe** (the loader
 claim asserts a specific dataset revision hash — benchmarks are evidence, so
-they're version-pinned like everything else). Defects4J/BugsInPy are cloned
-at pinned commits. Where I've flagged "verify at build time," the first
-harness claim does the verification.
+they're version-pinned like everything else; LiveCodeBench additionally pins
+a `release_v*` tag). GitHub corpora (Defects4J, BugsInPy, miniF2F-lean4,
+PutnamBench, polyglot-benchmark) are cloned at pinned commits.
 
 ## 4 · Ablation design — what we switch off, and what that requires
 
@@ -276,7 +378,7 @@ don't have — but gate FPR≈0, so ΔFDR is nearly pure gain).
 
 | Phase | Builds | Cost (rough) | Paper payoff |
 |---|---|---|---|
-| P0 (days) | bench/ skeleton, TaskStore + quarantine + telemetry claims, HumanEval+ smoke (n=20, A0 vs A3, one model) | ~$50–150 API | pipeline exists; §5 gains "the harness" |
+| P0 (days) | **the §0 POC**: bench/ skeleton, TaskStore + quarantine + telemetry claims, BigCodeBench-Hard × Haiku, A0 vs A3 | ~$25–75 API | pipeline exists + **first ΔFDR number**; §5 gains "the harness" |
 | P1 (days–week) | E1 interception: BugsInPy + mutmut, layer arms A2–A4 | CPU only | **the confusion-matrix + ablation table** — the single biggest metrics upgrade |
 | P2 (week+) | E2 pilot (Lite n=20) then Verified n=50, 3 arms × 2–3 models; E3 budget grid on subset | ~$1–5k API | **ΔFDR headline + price-of-trust + scaling curve** |
 | P3 (opportunistic) | E4 model matrix, E5 decorrelation, LiveCodeBench sensitivity | ~$1–3k | ablations complete; residue #3 measured |
