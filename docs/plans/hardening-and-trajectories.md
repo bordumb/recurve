@@ -140,3 +140,19 @@ that closes after 6.
   trap` extends to generated evidence).
 - No new dependency beyond the Python stdlib + PyYAML (recurve's standing
   constraint).
+
+---
+
+## Follow-ups discovered during the run (not in scope; next claims to arm)
+
+- **`drill` does not honor `oracle_waiver` in trap audits.** `matrix --gate`
+  treats TK-2's SKIP (external oracle absent) as declared, visible debt;
+  `drill` counts the same SKIP as a failure ("a guard would bless its own
+  defect") and exits 1 on an otherwise clean fleet. Pre-existing (reproduced at
+  54116b6, where TK-28's trap was additionally BROKEN — that one is fixed at
+  HEAD). Candidate claim: a SKIPped trap under a declared `oracle_waiver` is
+  reported as waived debt, not failure — mirroring the matrix's semantics, with
+  the count printed beside the waived-guards line.
+- **`coverage` reports 89 orphan prose gaps across 8 suites** (prose sections
+  with no ledger entry) — pre-existing housekeeping debt, invisible to the gate;
+  worth a sweep or an explicit archival convention.
