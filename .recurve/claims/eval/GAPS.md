@@ -61,3 +61,14 @@ shipped-bad-work rate, FDR, ΔFDR, oracle pass rate — with Wilson 95% interval
 and a paired McNemar within each model, all closed-form in stdlib (no scipy, no
 notebook state). Negative space (guarded by the trap): an analysis whose output
 depends on input row order (non-deterministic).
+
+## EV-6 — Orchestrator: agent → oracle → one analyze-ready row
+
+`orchestrate.py` is what a cell does: run the agent in its quarantined
+workspace, read the final `solution.py`, grade it against the pinned held-out
+oracle (never in the workspace), and seal a row carrying both the agent's
+`declared_done` and the oracle's `oracle_verdict`, plus per-row provenance
+(dataset revision, model verbatim, recurve commit, adapter version, seed) so any
+row is self-re-executable. `row_is_complete` refuses a run-only row that would
+leave `analyze` without its dependent variable. Negative space (guarded by the
+trap): a declared_done-only row accepted as complete.

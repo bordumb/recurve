@@ -100,3 +100,22 @@
   probe: probes/ev-5.sh
   unlocks: the run dir reads like a lab notebook — results.jsonl in, the same tables out,
     reproducible from the JSONL alone
+
+- id: EV-6
+  title: 'Orchestrator: agent to oracle to one analyze-ready row'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-6
+  evidence:
+  - eval/evallib/orchestrate.py
+  observed: 'GREEN at baseline 2026-07-05: orchestrator produces analyze-ready rows (declared_done
+    + oracle_verdict + provenance)'
+  smallest_fix: make_orchestrator runs the agent, grades the workspace solution.py with the
+    held-out oracle, and seals a row with declared_done + oracle_verdict + provenance; row_is_complete
+    refuses a row missing the oracle verdict or provenance
+  probe: probes/ev-6.sh
+  unlocks: the run produces the joined (declared, oracle) rows analyze needs — the dependent
+    variable is actually recorded
