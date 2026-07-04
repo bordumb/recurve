@@ -1,0 +1,23 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: EV-1
+  title: TaskStore pins the benchmark to a content hash
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-1
+  evidence:
+  - eval/evallib/taskstore.py
+  observed: 'GREEN at baseline 2026-07-04: OK ⏎ taskstore pins to a content hash, reports
+    count, and detects tampering (real HF fetch oracle-waived: datasets absent)'
+  smallest_fix: taskstore.load_jsonl/content_hash/verify_pin pin a task set to a deterministic
+    SHA-256 over canonical content and reject a tampered dataset against its pin
+  probe: probes/ev-1.sh
+  unlocks: every downstream number is anchored to an immutable, verifiable benchmark revision
+  oracle_waiver: fetching the real BigCodeBench-Hard revision from HuggingFace needs the optional
+    datasets dependency; the pinning logic is tested hermetically against a fixture, and the
+    real fetch runs full-strength where datasets is importable

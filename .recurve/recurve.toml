@@ -70,3 +70,8 @@ harness = []
 dir = ".recurve/claims/reorg"
 rebuild = ""               # differential vs a pinned baseline engine (git archive); nothing to copy
 harness = []
+
+[suites.eval]
+dir = ".recurve/claims/eval"
+rebuild = ""               # the eval/ pipeline is stdlib-only at its core; probes drive it directly
+harness = []

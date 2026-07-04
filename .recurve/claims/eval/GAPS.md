@@ -1,0 +1,23 @@
+# eval — the recurve evaluation pipeline, gated
+
+The instrument is held to the standard it measures. The `eval/` pipeline
+(docs/plans/eval-poc.md §5) turns an experiment manifest into pinned cells, runs
+them through the BYO-agent seam, quarantines a held-out oracle, and analyzes the
+results deterministically. Each stage is a claim here.
+
+Design: the pipeline's core logic is stdlib-only, so these probes are hermetic —
+they drive the real `evallib` code against fixtures, never the network or a paid
+run. The one genuinely external dependency (fetching the real BigCodeBench-Hard
+revision from HuggingFace) is an `oracle_waiver`: the probe runs full-strength
+where the dataset is reachable and SKIPs (visible, non-blocking debt) where it is
+not.
+
+## EV-1 — TaskStore pins the benchmark to a content hash
+
+`taskstore.py` loads a task set and pins it to a deterministic SHA-256 over the
+canonical task content; `verify_pin` rejects any dataset that does not match its
+recorded pin, and a changed task changes the hash. The pinning logic is
+stdlib-only (hermetic); the real BigCodeBench-Hard fetch from HuggingFace needs
+the optional `datasets` dependency and is oracle-waived where it is absent.
+Negative space (guarded by the trap): a `verify_pin` that accepts a tampered
+dataset against its original pin.
