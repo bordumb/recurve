@@ -52,9 +52,11 @@ def _save(fig, out_dir, name: str) -> None:
 
 
 def _watermark(ax, spec) -> None:
+    # Top-left, above the axes — opposite corner from the bottom-right legend, so
+    # the synthetic marker travels with the image without competing with it.
     if spec.get("synthetic"):
-        ax.text(0.99, 0.02, spec.get("watermark", "(synthetic placeholders)"),
-                transform=ax.transAxes, ha="right", va="bottom",
+        ax.text(0.0, 1.04, spec.get("watermark", "(synthetic placeholders)"),
+                transform=ax.transAxes, ha="left", va="bottom",
                 fontsize=7, color=GRAY, style="italic")
 
 
@@ -73,9 +75,11 @@ def render_hero(spec, out_dir) -> None:
         ax.annotate(f"Δ {r['delta'] * 100:.1f} pts", ((b["rate"] + g["rate"]) / 2, y),
                     textcoords="offset points", xytext=(0, 9), ha="center", fontsize=8)
         if g.get("refused"):
+            # Anchor to the gated dot and extend RIGHT (below the segment), so a
+            # low-rate dot's label never hangs off the left edge.
             ax.annotate(f"{g['refused']} refused", (g["rate"], y),
-                        textcoords="offset points", xytext=(0, -13), ha="center",
-                        fontsize=7, color=GRAY)
+                        textcoords="offset points", xytext=(-3, -13), ha="left",
+                        va="top", fontsize=7, color=GRAY)
     ax.set_xlim(0, 1)
     ax.set_xticks([0, .25, .5, .75, 1.0])
     ax.set_xticklabels(["0%", "25%", "50%", "75%", "100%"])
