@@ -83,6 +83,8 @@ nav:
       - Usage:
           - Claude skill: usage-claude-skill.md
           - Provider-agnostic: usage-provider-agnostic.md
+      - Hardening your probes: hardening.md
+      - Run data & trajectories: run-data.md
       - Multi-repo: multi-repo.md
       - Claim packs: packs.md
   - Developer guide:

@@ -178,9 +178,15 @@ lock, and it is the single writer by design.
 
 ```bash
 recurve matrix      # what turned GREEN, and is the gate holding
-recurve stats       # close rate, attempts, wall-clock by class
+recurve stats       # close rates (raw AND budgeted c%@1/c%@2), trap debt
 recurve park        # parked gaps + attempt journals (the next run's seed)
+recurve drill       # re-prove every guard can still fail (--fuzz/--iso/--diff to measure)
 ```
+
+The run's records are a dataset in their own right — budgeted close rates,
+branch capture, and a verification-gated JSONL export are covered in
+[Run data & trajectories](run-data.md); auditing the probes themselves is
+[Hardening your probes](hardening.md).
 
 The human queue, in order: adjudications first (one sentence unblocks the
 most agent-work), then review-gated promotions (see `.recurve/REVIEW.md`),
