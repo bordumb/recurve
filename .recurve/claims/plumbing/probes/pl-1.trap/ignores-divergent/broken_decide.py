@@ -5,7 +5,7 @@ must be CONTINUE, never STOP-SUCCESS — this impl would stop on a broken intent
 
 
 def verdict_for(open, regressed, broken, uncovered, divergent=False):
-    from recurvelib.controller import Progress, decide
+    from recurvelib.loop.controller import Progress, decide
     if open == regressed == broken == uncovered == 0:
         return "STOP-SUCCESS"
     return decide([Progress(open, regressed, broken, uncovered, divergent)]).value

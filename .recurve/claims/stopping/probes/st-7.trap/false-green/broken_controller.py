@@ -2,7 +2,7 @@
 regressed, and divergent guards, so unmeasured/regressing/diverged work is declared done. Passes ST-1..3
 because ST-1's fixture zeroes all three at once."""
 
-from recurvelib.controller import Verdict
+from recurvelib.loop.controller import Verdict
 
 
 def decide(history, k=3):

@@ -1,0 +1,5 @@
+EXIT:0
+[32m✓ ledger valid:[0m 2 gaps parsed, 2 probes declared and present
+[33m  grep-style probes (reads: none) — permitted only when the claim is about source:[0m
+  - G-1
+  - G-2

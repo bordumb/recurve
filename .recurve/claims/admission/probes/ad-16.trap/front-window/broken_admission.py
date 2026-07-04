@@ -1,7 +1,7 @@
 """AD-16 counterexample: takes the no-progress window from the FRONT of the history, so an early stuck
 stretch that has since converged is escalated. Passes AD-11/12/13 (all length <= 3, where front==back)."""
 
-from recurvelib.admission import InterviewVerdict
+from recurvelib.analysis.admission import InterviewVerdict
 
 
 def interview_step(history, max_rounds=3):

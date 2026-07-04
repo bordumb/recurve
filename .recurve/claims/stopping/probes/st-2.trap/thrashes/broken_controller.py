@@ -1,7 +1,7 @@
 """ST-2 counterexample: a controller missing the flat-progress revert — it continues forever on
 non-progress (thrashes). Still stops on green and continues on real progress, so it passes ST-1/3."""
 
-from recurvelib.controller import Verdict
+from recurvelib.loop.controller import Verdict
 
 
 def decide(history, k=3):

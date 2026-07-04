@@ -1,7 +1,7 @@
 """AD-15 counterexample: escalates only when the window is non-decreasing THROUGHOUT, so a dip-and-return
 history (un-name a check, re-introduce it) interviews forever. Passes AD-11/12/13 (flat and monotone)."""
 
-from recurvelib.admission import InterviewVerdict
+from recurvelib.analysis.admission import InterviewVerdict
 
 
 def interview_step(history, max_rounds=3):

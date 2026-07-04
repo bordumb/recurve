@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         covered_ids = mod.covered_ids
     else:
-        from recurvelib.completeness import covered_ids
+        from recurvelib.analysis.completeness import covered_ids
 
     ids = covered_ids([{"covers": "verify_chain"}])  # a single id written as a bare string
 except Exception as e:

@@ -1,8 +1,8 @@
 """AP-10 counterexample: apply reads the prior as text, so an in-bounds patch over a binary file crashes with
 UnicodeDecodeError."""
 import posixpath
-from recurvelib.adapters import GitWorld as _R, BoundaryViolation
-from recurvelib.runtime import within_boundary
+from recurvelib.loop.adapters import GitWorld as _R, BoundaryViolation
+from recurvelib.loop.runtime import within_boundary
 class GitWorld(_R):
     def apply(self, patch):
         rels = list(patch)

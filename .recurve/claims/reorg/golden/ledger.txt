@@ -1,0 +1,6 @@
+EXIT:0
+gap         suite                    sev       class             status     probe
+G-1         s                        feature   missing-surface   closed     g-1.sh
+G-2         s                        feature   missing-surface   closed     g-2.sh
+
+2 gaps across 1 suites

@@ -1,7 +1,7 @@
 """CL-25 counterexample: covered_by has no per-exercise guard, so one raising probe body propagates and
 aborts the whole aggregate (losing the clean exercises' coverage)."""
 
-from recurvelib.measured import measure_coverage
+from recurvelib.analysis.measured import measure_coverage
 
 
 def covered_by(exercises, surface_ids):

@@ -1,7 +1,7 @@
 """AP-6 counterexample: restore lets the raw CalledProcessError escape on a bad sha, so the safety-revert
 path itself crashes."""
 
-from recurvelib.adapters import GitWorld as _Real
+from recurvelib.loop.adapters import GitWorld as _Real
 
 
 class GitWorld(_Real):

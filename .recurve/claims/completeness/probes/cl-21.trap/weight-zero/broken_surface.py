@@ -3,7 +3,7 @@ the most consequential uncovered unit is not claimed first."""
 
 import ast
 
-from recurvelib.frontier import SurfacePoint
+from recurvelib.analysis.frontier import SurfacePoint
 
 
 def extract(source, location=""):

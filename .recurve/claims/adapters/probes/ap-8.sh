@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         _jsonable = mod._jsonable
     else:
-        from recurvelib.adapters import _jsonable
+        from recurvelib.loop.adapters import _jsonable
 
     class Weird:
         def __str__(self):

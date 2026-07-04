@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         within_boundary = mod.within_boundary
     else:
-        from recurvelib.runtime import within_boundary
+        from recurvelib.loop.runtime import within_boundary
 
     sibling = within_boundary(["claims_backup/x"], "", ["claims/"])   # a sibling dir — allowed
     exact = within_boundary(["claims"], "", ["claims/"])             # a file named exactly claims — refused

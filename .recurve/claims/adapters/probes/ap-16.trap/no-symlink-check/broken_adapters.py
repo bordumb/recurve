@@ -1,7 +1,7 @@
 """AP-16 counterexample: apply resolves no symlinks, so a key under a symlinked prefix writes outside the tree."""
 import posixpath
-from recurvelib.adapters import GitWorld as _R, BoundaryViolation
-from recurvelib.runtime import within_boundary
+from recurvelib.loop.adapters import GitWorld as _R, BoundaryViolation
+from recurvelib.loop.runtime import within_boundary
 class GitWorld(_R):
     def apply(self, patch):
         rels = list(patch)

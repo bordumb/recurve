@@ -15,8 +15,8 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.admission import Verdict
-    from recurvelib.claimify import ClaimifyResult, DraftClaim
+    from recurvelib.analysis.admission import Verdict
+    from recurvelib.analysis.claimify import ClaimifyResult, DraftClaim
 except Exception as e:
     print(f"selfcheck could not run: {e}")
     sys.exit(2)
@@ -28,7 +28,7 @@ try:
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         admit_result = mod.admit_result
     else:
-        from recurvelib.claimify import admit_result
+        from recurvelib.analysis.claimify import admit_result
 except ImportError:
     print("ours=no admission gate on claimify yet oracle=admit_result gates the PRD before drafts")
     sys.exit(1)  # RED-first
@@ -50,7 +50,7 @@ except Exception as e:
     sys.exit(1)
 
 if g == Verdict.ADMIT and v != Verdict.ADMIT:
-    src = (Path(root) / "recurvelib" / "claimify.py").read_text()
+    src = (Path(root) / "recurvelib" / "analysis" / "claimify.py").read_text()
     if "run_claimify" in src and re.search(r"admit_result|admit\(", src):
         print("admission gates claimify: gateable -> ADMIT, vague -> REFUSE, run_claimify consults it")
         sys.exit(0)

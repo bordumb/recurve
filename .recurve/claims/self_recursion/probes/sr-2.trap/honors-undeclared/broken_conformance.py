@@ -4,5 +4,5 @@ exit 3 to dodge the gate without declaring anything."""
 
 
 def is_waived_skip(result):
-    from recurvelib.probe import Outcome
+    from recurvelib.core.probe import Outcome
     return result.outcome is Outcome.SKIP

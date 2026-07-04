@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         measure_coverage = mod.measure_coverage
     else:
-        from recurvelib.measured import measure_coverage
+        from recurvelib.analysis.measured import measure_coverage
 
     def target_a():
         return 1

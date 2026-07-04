@@ -1,7 +1,7 @@
 """ST-1 counterexample: a controller missing the STOP-SUCCESS branch — it never stops on a green cycle
 (the core "LLM cannot stop" failure). Still reverts on flat and continues on progress, so it passes ST-2/3."""
 
-from recurvelib.controller import Verdict
+from recurvelib.loop.controller import Verdict
 
 
 def decide(history, k=3):

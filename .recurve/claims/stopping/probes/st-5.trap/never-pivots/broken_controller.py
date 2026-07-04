@@ -1,7 +1,7 @@
 """ST-5 counterexample: never pivots — grinds a stalled lower-value item forever. Correct on start and on
 the already-best case, so it passes ST-4/6."""
 
-from recurvelib.controller import Verdict
+from recurvelib.loop.controller import Verdict
 
 
 def pick_next(frontier, current_id=None, stalled=False):

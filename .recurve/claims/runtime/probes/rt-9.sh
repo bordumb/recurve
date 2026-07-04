@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         within_boundary = mod.within_boundary
     else:
-        from recurvelib.runtime import within_boundary
+        from recurvelib.loop.runtime import within_boundary
 
     escape = within_boundary(["repo/../secret.py"], "repo/", ["repo/claims/"])   # climbs out via ..
     absolute = within_boundary(["/etc/passwd"], "repo/", ["repo/claims/"])       # absolute path

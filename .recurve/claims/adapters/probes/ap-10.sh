@@ -10,13 +10,13 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.controller import Progress
+    from recurvelib.loop.controller import Progress
     if fixture:
         spec = importlib.util.spec_from_file_location("atrap", Path(fixture) / "broken_adapters.py")
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         GitWorld = mod.GitWorld
     else:
-        from recurvelib.adapters import GitWorld
+        from recurvelib.loop.adapters import GitWorld
 
     with tempfile.TemporaryDirectory() as d:
         r = Path(d)

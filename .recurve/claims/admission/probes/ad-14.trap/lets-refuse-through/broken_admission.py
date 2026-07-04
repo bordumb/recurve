@@ -1,6 +1,6 @@
 """AD-14 counterexample: lets a REFUSE-AND-INTERVIEW goal proceed to synthesis, bypassing the gate."""
 
-from recurvelib.admission import Verdict
+from recurvelib.analysis.admission import Verdict
 
 
 def admitted(report):

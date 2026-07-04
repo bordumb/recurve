@@ -13,7 +13,7 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.controller import decide, Progress  # the oracle
+    from recurvelib.loop.controller import decide, Progress  # the oracle
 except Exception as e:
     print(f"selfcheck could not run: {e}")
     sys.exit(2)
@@ -25,7 +25,7 @@ try:
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         verdict_for = mod.verdict_for
     else:
-        from recurvelib.decide_cli import verdict_for
+        from recurvelib.analysis.decide_cli import verdict_for
 except ImportError:
     print("ours=no `recurve decide` surface yet oracle=verdict_for mirrors controller.decide")
     sys.exit(1)  # RED-first: the surface does not exist

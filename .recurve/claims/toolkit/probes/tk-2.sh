@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # TK-2: live-equivalent to both ancestor instances (fast subset — the full
-# probe-running comparison is acceptance/diff.sh without --fast).
+# probe-running comparison is tests/acceptance/diff.sh without --fast).
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
-export RECURVE_ACCEPT="$ROOT/acceptance"
+export RECURVE_ACCEPT="$ROOT/tests/acceptance/tk"
 if [ -n "${TRAP_FIXTURE:-}" ]; then
   export RUN_HELPER="bash $TRAP_FIXTURE/run_helper.sh"
 fi
-OUT="$(bash "$ROOT/acceptance/diff.sh" --fast 2>&1)"
+OUT="$(bash "$ROOT/tests/acceptance/tk/diff.sh" --fast 2>&1)"
 case "$?" in
   0) echo "live-equivalent to both ancestors (fast subset)"; exit 0 ;;
   3) echo "ancestor instances not present at this checkout — external oracle absent (SKIP)"; exit 3 ;;

@@ -13,14 +13,14 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.model import Status
+    from recurvelib.core.model import Status
     if fixture:
         spec = importlib.util.spec_from_file_location(
             "strap", Path(fixture) / "broken_status.py")
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         summarize = mod.summarize
     else:
-        from recurvelib.status import summarize
+        from recurvelib.io.status import summarize
 except Exception as e:
     print(f"selfcheck could not run: {e}")
     sys.exit(2)

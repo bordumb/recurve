@@ -1,0 +1,2 @@
+EXIT:0
+frontier empty — every surface point is covered or deferred.

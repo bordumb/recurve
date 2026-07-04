@@ -9,15 +9,15 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.frontier import SurfacePoint
-    from recurvelib.controller import pick_next
+    from recurvelib.analysis.frontier import SurfacePoint
+    from recurvelib.loop.controller import pick_next
     if fixture:
         spec = importlib.util.spec_from_file_location("rtrap", Path(fixture) / "broken_runtime.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         sense = mod.sense
     else:
-        from recurvelib.runtime import sense
+        from recurvelib.loop.runtime import sense
 
     surface = [SurfacePoint("alpha", 5)]   # one public unit, nothing covered
     progress, frontier = sense({"open": 0, "regressed": 0, "broken": 0}, surface, set(), [])

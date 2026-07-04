@@ -1,8 +1,8 @@
 """CL-23 counterexample: calls an empty surface complete, so a measurement failure (no surface extracted)
 presents as a finished, green cycle."""
 
-from recurvelib.completeness import CompletenessReport
-from recurvelib.frontier import compute_frontier
+from recurvelib.analysis.completeness import CompletenessReport
+from recurvelib.analysis.frontier import compute_frontier
 
 
 def completeness_report(surface, covered, deferred_ids=()):

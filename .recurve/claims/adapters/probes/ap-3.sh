@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         CommandActor = mod.CommandActor
     else:
-        from recurvelib.adapters import CommandActor
+        from recurvelib.loop.adapters import CommandActor
 
     emit = CommandActor(["python3", "-c",
                          "import json,sys; json.load(sys.stdin); print(json.dumps({'x':'from-command'}))"])

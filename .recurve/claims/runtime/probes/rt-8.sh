@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         within_boundary = mod.within_boundary
     else:
-        from recurvelib.runtime import within_boundary
+        from recurvelib.loop.runtime import within_boundary
 
     # a clean file paired with a probe edit -- the referee path is second.
     mixed = within_boundary(["repo/src/foo.py", "repo/claims/x/probe.sh"], "repo/", ["repo/claims/"])

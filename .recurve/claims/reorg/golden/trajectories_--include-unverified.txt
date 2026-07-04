@@ -1,0 +1,3 @@
+EXIT:0
+trajectories: exported 1, excluded 0 unverified
+{"action": "closed", "attempts": 1, "branches": [], "class": "missing-surface", "cycle": "cycle-1", "files_touched": ["f.txt"], "gap": "G-1", "provenance": {"probe": "<TMP>", "trap_waiver": false, "traps": 1}, "reward": 1, "run_id": "run-a", "severity": "feature", "suite": "s", "summary": "toy cycle", "verified": true}

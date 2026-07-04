@@ -9,14 +9,14 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.frontier import SurfacePoint
+    from recurvelib.analysis.frontier import SurfacePoint
     if fixture:
         spec = importlib.util.spec_from_file_location("cmptrap", Path(fixture) / "broken_completeness.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         completeness_report = mod.completeness_report
     else:
-        from recurvelib.completeness import completeness_report
+        from recurvelib.analysis.completeness import completeness_report
 
     surface = [SurfacePoint("a", 3), SurfacePoint("b", 2), SurfacePoint("c", 1)]
     rep = completeness_report(surface, covered={"a"}, deferred_ids={"b"})

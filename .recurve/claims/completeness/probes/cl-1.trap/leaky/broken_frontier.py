@@ -1,6 +1,6 @@
 """CL-1 counterexample: a frontier that ignores ``covered_ids``, so covered points leak onto the frontier."""
 
-from recurvelib.frontier import FrontierReport
+from recurvelib.analysis.frontier import FrontierReport
 
 
 def compute_frontier(surface, covered_ids, deferred_ids=()):

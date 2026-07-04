@@ -3,8 +3,8 @@ disk (tree neither old state nor proposed state)."""
 
 import posixpath
 
-from recurvelib.adapters import GitWorld as _Real, BoundaryViolation
-from recurvelib.runtime import within_boundary
+from recurvelib.loop.adapters import GitWorld as _Real, BoundaryViolation
+from recurvelib.loop.runtime import within_boundary
 
 
 class GitWorld(_Real):

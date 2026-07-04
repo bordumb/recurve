@@ -3,7 +3,7 @@ TYPE_CHECKING-guarded or import-fallback method) is silently dropped from the su
 
 import ast
 
-from recurvelib.frontier import SurfacePoint
+from recurvelib.analysis.frontier import SurfacePoint
 
 
 def extract(source, location=""):

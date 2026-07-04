@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         capture = mod.capture
     else:
-        from recurvelib.runtime import capture
+        from recurvelib.loop.runtime import capture
 
     neither = capture(False, False)   # green on wrong (catches nothing) AND red on real (breaks real): nonsense
 except Exception as e:

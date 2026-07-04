@@ -13,9 +13,9 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.runtime import sense                 # the oracle
-    from recurvelib.frontier import SurfacePoint
-    from recurvelib.fidelity import GoalCounterexample
+    from recurvelib.loop.runtime import sense                 # the oracle
+    from recurvelib.analysis.frontier import SurfacePoint
+    from recurvelib.analysis.fidelity import GoalCounterexample
 except Exception as e:
     print(f"selfcheck could not run: {e}")
     sys.exit(2)
@@ -27,7 +27,7 @@ try:
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         sense_vector = mod.sense_vector
     else:
-        from recurvelib.sense_cli import sense_vector
+        from recurvelib.analysis.sense_cli import sense_vector
 except ImportError:
     print("ours=no `recurve sense` surface yet oracle=sense_vector mirrors runtime.sense")
     sys.exit(1)  # RED-first

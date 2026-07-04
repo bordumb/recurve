@@ -1,7 +1,7 @@
 """AD-9 counterexample: <= instead of < on the thinness gate, so a spine of EXACTLY min_invariants is
 refused as not gateable. Passes AD-4/5/6 (spine 3 and 1, never 2)."""
 
-from recurvelib.admission import AdmissionReport, Verdict, worklist
+from recurvelib.analysis.admission import AdmissionReport, Verdict, worklist
 
 
 def admit(assertions, min_invariants=2):

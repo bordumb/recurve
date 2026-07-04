@@ -9,16 +9,16 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.frontier import SurfacePoint
-    from recurvelib.fidelity import GoalCounterexample
-    from recurvelib.controller import decide, Verdict
+    from recurvelib.analysis.frontier import SurfacePoint
+    from recurvelib.analysis.fidelity import GoalCounterexample
+    from recurvelib.loop.controller import decide, Verdict
     if fixture:
         spec = importlib.util.spec_from_file_location("rtrap", Path(fixture) / "broken_runtime.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         sense = mod.sense
     else:
-        from recurvelib.runtime import sense
+        from recurvelib.loop.runtime import sense
 
     # all probes green, surface fully covered, but a goal-counterexample was accepted -> diverged.
     surface = [SurfacePoint("alpha")]

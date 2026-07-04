@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         completeness_report = mod.completeness_report
     else:
-        from recurvelib.completeness import completeness_report
+        from recurvelib.analysis.completeness import completeness_report
 
     rep = completeness_report([], covered=set())  # nothing was extracted
 except Exception as e:

@@ -1,0 +1,181 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: R0-1
+  title: differential read-only roster (outputs + exit), chrome excluded
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - R0-1
+  evidence:
+  - .recurve/claims/reorg/probes/_diff.sh
+  - .recurve/claims/reorg/BASELINE_REF
+  observed: 'GREEN at baseline 2026-07-04: working engine ≡ pinned baseline across the read-only
+    roster (outputs + exit codes)'
+  smallest_fix: a harness materializes the pinned baseline engine (git archive of BASELINE_REF)
+    and runs a fixed read-only roster with both engines against identical fixture state, asserting
+    byte-equal normalized output + exit; the roster carries an engine-error path and excludes
+    --help / unknown-command chrome by name
+  probe: probes/r0-1.sh
+  unlocks: a measured arbiter of behavioral equivalence for every later phase — drift turns
+    it RED naming the first divergent command
+
+- id: R0-2
+  title: mutating commands compared by resulting state
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - R0-2
+  evidence:
+  - .recurve/claims/reorg/probes/r0-2.sh
+  observed: 'GREEN at baseline 2026-07-04: working engine ≡ pinned baseline on mutating commands
+    (init, baseline, record append, pack export) by resulting state'
+  smallest_fix: for init, baseline, record append, and pack export, both engines run against
+    their own fresh copy of one fixture and the probe asserts the resulting trees are equivalent
+    (same files, same root-normalized contents) plus matching output + exit
+  probe: probes/r0-2.sh
+  unlocks: a stdout-only check can pass while two engines write different ledgers — comparing
+    resulting state closes that gap
+
+- id: R0-3
+  title: the baseline pin is explicit, and re-pinning is human-only
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R0-3
+  evidence:
+  - .recurve/claims/reorg/BASELINE_REF
+  - .recurve/claims/reorg/probes/r0-3.sh
+  observed: 'GREEN at baseline 2026-07-04: the baseline pin is explicit (one commit), BROKEN
+    on a bad pin, and never re-pinned alongside engine code'
+  smallest_fix: BASELINE_REF names exactly one resolvable commit; a missing or unbuildable
+    ref is BROKEN, never a silent self-comparison; and no commit in history touches both the
+    pin file and engine code
+  probe: probes/r0-3.sh
+  unlocks: the reference cannot silently become the freshly-changed engine, and an absent
+    pin never masquerades as agreement
+
+- id: R1-1
+  title: golden characterization harness (durable, chrome excluded)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R1-1
+  evidence:
+  - .recurve/claims/reorg/probes/r1-1.sh
+  - .recurve/claims/reorg/golden
+  observed: 'GREEN at baseline 2026-07-04: every read-only roster command matches its captured
+    golden'
+  smallest_fix: a probe captures the read-only roster's normalized output as golden bytes
+    under golden/ and re-asserts each command matches; a missing golden is BROKEN; chrome
+    is excluded by name — the durable guard that needs no baseline engine
+  probe: probes/r1-1.sh
+  unlocks: a permanent regression guard on real-invocation output that survives the retirement
+    of R0's baseline pin
+
+- id: R2-1
+  title: cli.py becomes a package (argparse intact), entrypoint survives
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R2-1
+  evidence:
+  - recurvelib/cli/main.py
+  - recurvelib/cli/commands
+  observed: 'GREEN at close 2026-07-04: cli.py split into a package (main.py + one module
+    per command, none over 400 lines); recurvelib.cli:main survives'
+  smallest_fix: split recurvelib/cli.py into recurvelib/cli/ — main.py holds the argparse
+    assembly and shared helpers, one module per command under commands/, none over 400 lines;
+    recurvelib.cli:main re-exported so the console entrypoint and repo wrapper still dispatch
+  probe: probes/r2-1.sh
+  unlocks: a CLI a contributor can navigate by command, with the framework swap isolated to
+    the next phase
+
+- id: R3-1
+  title: Typer becomes the dispatcher (declared dependency)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R3-1
+  evidence:
+  - recurvelib/cli/main.py
+  - pyproject.toml
+  observed: 'GREEN at close 2026-07-04: Typer is the dispatcher (no argparse under cli/),
+    declared in pyproject, entrypoint intact'
+  smallest_fix: rewrite the dispatch layer as a Typer app (no argparse under cli/), declare
+    typer in pyproject dependencies, keep command bodies unchanged and recurvelib.cli:main
+    intact; real-invocation behavior held by R0/R1 + the CLI probes
+  probe: probes/r3-1.sh
+  unlocks: a navigable CLI on a modern framework with native help/errors, the dependency cost
+    priced and isolated to this phase
+
+- id: R3-2
+  title: no framework color or chrome leaks into captured output
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R3-2
+  evidence:
+  - recurvelib/cli/main.py
+  observed: 'GREEN at baseline 2026-07-04: no ANSI color or chrome leaks into piped/captured
+    output (help, errors, and a real command)'
+  smallest_fix: ensure Typer emits no ANSI under a pipe or NO_COLOR — help, errors, and command
+    output stay plain for the probes that capture them
+  probe: probes/r3-2.sh
+  unlocks: the 29 CLI-shelling probes keep matching captured bytes after the framework swap
+
+- id: R4-1
+  title: recurvelib regroups into concern subpackages
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R4-1
+  evidence:
+  - recurvelib/core
+  - recurvelib/loop
+  - recurvelib/io
+  - recurvelib/analysis
+  observed: 'GREEN at baseline 2026-07-04: recurvelib regrouped into concern subpackages (<=3
+    loose, no junk-drawer); imports resolve; resource_dir intact'
+  smallest_fix: move the flat modules into core/loop/io/analysis subpackages (only __init__.py
+    loose, no junk-drawer), rewrite every internal import to the new absolute path so the
+    engine still runs, and keep resource_dir resolving templates/schema/packs
+  probe: probes/r4-1.sh
+  unlocks: a recurvelib a contributor navigates by concern instead of scanning ~35 sibling
+    files
+
+- id: R4-2
+  title: probe imports follow the move (no retired flat paths)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R4-2
+  evidence:
+  - .recurve/claims
+  observed: 'GREEN at baseline 2026-07-04: no probe or fixture under the claims tree imports
+    a retired flat recurvelib.<mod> path'
+  smallest_fix: update every probe and trap fixture that imported a moved module to its new
+    subpackage path in the same change, import lines only; no .sh/.py under claims imports
+    a retired flat recurvelib.<mod> path
+  probe: probes/r4-2.sh
+  unlocks: the fleet keeps proving behavior across the move — no probe silently detached from
+    a module that relocated

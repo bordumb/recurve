@@ -11,17 +11,17 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.controller import Progress, Verdict
-    from recurvelib.runtime import run
-    from recurvelib.admission import Assertion, admit
-    from recurvelib.adapters import CommandActor
+    from recurvelib.loop.controller import Progress, Verdict
+    from recurvelib.loop.runtime import run
+    from recurvelib.analysis.admission import Assertion, admit
+    from recurvelib.loop.adapters import CommandActor
     if fixture:
         spec = importlib.util.spec_from_file_location("atrap", Path(fixture) / "broken_adapters.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         GitWorld = mod.GitWorld
     else:
-        from recurvelib.adapters import GitWorld
+        from recurvelib.loop.adapters import GitWorld
 
     with tempfile.TemporaryDirectory() as d:
         subprocess.run(["git", "-C", d, "init", "-q"], check=True)

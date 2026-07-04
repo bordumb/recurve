@@ -9,14 +9,14 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.controller import Verdict
+    from recurvelib.loop.controller import Verdict
     if fixture:
         spec = importlib.util.spec_from_file_location("ctrap", Path(fixture) / "broken_controller.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         pick_next = mod.pick_next
     else:
-        from recurvelib.controller import pick_next
+        from recurvelib.loop.controller import pick_next
 except Exception as e:
     print(f"selfcheck could not run: {e}")
     sys.exit(2)

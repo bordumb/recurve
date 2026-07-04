@@ -1,0 +1,1 @@
+the scan accepts a cli/ that imports typer but keeps argparse dispatching

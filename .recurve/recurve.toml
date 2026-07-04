@@ -65,3 +65,8 @@ harness = []
 dir = ".recurve/claims/plumbing"
 rebuild = ""               # wires the verification layer into the loop (#4)
 harness = []
+
+[suites.reorg]
+dir = ".recurve/claims/reorg"
+rebuild = ""               # differential vs a pinned baseline engine (git archive); nothing to copy
+harness = []

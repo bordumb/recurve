@@ -2,7 +2,7 @@
 FileNotFoundError."""
 import json
 import subprocess
-from recurvelib.adapters import CommandActor as _R, AgentError, _jsonable
+from recurvelib.loop.adapters import CommandActor as _R, AgentError, _jsonable
 class CommandActor(_R):
     def propose(self, contract, item, evidence):
         payload = json.dumps({"contract": contract, "item": item, "evidence": evidence}, default=_jsonable)

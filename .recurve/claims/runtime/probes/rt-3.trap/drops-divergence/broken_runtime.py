@@ -1,8 +1,8 @@
 """RT-3 counterexample: Sense drops the fidelity half, hard-coding divergent=False -- so a diverged-but-green
 cycle is read as a clean success."""
 
-from recurvelib.completeness import completeness_report
-from recurvelib.controller import Progress
+from recurvelib.analysis.completeness import completeness_report
+from recurvelib.loop.controller import Progress
 
 
 def sense(gate_counts, surface, covered_ids, goal_counterexamples, deferred_ids=()):

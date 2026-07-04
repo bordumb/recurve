@@ -1,7 +1,7 @@
 """AD-5 counterexample: admits as soon as the spine is large enough, ignoring that some assertions are still
 vague -- admitting an incomplete contract, the dangerous failure."""
 
-from recurvelib.admission import AdmissionReport, Verdict, worklist
+from recurvelib.analysis.admission import AdmissionReport, Verdict, worklist
 
 
 def admit(assertions, min_invariants=2):

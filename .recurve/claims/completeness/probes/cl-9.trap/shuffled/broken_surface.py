@@ -3,7 +3,7 @@
 import ast
 import random
 
-from recurvelib.frontier import SurfacePoint
+from recurvelib.analysis.frontier import SurfacePoint
 
 
 def extract(source, location=""):

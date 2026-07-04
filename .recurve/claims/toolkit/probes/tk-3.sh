@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 if [ -n "${TRAP_FIXTURE:-}" ]; then
   python3 "$TRAP_FIXTURE/lenient_map_check.py"
 else
-  python3 "$ROOT/acceptance/selfcheck.py" >/dev/null 2>&1
+  python3 "$ROOT/tests/acceptance/tk/selfcheck.py" >/dev/null 2>&1
 fi
 case "$?" in
   0) echo "verdict map total; records and receipts validate"; exit 0 ;;

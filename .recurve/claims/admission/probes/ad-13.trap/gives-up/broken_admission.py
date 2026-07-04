@@ -1,7 +1,7 @@
 """AD-13 counterexample: the interview escalates the moment the window fills, even while the un-probe-able
 set is still shrinking -- it abandons a converging interview."""
 
-from recurvelib.admission import InterviewVerdict
+from recurvelib.analysis.admission import InterviewVerdict
 
 
 def interview_step(history, max_rounds=3):

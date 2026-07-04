@@ -1,7 +1,7 @@
 """AD-6 counterexample: a too-thin spine is sent to interview instead of refused, so the gate tries to gate
 a goal that has too few real invariants to be a contract."""
 
-from recurvelib.admission import AdmissionReport, Verdict, worklist
+from recurvelib.analysis.admission import AdmissionReport, Verdict, worklist
 
 
 def admit(assertions, min_invariants=2):

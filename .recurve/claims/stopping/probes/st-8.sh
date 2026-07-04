@@ -9,14 +9,14 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.controller import Verdict, Progress
+    from recurvelib.loop.controller import Verdict, Progress
     if fixture:
         spec = importlib.util.spec_from_file_location("ctrap", Path(fixture) / "broken_controller.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         decide = mod.decide
     else:
-        from recurvelib.controller import decide
+        from recurvelib.loop.controller import decide
 
     # open dips 5 -> 1 then returns to 5: ends no lower than it started.
     osc = [Progress(open=5, regressed=0, broken=0, uncovered=0),

@@ -15,7 +15,7 @@ if fixture:
     lockmod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(lockmod)
 else:
-    from recurvelib import lock as lockmod
+    from recurvelib.loop import lock as lockmod
 
 with tempfile.TemporaryDirectory() as td:
     first = lockmod.TreeLock(Path(td))

@@ -1,8 +1,8 @@
 """RT-17 counterexample: sense_measured aggregates coverage with no per-exercise guard, so a raising probe
 body crashes Sense and no Progress vector is produced."""
 
-from recurvelib.measured import measure_coverage
-from recurvelib.runtime import sense
+from recurvelib.analysis.measured import measure_coverage
+from recurvelib.loop.runtime import sense
 
 
 def sense_measured(gate_counts, surface, exercises, goal_counterexamples, deferred_ids=()):

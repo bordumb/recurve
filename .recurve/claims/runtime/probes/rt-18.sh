@@ -14,7 +14,7 @@ try:
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         within_boundary = mod.within_boundary
     else:
-        from recurvelib.runtime import within_boundary
+        from recurvelib.loop.runtime import within_boundary
 
     empty_referee = within_boundary(["anything/x"], "", [""])      # empty referee root -> protect everything
     root_referee = within_boundary(["x"], "", ["/"])               # "/" referee -> protect everything
