@@ -41,3 +41,24 @@
   probe: probes/ev-2.sh
   unlocks: the held-out oracle can never leak into an agent's workspace — the precondition
     for every honest FDR number
+
+- id: EV-3
+  title: 'Runner: pinned matrix + resumable work queue'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-3
+  evidence:
+  - eval/evallib/plan.py
+  - eval/evallib/runner.py
+  - eval/evallib/adapters
+  observed: 'GREEN at baseline 2026-07-04: runner expands a pinned matrix, seals one row per
+    cell, and resumes with zero new invocations'
+  smallest_fix: plan.expand writes a deterministic cross-product matrix with coordinate-derived
+    cell ids; runner.run seals one row per cell and resumes by skipping sealed ids, so a re-run
+    over a completed matrix invokes the agent zero times
+  probe: probes/ev-3.sh
+  unlocks: an interrupted run resumes safely and re-running is always free — the precondition
+    for a long, expensive matrix

@@ -30,3 +30,15 @@ statement + empty `solution.py`; A3 is the same, `recurve init`-ed.
 see — never the hidden `test` field — and `assert_quarantined` refuses any
 workspace in which the hidden test text appears. Negative space (guarded by the
 trap): a materializer that accepts a workspace containing the hidden oracle.
+
+## EV-3 — Runner: pinned matrix + resumable work queue
+
+`plan.expand` turns a manifest and a pinned task set into the full cross product
+(task × arm × model × budget × seed) with cell IDs derived from coordinates,
+written to `matrix.jsonl` before any agent runs. `runner.run` drives each cell
+through a BYO-agent adapter and seals exactly one row per cell; the resume
+invariant is load-bearing — a re-run over a completed matrix invokes the agent
+zero times, so a long paid run is safe to stop and restart. The adapters
+(`claude.py`, `telemetry.py`) and the three CLI verbs complete the surface; the
+gated logic is driven by a mock adapter (no spend). Negative space (guarded by
+the trap): a runner that re-invokes the agent on already-sealed cells.

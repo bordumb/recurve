@@ -1,0 +1,18 @@
+[experiment]
+name = "poc-bcb-hard"
+question = "Does the gate reduce shipped-bad-work at matched budget?"
+
+[matrix]
+models  = ["claude-haiku-4-5", "claude-sonnet-5"]
+arms    = ["A0", "A3"]
+budgets = [60000]
+seeds   = [0]
+
+[tasks]
+benchmark = "bigcodebench-hard"
+revision  = "<pinned HF revision hash>"   # fill at first fetch; pins the dataset
+sample    = { n = 50, seed = 7 }           # pilot; remove for the full 148
+
+[oracle]
+runs = 3
+verdict = "majority"
