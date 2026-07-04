@@ -1,17 +1,28 @@
-"""classify.py — the A3 run outcome: declared / gate_refused / process_failed.
+"""classify.py — a gated run's outcome: declared / gate_refused / process_failed.
 
-The one distinction that keeps the weak model's numbers honest. A run that
-authored a well-formed claim (a probe with a kept trap) and burned it down to a
-green gate = *declared*. Same authored state but a red gate at budget = a
-genuine *gate refusal* — the gate declining to bless unproven work. A run that
-never produced a well-formed claim/probe/trap = a *process failure* (the harness
-was never operated), which must NOT be credited to the gate. Reported
-separately, per plan §4/§8.3.
+For any recurve-gated arm (A3 in the POC; the full program's arm matrix has
+more), the one distinction that keeps the weak model's numbers honest cannot be
+read from the workspace alone: whether a red gate is a genuine *refusal* (a
+well-formed claim burned down until the token budget ran out) or a *process
+failure* (the harness was never operated, the run crashed, or a probe could not
+even decide) turns on the **terminal run-state** — why the run ended — which the
+orchestrator records from telemetry, not something the workspace holds. So
+`classify_gated_run` takes both: the authored workspace state AND the terminal
+state.
+
+The classifier attests only what workspace + run-state can attest — `declared`
+(gate green) — never "solved"; only the held-out oracle knows if anything was
+solved.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+
+# terminal_state["gate"]: the final gate verdict for the cell.
+GATE_GREEN, GATE_RED, GATE_BROKEN = "green", "red", "broken"
+# terminal_state["stop_reason"]: why the run ended.
+STOP_GATE_GREEN, STOP_BUDGET, STOP_CRASHED = "gate_green", "budget_exhausted", "crashed"
 
 
 def has_wellformed_claim(workspace: str | Path) -> bool:
@@ -27,11 +38,24 @@ def has_wellformed_claim(workspace: str | Path) -> bool:
     return False
 
 
-def classify_a3(workspace: str | Path, gate_green: bool) -> str:
-    """Classify an A3 run. Process failure dominates the label: a run that never
-    authored a well-formed claim is `process_failed` regardless of the gate
-    verdict (a green gate over no real claim is not a solve). Otherwise a green
-    gate is `declared` and a red gate is a genuine `gate_refused`."""
+def classify_gated_run(workspace: str | Path, terminal_state: dict) -> str:
+    """Classify a recurve-gated run from (authored state, terminal state).
+
+    Precedence, so a process failure is never credited to the gate:
+      1. no well-formed claim ever authored          -> process_failed
+      2. gate BROKEN (a probe could not decide)       -> process_failed
+      3. gate GREEN                                    -> declared
+      4. gate RED, ended because the budget ran out    -> gate_refused
+      5. gate RED, ended any other way (crash/error)   -> process_failed
+    """
+    gate = terminal_state.get("gate")
+    stop = terminal_state.get("stop_reason")
     if not has_wellformed_claim(workspace):
         return "process_failed"
-    return "declared" if gate_green else "gate_refused"
+    if gate == GATE_BROKEN:
+        return "process_failed"
+    if gate == GATE_GREEN:
+        return "declared"
+    if gate == GATE_RED and stop == STOP_BUDGET:
+        return "gate_refused"
+    return "process_failed"

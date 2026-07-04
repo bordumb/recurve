@@ -111,17 +111,18 @@
   - EV-6
   evidence:
   - eval/evallib/orchestrate.py
-  observed: 'GREEN at baseline 2026-07-05: orchestrator produces analyze-ready rows (declared_done
-    + oracle_verdict + provenance)'
-  smallest_fix: make_orchestrator runs the agent, grades the workspace solution.py with the
-    held-out oracle, and seals a row with declared_done + oracle_verdict + provenance; row_is_complete
-    refuses a row missing the oracle verdict or provenance
+  observed: 'GREEN at close 2026-07-05: orchestrator: all endings, terminal-state outcome,
+    sequencing guard, resume, decoupled by arm property'
+  smallest_fix: make_orchestrator runs the agent, refuses to quarantine until it terminated,
+    grades solution.py against the pinned oracle, and seals a row with declared_done +
+    oracle_verdict + terminal_state/gate_outcome (for a recurve-gated arm, routed by the
+    arm's property not its name) + provenance; row_is_complete refuses an incomplete row
   probe: probes/ev-6.sh
   unlocks: the run produces the joined (declared, oracle) rows analyze needs — the dependent
     variable is actually recorded
 
 - id: EV-7
-  title: 'A3 outcome classifier: gate-refusal vs process-failure'
+  title: 'Gated-run outcome classifier: refusal vs process-failure'
   class: missing-surface
   status: closed
   severity: feature
@@ -130,11 +131,11 @@
   - EV-7
   evidence:
   - eval/evallib/classify.py
-  observed: 'GREEN at baseline 2026-07-05: classify_a3 splits declared / gate_refused / process_failed
-    by authored state + gate'
-  smallest_fix: classify_a3 returns process_failed when no well-formed claim (probe+trap)
-    was authored, declared on a green gate, gate_refused on a red gate with a well-formed
-    claim — a process failure is never credited to the gate
+  observed: 'GREEN at close 2026-07-05: classify_gated_run splits declared / gate_refused /
+    process_failed from (workspace, terminal_state) at every boundary'
+  smallest_fix: classify_gated_run(workspace, terminal_state) returns process_failed on no
+    claim / broken gate / red-but-crashed, declared on a green gate, gate_refused only on a
+    red gate that ended on budget exhaustion — a process failure is never credited to the gate
   probe: probes/ev-7.sh
   unlocks: the A3 numbers are interpretable — the gate's refusals are separated from the weak
     model's failures to operate the harness

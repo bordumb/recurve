@@ -1,1 +1,1 @@
-row_is_complete accepts a declared_done-only row missing oracle_verdict + provenance
+orchestrator fails the accepts-incomplete-row guard

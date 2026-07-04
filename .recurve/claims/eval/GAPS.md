@@ -62,26 +62,33 @@ and a paired McNemar within each model, all closed-form in stdlib (no scipy, no
 notebook state). Negative space (guarded by the trap): an analysis whose output
 depends on input row order (non-deterministic).
 
-## EV-6 — Orchestrator: agent → oracle → one analyze-ready row
+## EV-6 — Orchestrator: agent → terminal state → oracle → one analyze row
 
-`orchestrate.py` is what a cell does: run the agent in its quarantined
-workspace, read the final `solution.py`, grade it against the pinned held-out
-oracle (never in the workspace), and seal a row carrying both the agent's
-`declared_done` and the oracle's `oracle_verdict`, plus per-row provenance
-(dataset revision, model verbatim, recurve commit, adapter version, seed) so any
-row is self-re-executable. `row_is_complete` refuses a run-only row that would
-leave `analyze` without its dependent variable. Negative space (guarded by the
-trap): a declared_done-only row accepted as complete.
+`orchestrate.py` is what a cell does, in the order it must happen: run the
+agent, confirm the agent process **terminated** (`SequencingError` refuses to
+quarantine a live workspace), read the final `solution.py`, grade it against the
+pinned held-out oracle, and seal a row with `declared_done` + `oracle_verdict` +
+per-row provenance (dataset revision, model verbatim, recurve commit, adapter
+version, seed). For a recurve-gated arm it also records the `terminal_state`
+(gate verdict + why the run ended) and the `gate_outcome` from it. The
+gated-vs-bare branch keys on the arm's `recurve` **property** (`arm_spec`), not
+its name, so a manifest may name a gated arm anything and it still routes right.
+`row_is_complete` refuses a run-only row that would leave `analyze` without its
+dependent variable. Negative space (guarded by the traps): a declared-only row
+accepted as complete; a live workspace quarantined; a differently-named gated
+arm routed to the bare path.
 
-## EV-7 — A3 outcome classifier: gate-refusal vs process-failure
+## EV-7 — Gated-run outcome classifier: refusal vs process-failure
 
 `classify.py` separates a genuine gate refusal from a harness-operation failure
-— the distinction §4/§8.3 insist on. `has_wellformed_claim` checks the A3
-workspace for a probe with a kept trap (evidence the agent expressed the task as
-a falsifiable claim). `classify_a3` returns `process_failed` when no such claim
-was authored (regardless of the gate — a green gate over no real claim is not a
-solve), `declared` on a green gate, and `gate_refused` on a red gate with a
-well-formed claim. Negative space (guarded by the trap): a no-claim red-gate run
+— the distinction §4/§8.3 insist on, and it cannot be read from the workspace
+alone: a red gate is a *refusal* only if the run ended on budget exhaustion,
+which is telemetry run-state, not workspace state. `classify_gated_run(workspace,
+terminal_state)` reads both. `has_wellformed_claim` checks for a probe with a
+kept trap. Boundaries: no claim → `process_failed`; gate BROKEN → `process_failed`
+(a probe that can't decide isn't the gate refusing work); gate green → `declared`;
+gate red + budget-exhausted → `gate_refused`; gate red + crashed → `process_failed`.
+Negative space (a trap per boundary): a no-claim / broken / crashed run
 miscredited to the gate as a refusal.
 
 ## EV-8 — Telemetry + token-cap enforcement (budget-matched)
