@@ -599,7 +599,7 @@
 - id: TK-32
   title: recurve trajectories exports provenance-bearing JSONL rows from the run-log
   class: missing-surface
-  status: open
+  status: closed
   severity: feature
   reads: none
   covers:
@@ -607,8 +607,7 @@
   evidence:
   - recurvelib/cli.py
   - recurvelib/records.py
-  observed: 'RED at baseline 2026-07-04: ours=recurve trajectories rc=2, no rows oracle=one
-    JSON object per cycle record on stdout'
+  observed: 'GREEN at close 2026-07-04: trajectories exports one provenance-bearing JSON row per cycle record (reward 1 iff closed)'
   smallest_fix: 'new read-only subcommand joining records.jsonl with the ledger: one JSON
     object per cycle record with gap/suite/action/attempts/reward/files_touched/severity/verified
     and provenance (probe path, trap count); reward 1 iff closed'
@@ -618,14 +617,14 @@
 - id: TK-33
   title: trajectory export excludes unverified rewards by default (contamination gate)
   class: missing-surface
-  status: open
+  status: closed
   severity: feature
   reads: none
   covers:
   - TK-33
   evidence:
   - recurvelib/cli.py
-  observed: 'RED at baseline 2026-07-04: ours=trajectories rc=2 oracle=exit 0 with a summary'
+  observed: 'GREEN at close 2026-07-04: contamination gate holds: unverified rewards excluded by default, marked when re-admitted, counts summarized'
   smallest_fix: a row is verified iff its gap has a probe and a non-waived trap fixture on
     disk; default export drops unverified rows and summarizes counts on stderr; --include-unverified
     re-admits them marked verified:false
@@ -635,14 +634,14 @@
 - id: TK-34
   title: trajectory export is deterministic and read-only
   class: missing-surface
-  status: open
+  status: closed
   severity: feature
   reads: none
   covers:
   - TK-34
   evidence:
   - recurvelib/cli.py
-  observed: 'RED at baseline 2026-07-04: ours=trajectories rc=2 oracle=exit 0'
+  observed: 'GREEN at close 2026-07-04: trajectories is deterministic (byte-identical re-runs) and read-only (records + ledger untouched)'
   smallest_fix: stable row sort (suite, gap, run_id, cycle) + sorted JSON keys make re-runs
     byte-identical; the command never writes records.jsonl or the ledger
   probe: probes/tk-34.sh
