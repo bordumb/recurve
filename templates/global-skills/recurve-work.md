@@ -66,6 +66,25 @@ Repeat until the backlog is empty, the gate goes red, or the user stops:
 3. Ask the user to approve continuing. On "next", run the following cycle;
    otherwise stop.
 
+## Multi-repo configs (sculpts)
+
+Check `recurve.toml` for `[sculpts.<name>]` tables. If present, this is a
+multi-repo config: `[target]` is the tree you **build**; each sculpt is a
+secondary tree (usually another repo) you may **sculpt** when a claim's honest
+fix lives there. Rules that change:
+
+- **Fix where the truth lives.** If the honest fix for a claim is in a sculpt
+  tree, make it there — never fake it in the target to avoid crossing repos.
+- **Commit per tree.** Sculpt changes are committed in the *sculpt's* repo, on
+  its declared `branch:` — target commits and sculpt commits stay separate.
+- **The gate is federated.** `recurve matrix --gate` is green only when the
+  target's probes pass AND every sculpt's `rebuild` and own `gate` command exit
+  zero. Never bypass a red sculpt gate by hardening the target around it.
+- **Vocabulary is per tree.** Each sculpt declares its own `forbidden_strings`;
+  do not leak the target's loop vocabulary into a sculpt tree (or vice versa).
+
+With no `[sculpts.*]` tables, none of this applies — proceed single-tree.
+
 ## Hard rules (both modes)
 
 - The gate is the arbiter — **believe it, not yourself.**
