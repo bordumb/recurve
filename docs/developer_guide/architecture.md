@@ -55,7 +55,7 @@ pass of the loop):
 | **Claim** | A falsifiable statement about the target. Exists in three synchronized places: prose (`GAPS.md`), ledger entry (`gaps.yaml`), probe. |
 | **Gap** | A claim whose probe is RED — the delta between claimed and proven. A *closed* gap is GREEN and guarded forever. |
 | **Probe** | An executable: exit 0 GREEN · 1 RED · 3 SKIP · anything else BROKEN. The map is total — a crash is never a verdict. |
-| **Trap** | A kept counterexample fixture the probe must turn RED. Mutation testing for the spec layer — extended, opt-in, by generated known-bads and isomorphic variants ([hardening](hardening.md)). |
+| **Trap** | A kept counterexample fixture the probe must turn RED. Mutation testing for the spec layer — extended, opt-in, by generated known-bads and isomorphic variants ([hardening](../user_guide/hardening.md)). |
 | **Suite** | One ledger + prose + probes + harness for one domain. |
 | **Ledger** | `gaps.yaml` — the machine record of verified observations, never intentions. |
 | **Gate** | The conjunction that must hold to promote: probe GREEN + fleet matrix (no regression / broken / stale / failed trap) + behavioral harness. |
@@ -63,7 +63,7 @@ pass of the loop):
 | **Reference oracle** | An optional stricter/slower check declared per claim (`reference:`); `drill --diff` runs both and alarms on disagreement. |
 | **Cycle** | One fresh agent taking the ledger from N red to N−k, proven, snapshotted, committed. |
 | **Park** | Marking a gap un-greenable-this-run for human triage; the loop continues past it. |
-| **Branch** | A per-cycle record entry for the road *not* taken — a rejected decomposition or abandoned attempt, with its reason. Exported with [trajectories](run-data.md). |
+| **Branch** | A per-cycle record entry for the road *not* taken — a rejected decomposition or abandoned attempt, with its reason. Exported with [trajectories](../user_guide/run-data.md). |
 | **Receipt** | A tamper-evident, hash-chained record of a verdict's evidence. See [Evidence & receipts](evidence.md). |
 
 The verification layer adds its own vocabulary (admission, frontier, divergence,

@@ -14,9 +14,9 @@ then burns the gap between <em>claimed</em> and <em>proven</em> down to zero —
 one fresh agent per cycle, behind a gate that never lies.
 </p>
 
-[Get Started](usage-provider-agnostic.md){ .md-button .md-button--primary }
+[Get Started](user_guide/usage-provider-agnostic.md){ .md-button .md-button--primary }
 &nbsp;&nbsp;
-[Architecture](architecture.md){ .md-button }
+[Architecture](developer_guide/architecture.md){ .md-button }
 
 </div>
 
@@ -30,7 +30,7 @@ python3 ~/tools/recurve/recurve install        # → ~/.local/bin/recurve
 
 !!! tip
     Prefer a shim, an alias, or a CI-friendly entrypoint? See the full
-    [Installation guide](install.md). The engine is Python stdlib + PyYAML —
+    [Installation guide](user_guide/install.md). The engine is Python stdlib + PyYAML —
     it never fights your target's toolchain.
 
 ---
@@ -85,7 +85,7 @@ The primary way to run recurve is **inside your agent session**: invoke the
 stamped `loop` skill and it drives gated cycles, one fresh sub-agent each.
 Prefer to walk away? `recurve run` does the same headless. Either way the loop
 believes the run-record and the gate, never the agent's word — that is the whole
-point: **evidence, not belief.** ([ways to run](usage-provider-agnostic.md#step-3-kick-off-the-loop))
+point: **evidence, not belief.** ([ways to run](user_guide/usage-provider-agnostic.md#step-3-kick-off-the-loop))
 
 ---
 
@@ -107,7 +107,7 @@ point: **evidence, not belief.** ([ways to run](usage-provider-agnostic.md#step-
 
     Initialize, design the claims, kick off the loop — and stop it safely.
 
-    [Walk through it →](usage-provider-agnostic.md)
+    [Walk through it →](user_guide/usage-provider-agnostic.md)
 
 -   :material-shield-search: **Harden the checks**
 
@@ -116,7 +116,7 @@ point: **evidence, not belief.** ([ways to run](usage-provider-agnostic.md#step-
     Who verifies the verifier? Traps re-proven, false positives measured,
     reference oracles compared.
 
-    [Audit it →](hardening.md)
+    [Audit it →](user_guide/hardening.md)
 
 -   :material-database-outline: **Run data & trajectories**
 
@@ -125,7 +125,7 @@ point: **evidence, not belief.** ([ways to run](usage-provider-agnostic.md#step-
     Every cycle is a record; the log exports as a dataset with reward
     provenance on every row.
 
-    [Mine it →](run-data.md)
+    [Mine it →](user_guide/run-data.md)
 
 -   :material-source-branch: **Multi-repo & packs**
 
@@ -133,7 +133,7 @@ point: **evidence, not belief.** ([ways to run](usage-provider-agnostic.md#step-
 
     Build one tree while sculpting another; distribute claims as installable packs.
 
-    [Scale it →](multi-repo.md)
+    [Scale it →](user_guide/multi-repo.md)
 
 -   :material-sitemap-outline: **Architecture**
 
@@ -141,7 +141,7 @@ point: **evidence, not belief.** ([ways to run](usage-provider-agnostic.md#step-
 
     The model, the verification layer, the evidence trail, and the engine.
 
-    [How it works →](architecture.md)
+    [How it works →](developer_guide/architecture.md)
 
 </div>
 

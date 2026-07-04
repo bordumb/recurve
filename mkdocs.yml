@@ -79,15 +79,16 @@ nav:
   - Home: index.md
   - About: about.md
   - User guide:
-      - Installation: install.md
+      - Installation: user_guide/install.md
       - Usage:
-          - Claude skill: usage-claude-skill.md
-          - Provider-agnostic: usage-provider-agnostic.md
-      - Hardening your probes: hardening.md
-      - Run data & trajectories: run-data.md
-      - Multi-repo: multi-repo.md
-      - Claim packs: packs.md
+          - Claude skill: user_guide/usage-claude-skill.md
+          - Provider-agnostic: user_guide/usage-provider-agnostic.md
+      - Reports & status: user_guide/reports-and-status.md
+      - Hardening your probes: user_guide/hardening.md
+      - Run data & trajectories: user_guide/run-data.md
+      - Multi-repo: user_guide/multi-repo.md
+      - Claim packs: user_guide/packs.md
   - Developer guide:
-      - The verification layer: verification-layer.md
-      - Evidence & receipts: evidence.md
-      - Architecture: architecture.md
+      - The verification layer: developer_guide/verification-layer.md
+      - Evidence & receipts: developer_guide/evidence.md
+      - Architecture: developer_guide/architecture.md

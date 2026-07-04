@@ -97,7 +97,7 @@ Three properties are deliberate:
 
 - **Triage priors** — close rates by class tell the loop (and you) where
   cycles are cheap and where they burn.
-- **Audit** — records plus [receipts](evidence.md) reconstruct what happened
+- **Audit** — records plus [receipts](../developer_guide/evidence.md) reconstruct what happened
   and prove nobody is grading their own homework.
 - **Training data** — a trajectory corpus with a grounded,
   falsification-tested reward at every node and branch-level counterfactuals

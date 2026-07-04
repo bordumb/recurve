@@ -196,7 +196,7 @@ then parked triage.
     Gate with `recurve matrix --gate --receipts` to chain a tamper-evident
     receipt per verdict, then `recurve receipts verify` to re-check the trail.
     You can pin each receipt to a signer of your choice — see
-    [Evidence & receipts](evidence.md).
+    [Evidence & receipts](../developer_guide/evidence.md).
 
 ## Cancel and resume
 
@@ -233,4 +233,4 @@ done*: the success-halt is a stopping controller's `STOP-SUCCESS` over a measure
 vector — sound, complete, and not diverged — never an empty backlog. It also
 tracks what no claim covers (the frontier) and whether the build diverged from
 intent. That machinery is for people extending recurve; see
-[The verification layer](verification-layer.md).
+[The verification layer](../developer_guide/verification-layer.md).

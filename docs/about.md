@@ -47,7 +47,7 @@ traces a single promise through the system:
   proves nothing, so weakening a probe until it passes everything makes its trap
   stop failing, and the tampering is caught mechanically. Opt in further and
   the checks are *measured*, not just spot-proven: generated known-bads yield a
-  per-probe false-positive rate ([hardening](hardening.md)).
+  per-probe false-positive rate ([hardening](user_guide/hardening.md)).
 - **The burndown loop clears the backlog.** Each cycle a *fresh* agent takes the
   highest-value RED claim and turns it GREEN without breaking any guarded claim.
   The **gate** — every probe plus its trap — is the arbiter of what may land;
@@ -92,7 +92,7 @@ together, the loop runs on a real repository: git-backed snapshots with
 revert-to-last-green, a write boundary that keeps the agent off its own probes,
 and a bring-your-own agent behind a stable seam. The deciding logic is
 deterministic; the LLM pieces around it are pluggable. See
-[The verification layer](verification-layer.md).
+[The verification layer](developer_guide/verification-layer.md).
 
 ## The bet
 
