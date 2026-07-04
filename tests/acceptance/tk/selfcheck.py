@@ -7,7 +7,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-RECURVE = Path(__file__).resolve().parent.parent
+# Repo root = the nearest ancestor that contains recurvelib/ — depth-independent,
+# so this harness keeps resolving after it is moved under tests/.
+RECURVE = next(p for p in Path(__file__).resolve().parents if (p / "recurvelib").is_dir())
 sys.path.insert(0, str(RECURVE))
 
 from recurvelib.io.records import (  # noqa: E402

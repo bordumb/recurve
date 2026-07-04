@@ -3,9 +3,9 @@
 # the claim is ABOUT source. TRAP_FIXTURE scans a salted module instead.
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 if [ -n "${TRAP_FIXTURE:-}" ]; then
-  bash "$ROOT/acceptance/provenance.sh" "$TRAP_FIXTURE" >/dev/null 2>&1
+  bash "$ROOT/tests/acceptance/tk/provenance.sh" "$TRAP_FIXTURE" >/dev/null 2>&1
 else
-  bash "$ROOT/acceptance/provenance.sh" >/dev/null 2>&1
+  bash "$ROOT/tests/acceptance/tk/provenance.sh" >/dev/null 2>&1
 fi
 case "$?" in
   0) echo "shipped surface carries no origin vocabulary"; exit 0 ;;
