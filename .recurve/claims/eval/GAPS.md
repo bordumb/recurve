@@ -83,3 +83,14 @@ was authored (regardless of the gate — a green gate over no real claim is not 
 solve), `declared` on a green gate, and `gate_refused` on a red gate with a
 well-formed claim. Negative space (guarded by the trap): a no-claim red-gate run
 miscredited to the gate as a refusal.
+
+## EV-8 — Telemetry + token-cap enforcement (budget-matched)
+
+`telemetry.parse_usage` extracts token counts from the agent's JSON;
+`cost_usd` prices them from the dated table and RAISES on an unpriced model
+(never a silent $0); `wall_clock` captures elapsed. Because `claude -p` has no
+hard token cap and `recurve run --cap` bounds cycles not tokens, `budget.py`'s
+`TokenBudget` accumulates per-cycle spend and `run_capped` stops the A3 burndown
+at (or within one cycle of) the cap, with a hard cycle bound so a zero-token
+cycle can never loop forever — so A0 and A3 are matched on the budget. Negative
+space (guarded by the trap): `cost_usd` silently pricing an unknown model at $0.

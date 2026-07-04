@@ -8,6 +8,36 @@ prices change.
 
 from __future__ import annotations
 
+import time
+from contextlib import contextmanager
+from dataclasses import dataclass
+
+
+def parse_usage(report: dict) -> tuple[int, int]:
+    """Extract (input_tokens, output_tokens) from an agent's JSON usage report
+    (e.g. `claude -p --output-format json`). Missing counts read as 0, never
+    guessed — an unmeasured run records zero spend, visibly."""
+    u = report.get("usage", report)
+    return int(u.get("input_tokens", 0) or 0), int(u.get("output_tokens", 0) or 0)
+
+
+@dataclass
+class _Elapsed:
+    elapsed: float = 0.0
+
+
+@contextmanager
+def wall_clock():
+    """Time a block. `with wall_clock() as t: ...` leaves `t.elapsed` in seconds
+    — the wall-clock half of the price of trust."""
+    t = _Elapsed()
+    start = time.monotonic()
+    try:
+        yield t
+    finally:
+        t.elapsed = time.monotonic() - start
+
+
 # USD per 1M tokens, read 2026-07-04. A model absent here is a hard error at
 # cost time, never a silent zero.
 PRICES_2026_07_04: dict[str, dict[str, float]] = {

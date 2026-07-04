@@ -138,3 +138,23 @@
   probe: probes/ev-7.sh
   unlocks: the A3 numbers are interpretable — the gate's refusals are separated from the weak
     model's failures to operate the harness
+
+- id: EV-8
+  title: Telemetry + token-cap enforcement (budget-matched)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-8
+  evidence:
+  - eval/evallib/adapters/telemetry.py
+  - eval/evallib/budget.py
+  observed: 'GREEN at baseline 2026-07-05: telemetry captures tokens/cost/wall-clock; TokenBudget
+    enforces the cap (A3 halts at budget)'
+  smallest_fix: parse_usage + cost_usd (raises on an unpriced model) + wall_clock capture
+    the price of trust; TokenBudget/run_capped enforce the token cap so the A3 burndown halts
+    at budget and A0/A3 are matched on it
+  probe: probes/ev-8.sh
+  unlocks: the price-of-trust metrics have a data source and the key budget-matching control
+    is actually enforced, not assumed
