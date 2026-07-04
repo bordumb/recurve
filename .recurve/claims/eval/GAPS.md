@@ -72,3 +72,14 @@ oracle (never in the workspace), and seal a row carrying both the agent's
 row is self-re-executable. `row_is_complete` refuses a run-only row that would
 leave `analyze` without its dependent variable. Negative space (guarded by the
 trap): a declared_done-only row accepted as complete.
+
+## EV-7 — A3 outcome classifier: gate-refusal vs process-failure
+
+`classify.py` separates a genuine gate refusal from a harness-operation failure
+— the distinction §4/§8.3 insist on. `has_wellformed_claim` checks the A3
+workspace for a probe with a kept trap (evidence the agent expressed the task as
+a falsifiable claim). `classify_a3` returns `process_failed` when no such claim
+was authored (regardless of the gate — a green gate over no real claim is not a
+solve), `declared` on a green gate, and `gate_refused` on a red gate with a
+well-formed claim. Negative space (guarded by the trap): a no-claim red-gate run
+miscredited to the gate as a refusal.

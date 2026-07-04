@@ -119,3 +119,22 @@
   probe: probes/ev-6.sh
   unlocks: the run produces the joined (declared, oracle) rows analyze needs — the dependent
     variable is actually recorded
+
+- id: EV-7
+  title: 'A3 outcome classifier: gate-refusal vs process-failure'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-7
+  evidence:
+  - eval/evallib/classify.py
+  observed: 'GREEN at baseline 2026-07-05: classify_a3 splits declared / gate_refused / process_failed
+    by authored state + gate'
+  smallest_fix: classify_a3 returns process_failed when no well-formed claim (probe+trap)
+    was authored, declared on a green gate, gate_refused on a red gate with a well-formed
+    claim — a process failure is never credited to the gate
+  probe: probes/ev-7.sh
+  unlocks: the A3 numbers are interpretable — the gate's refusals are separated from the weak
+    model's failures to operate the harness
