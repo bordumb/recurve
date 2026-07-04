@@ -1,0 +1,63 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: R0-1
+  title: differential read-only roster (outputs + exit), chrome excluded
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - R0-1
+  evidence:
+  - .recurve/claims/reorg/probes/_diff.sh
+  - .recurve/claims/reorg/BASELINE_REF
+  observed: 'GREEN at baseline 2026-07-04: working engine ≡ pinned baseline across the read-only
+    roster (outputs + exit codes)'
+  smallest_fix: a harness materializes the pinned baseline engine (git archive of BASELINE_REF)
+    and runs a fixed read-only roster with both engines against identical fixture state, asserting
+    byte-equal normalized output + exit; the roster carries an engine-error path and excludes
+    --help / unknown-command chrome by name
+  probe: probes/r0-1.sh
+  unlocks: a measured arbiter of behavioral equivalence for every later phase — drift turns
+    it RED naming the first divergent command
+
+- id: R0-2
+  title: mutating commands compared by resulting state
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - R0-2
+  evidence:
+  - .recurve/claims/reorg/probes/r0-2.sh
+  observed: 'GREEN at baseline 2026-07-04: working engine ≡ pinned baseline on mutating commands
+    (init, baseline, record append, pack export) by resulting state'
+  smallest_fix: for init, baseline, record append, and pack export, both engines run against
+    their own fresh copy of one fixture and the probe asserts the resulting trees are equivalent
+    (same files, same root-normalized contents) plus matching output + exit
+  probe: probes/r0-2.sh
+  unlocks: a stdout-only check can pass while two engines write different ledgers — comparing
+    resulting state closes that gap
+
+- id: R0-3
+  title: the baseline pin is explicit, and re-pinning is human-only
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R0-3
+  evidence:
+  - .recurve/claims/reorg/BASELINE_REF
+  - .recurve/claims/reorg/probes/r0-3.sh
+  observed: 'GREEN at baseline 2026-07-04: the baseline pin is explicit (one commit), BROKEN
+    on a bad pin, and never re-pinned alongside engine code'
+  smallest_fix: BASELINE_REF names exactly one resolvable commit; a missing or unbuildable
+    ref is BROKEN, never a silent self-comparison; and no commit in history touches both the
+    pin file and engine code
+  probe: probes/r0-3.sh
+  unlocks: the reference cannot silently become the freshly-changed engine, and an absent
+    pin never masquerades as agreement
