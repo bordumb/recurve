@@ -1,0 +1,5 @@
+EXIT:0
+    suite                         covered  orphan  closed  ledger?
+  ● s                                   0       0       0  yes
+
+0 orphan prose gap(s) across 1 suites

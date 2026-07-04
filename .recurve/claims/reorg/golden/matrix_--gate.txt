@@ -1,0 +1,10 @@
+EXIT:1
+    gap         outcome   status     Δ        detail
+  ● G-1         GREEN    closed               
+  ● G-2         GREEN    closed               
+
+holding 2 · ready_to_close 0 · regressions 0 · broken 0 · stale 0 · skipped 0 · missing 0
+traps: 0/2 counterexamples still RED
+  ▲ G-1/curated GREEN — probe exited GREEN on counterexample curated — it can no longer fail
+  ▲ G-2/curated GREEN — probe exited GREEN on counterexample curated — it can no longer fail
+GATE FAILED

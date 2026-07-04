@@ -61,3 +61,23 @@
   probe: probes/r0-3.sh
   unlocks: the reference cannot silently become the freshly-changed engine, and an absent
     pin never masquerades as agreement
+
+- id: R1-1
+  title: golden characterization harness (durable, chrome excluded)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R1-1
+  evidence:
+  - .recurve/claims/reorg/probes/r1-1.sh
+  - .recurve/claims/reorg/golden
+  observed: 'GREEN at baseline 2026-07-04: every read-only roster command matches its captured
+    golden'
+  smallest_fix: a probe captures the read-only roster's normalized output as golden bytes
+    under golden/ and re-asserts each command matches; a missing golden is BROKEN; chrome
+    is excluded by name — the durable guard that needs no baseline engine
+  probe: probes/r1-1.sh
+  unlocks: a permanent regression guard on real-invocation output that survives the retirement
+    of R0's baseline pin

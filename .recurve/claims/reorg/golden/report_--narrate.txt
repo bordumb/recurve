@@ -1,0 +1,2 @@
+EXIT:2
+--narrate needs [report] narrator in recurve.toml — none is configured

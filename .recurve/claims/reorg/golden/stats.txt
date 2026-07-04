@@ -1,0 +1,8 @@
+EXIT:0
+class               cycles  closed  parked  failed  close%  c%@1  c%@2  avg-attempts  avg-clock
+missing-surface          1       1       0       0    100%  100%  100%           1.0        10s
+
+trap debt: 0 waived guards (closed claims the drill cannot audit)
+
+1 cycle records · 1 self-grading tasks accumulated (snapshot + RED probe + gate-as-oracle) · 0 regression(s) caught at the gate
+close-rate by class is triage prior material; the dataset is the product.

@@ -44,3 +44,14 @@ reviewed human act: no commit in history touches both the pin file and engine
 code (`recurvelib/`, `recurve`, `pyproject.toml`). Covers PRD R0.3. Negative
 space (guarded by the trap): a harness that accepts a bogus, unbuildable pin as
 a valid baseline instead of reporting BROKEN.
+
+## R1-1 — golden characterization harness (durable, chrome excluded)
+
+The guardian that outlives R0's pin. R0 dies with the migration (its baseline
+ref retires once the reorg lands); R1 pins the observable contract durably, as
+captured golden bytes per command under `golden/`, so any future change that
+shifts real-invocation output turns RED. Same read-only roster and same chrome
+exclusion as R0, but anchored to recorded bytes instead of a reference engine. A
+missing golden is BROKEN, never a silent pass. Covers PRD R1.1 and R1.2.
+Negative space (guarded by the trap): a comparison that waves a corrupted golden
+through as a match.
