@@ -1043,11 +1043,12 @@ def cmd_drill(args):
     a scratch tree copy, --deep). Leaves NO trace in the ledger or run
     records — a drill that pollutes the dataset would poison the very
     evidence it exists to validate."""
+    import os
     import shutil
     import tempfile
     from . import render
     from .lock import LockHeld, TreeLock
-    from .probe import run_traps
+    from .probe import Outcome, ShellProbeRunner, run_traps
     C = render.C
     cfg = _config(args)
     ledger = _load(cfg)
@@ -1057,6 +1058,7 @@ def cmd_drill(args):
         print("nothing to drill: no closed gaps guard anything yet.")
         return
     failures, waived, audited = [], 0, 0
+    fuzz_probes, fuzz_fps = 0, 0
     try:
         with TreeLock(cfg.tree or cfg.root):
             for g in guards:
@@ -1070,6 +1072,54 @@ def cmd_drill(args):
                           f"{'RED (still catches it)' if t.ok else t.outcome.value + ' — ' + t.detail[:60]}")
                     if not t.ok:
                         failures.append(t)
+            if args.fuzz:
+                # The fuzz pass: a probe can pass its curated traps and still be
+                # leaky. Each guard may ship a generator (<probe-stem>.fuzz.sh)
+                # that emits GENERATED known-bads; the probe must reject every
+                # one, and the measured false-positive rate is reported beside
+                # the trap audit. Generated state lives only in a temp dir.
+                import subprocess
+                runner = ShellProbeRunner()
+                for g in guards:
+                    if g.probe is None:
+                        continue
+                    gen = g.probe.with_name(g.probe.name[:-3] + ".fuzz.sh") \
+                        if g.probe.name.endswith(".sh") else \
+                        g.probe.with_name(g.probe.name + ".fuzz.sh")
+                    if not gen.is_file():
+                        continue
+                    fuzz_probes += 1
+                    with tempfile.TemporaryDirectory(prefix="recurve-fuzz-") as fo:
+                        r = subprocess.run(
+                            ["bash", str(gen)], cwd=gen.parent,
+                            env={**os.environ, "FUZZ_OUT": fo,
+                                 "FUZZ_N": str(cfg.drill_fuzz_n)},
+                            capture_output=True, text=True, timeout=args.timeout * 5)
+                        if r.returncode != 0:
+                            print(f"  {C['red']}▲{C['reset']} {g.id} fuzz generator "
+                                  f"failed (rc={r.returncode})")
+                            failures.append(f"{g.id} fuzz generator")
+                            continue
+                        variants = sorted(p for p in Path(fo).iterdir()
+                                          if p.is_dir())[: cfg.drill_fuzz_n]
+                        if not variants:
+                            print(f"  {C['amber']}·{C['reset']} {g.id} fuzz: "
+                                  f"generator produced no variants")
+                            continue
+                        fp = sum(
+                            1 for v in variants
+                            if runner.run(g, timeout_s=args.timeout,
+                                          trap_fixture=v).outcome is Outcome.GREEN)
+                        fuzz_fps += fp
+                        rate = fp / len(variants)
+                        leaky = rate > cfg.drill_fuzz_fpr_max
+                        mark = C["red"] + "▲" if leaky else (
+                            C["amber"] + "●" if fp else C["green"] + "●")
+                        print(f"  {mark}{C['reset']} {g.id} fuzz fpr {fp}/{len(variants)}"
+                              + (f" — exceeds fuzz_fpr_max {cfg.drill_fuzz_fpr_max:g}"
+                                 if leaky else ""))
+                        if leaky:
+                            failures.append(f"{g.id} fuzz fpr {fp}/{len(variants)}")
             if args.deep and cfg.tree is not None:
                 for name, sc in cfg.suites.items():
                     hook = sc.dir / "harness" / "drill.sh"
@@ -1095,6 +1145,9 @@ def cmd_drill(args):
         _fail(f"\033[31m✗ {e}\033[0m", 1)
     print(f"drill: {audited} counterexample(s) audited across {len(guards)} guard(s), "
           f"{waived} waived (debt — the drill cannot repay what no fixture exercises)")
+    if args.fuzz:
+        print(f"fuzz: {fuzz_probes} fuzz-capable probe(s) measured, "
+              f"{fuzz_fps} false positive(s)")
     if failures:
         print(f"{C['red']}✗ DRILL FAILED — a guard would bless its own defect; "
               f"fix the probe, never the trap.{C['reset']}")
@@ -1324,6 +1377,10 @@ def main(argv=None, prog: str | None = None, config_path: str | None = None):
     s = sub.add_parser("drill", help="sabotage audit: re-prove the guards can still fail (scratch-only, traceless)")
     s.add_argument("--suite"); s.add_argument("--timeout", type=int, default=120)
     s.add_argument("--deep", action="store_true", help="also run per-suite harness/drill.sh hooks on a scratch tree copy")
+    s.add_argument("--fuzz", action="store_true",
+                   help="also run probes/<id>.fuzz.sh generators and measure each "
+                        "probe's false-positive rate against generated known-bads "
+                        "([drill] fuzz_n / fuzz_fpr_max bound cost and threshold)")
     s.set_defaults(fn=cmd_drill)
 
     for name in _STUBS:

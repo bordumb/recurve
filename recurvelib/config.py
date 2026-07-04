@@ -122,6 +122,11 @@ class Config:
     burndown_cap: int = 12
     burndown_max_consecutive_failures: int = 3
     burndown_runaway_net_positive_cycles: int = 2
+    # [drill] fuzz knobs — the fuzz pass is opt-in (`drill --fuzz`); these
+    # bound its cost and set its failure threshold, so strictness is a budget
+    # decision, never a hardcoded policy.
+    drill_fuzz_n: int = 8
+    drill_fuzz_fpr_max: float = 0.0
     # [receipts] signer: optional command handed each receipt's self_sha256;
     # its stdout is stored as the signature. recurve defines the receipt,
     # never the signature scheme.
@@ -255,6 +260,7 @@ def load(path: Path) -> Config:
 
     burndown = doc.get("burndown", {})
     receipts = doc.get("receipts", {})
+    drill = doc.get("drill", {})
 
     # [sculpts.<name>] — secondary trees (FR-C). No tables → empty dict →
     # byte-identical single-tree Config.
@@ -302,6 +308,8 @@ def load(path: Path) -> Config:
         burndown_cap=int(burndown.get("cap", 12)),
         burndown_max_consecutive_failures=int(burndown.get("max_consecutive_failures", 3)),
         burndown_runaway_net_positive_cycles=int(burndown.get("runaway_net_positive_cycles", 2)),
+        drill_fuzz_n=int(drill.get("fuzz_n", 8)),
+        drill_fuzz_fpr_max=float(drill.get("fuzz_fpr_max", 0.0)),
         receipts_signer=str(receipts.get("signer", "")),
         receipts_verifier=str(receipts.get("verifier", "")),
         report_narrator=str(report.get("narrator", "")),

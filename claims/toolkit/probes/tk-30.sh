@@ -76,14 +76,14 @@ if [ $rc -ne 0 ]; then
   echo "ours=drill --fuzz rc=$rc on a strict probe ($(printf '%s' "$OUT" | grep -iE 'unrecognized|error' | head -1 | cut -c1-80)) oracle=exit 0, fpr 0"
   exit 1
 fi
-printf '%s' "$OUT" | grep -q "g-1" && printf '%s' "$OUT" | grep -qE "fpr[ =]0/" \
+printf '%s' "$OUT" | grep -q "G-1" && printf '%s' "$OUT" | grep -qE "fpr[ =]0/" \
   || { echo "ours=no per-probe fpr report for g-1 oracle=drill --fuzz prints measured fpr per fuzz-capable probe"; exit 1; }
 
 # leaky project: a generated known-bad is blessed -> nonzero fpr, drill fails.
 build_leaky "$T/b"
 OUT="$(cd "$T/b" && python3 "$RECURVE" drill --fuzz 2>&1)"; rc=$?
 [ $rc -ne 0 ] || { echo "ours=drill --fuzz exit 0 with a leaky probe oracle=nonzero exit when fpr exceeds threshold"; exit 1; }
-printf '%s' "$OUT" | grep -q "g-2" && printf '%s' "$OUT" | grep -qE "fpr[ =][1-9][0-9]*/" \
+printf '%s' "$OUT" | grep -q "G-2" && printf '%s' "$OUT" | grep -qE "fpr[ =][1-9][0-9]*/" \
   || { echo "ours=leak not reported as nonzero fpr oracle=fpr k/n with k>0 for the leaky probe"; exit 1; }
 
 echo "drill --fuzz measures per-probe fpr from generated known-bads: strict 0/n green, leaky k/n fails the drill"

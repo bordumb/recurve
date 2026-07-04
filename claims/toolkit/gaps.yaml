@@ -564,15 +564,14 @@
 - id: TK-30
   title: drill --fuzz measures per-probe false-positive rate against generated known-bads
   class: missing-surface
-  status: open
+  status: closed
   severity: feature
   reads: none
   covers:
   - TK-30
   evidence:
   - recurvelib/cli.py
-  observed: 'RED at baseline 2026-07-04: ours=drill --fuzz rc=2 on a strict probe (recurve:
-    error: unrecognized arguments: --fuzz) oracle=exit 0, fpr 0'
+  observed: 'GREEN at close 2026-07-04: drill --fuzz measures per-probe fpr from generated known-bads: strict 0/n green, leaky k/n fails the drill'
   smallest_fix: run probes/<id>.fuzz.sh generators (FUZZ_OUT/FUZZ_N contract) for closed fuzz-capable
     claims inside drill; a variant the probe GREENs is a false positive; report fpr per probe
     and exit nonzero when fpr exceeds the threshold
@@ -583,7 +582,7 @@
 - id: TK-31
   title: fuzzing is parameterized — off by default, fuzz_n and fuzz_fpr_max knobs
   class: missing-surface
-  status: open
+  status: closed
   severity: feature
   reads: none
   covers:
@@ -591,8 +590,7 @@
   evidence:
   - recurvelib/cli.py
   - recurvelib/config.py
-  observed: 'RED at baseline 2026-07-04: ours=fuzz_n=2 not honored (no /2 denominator) oracle=[drill]
-    fuzz_n bounds variants per probe'
+  observed: 'GREEN at close 2026-07-04: fuzzing is parameterized: off by default, fuzz_n bounds variants, fuzz_fpr_max sets the failure threshold'
   smallest_fix: plain drill is byte-compatible (no fuzz work, no fpr output); [drill] fuzz_n
     bounds variants per probe; [drill] fuzz_fpr_max turns a leak from fatal into reported
   probe: probes/tk-31.sh
