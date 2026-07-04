@@ -42,3 +42,13 @@ zero times, so a long paid run is safe to stop and restart. The adapters
 (`claude.py`, `telemetry.py`) and the three CLI verbs complete the surface; the
 gated logic is driven by a mock adapter (no spend). Negative space (guarded by
 the trap): a runner that re-invokes the agent on already-sealed cells.
+
+## EV-4 — Quarantine evaluator: isolated oracle, 3× majority, tamper-refused
+
+`quarantine.py` runs the hidden unittest suite against the agent's final
+`solution.py` in a separate process (a bigcodebench venv in a real run; a clean
+subprocess here), never inside the agent's workspace. `oracle_verdict` runs the
+suite N times and returns the majority verdict plus the flake rate; `evaluate`
+refuses to grade unless the oracle's test text matches the checksum recorded at
+fetch time. Negative space (guarded by the trap): grading a solution with a
+tampered oracle against the original pin.

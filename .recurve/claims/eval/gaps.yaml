@@ -62,3 +62,22 @@
   probe: probes/ev-3.sh
   unlocks: an interrupted run resumes safely and re-running is always free — the precondition
     for a long, expensive matrix
+
+- id: EV-4
+  title: 'Quarantine evaluator: isolated oracle, 3x majority, tamper-refused'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-4
+  evidence:
+  - eval/evallib/quarantine.py
+  observed: 'GREEN at baseline 2026-07-04: quarantine runs the hidden suite 3x (majority +
+    flake) and refuses a tampered oracle'
+  smallest_fix: oracle_verdict runs the hidden suite N times in an isolated subprocess and
+    returns a majority verdict + flake rate; evaluate refuses to grade unless the test text
+    matches the checksum pinned at fetch time (OracleTamperError)
+  probe: probes/ev-4.sh
+  unlocks: every FDR number rests on a held-out oracle that is isolated, flake-controlled,
+    and tamper-evident
