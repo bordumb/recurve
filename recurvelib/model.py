@@ -76,7 +76,7 @@ class Gap:
     oracle_waiver: str = ""  # reason the probe's external oracle may be absent — a
                              # SKIP (exit 3) is then non-blocking, counted, visible debt
     # Absolute path to a stricter/slower reference oracle, or None. `drill
-    # --diff` runs it beside the probe and alarms on disagreement (F2.4).
+    # --diff` runs it beside the probe and alarms on disagreement.
     reference: Path | None = None
 
     @property

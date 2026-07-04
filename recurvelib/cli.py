@@ -1146,12 +1146,12 @@ def cmd_drill(args):
                     continue
                 for t in run_traps(g, timeout_s=args.timeout):
                     audited += 1
-                    # F1.1: a trap whose external oracle is absent (SKIP) on a
-                    # claim that DECLARED oracle_waiver mirrors the gate's
+                    # A trap whose external oracle is absent (SKIP) on a claim
+                    # that DECLARED oracle_waiver mirrors the gate's
                     # is_waived_skip — visible, non-blocking debt, never a
-                    # drill failure. F1.2: without a declared waiver the SKIP
-                    # is not excused — it falls through to the failure path
-                    # below like any other non-RED outcome.
+                    # drill failure. Without a declared waiver the SKIP is not
+                    # excused — it falls through to the failure path below
+                    # like any other non-RED outcome.
                     if t.outcome is Outcome.SKIP and g.oracle_waiver:
                         oracle_waived += 1
                         print(f"  {C['amber']}⊘{C['reset']} {g.id}/{t.trap} "
