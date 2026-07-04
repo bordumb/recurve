@@ -55,3 +55,15 @@ exclusion as R0, but anchored to recorded bytes instead of a reference engine. A
 missing golden is BROKEN, never a silent pass. Covers PRD R1.1 and R1.2.
 Negative space (guarded by the trap): a comparison that waves a corrupted golden
 through as a match.
+
+## R2-1 — cli.py becomes a package (argparse intact), entrypoint survives
+
+`recurvelib/cli.py` is no longer a single 1,586-line module: `recurvelib/cli/`
+is a package holding `main.py` (the argparse assembly + shared helpers) plus one
+module per command under `commands/`, with no file over 400 lines, and
+`recurvelib.cli:main` stays importable so the `recurve` console script and the
+repo wrapper still dispatch. The dispatcher is untouched (still argparse), so
+this phase changes no flag and no output — behavioral inertness is enforced by
+the standing R0/R1 guards the fleet gate runs. Covers PRD R2.1 and R2.2.
+Negative space (guarded by the trap): a `cli/` package that merely relocated the
+monolith into one oversized module.

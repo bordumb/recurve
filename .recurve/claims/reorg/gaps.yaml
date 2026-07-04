@@ -81,3 +81,23 @@
   probe: probes/r1-1.sh
   unlocks: a permanent regression guard on real-invocation output that survives the retirement
     of R0's baseline pin
+
+- id: R2-1
+  title: cli.py becomes a package (argparse intact), entrypoint survives
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R2-1
+  evidence:
+  - recurvelib/cli/main.py
+  - recurvelib/cli/commands
+  observed: 'GREEN at close 2026-07-04: cli.py split into a package (main.py + one module
+    per command, none over 400 lines); recurvelib.cli:main survives'
+  smallest_fix: split recurvelib/cli.py into recurvelib/cli/ — main.py holds the argparse
+    assembly and shared helpers, one module per command under commands/, none over 400 lines;
+    recurvelib.cli:main re-exported so the console entrypoint and repo wrapper still dispatch
+  probe: probes/r2-1.sh
+  unlocks: a CLI a contributor can navigate by command, with the framework swap isolated to
+    the next phase
