@@ -15,14 +15,25 @@
 
 ---
 
-## 0 · POC first — one model, one benchmark, gate-on vs gate-off
+## 0 · POC first — two models, one benchmark, gate-on vs gate-off
 
 Before any of the general machinery below: a minimal experiment that proves
-the pipeline and produces the first real ΔFDR number. One model (**Claude
-Haiku 4.5** — fastest/cheapest, and scientifically the right pick: the
-hypothesis is that the gate's value is *largest* for weaker models, so Haiku
-maximizes expected effect size per dollar), two arms (**0% recurve** vs
-**100% recurve**), one benchmark.
+the pipeline and produces the first real ΔFDR numbers. Two models × two arms
+(**0% recurve** vs **100% recurve**), one benchmark:
+
+- **Claude Haiku 4.5** (`claude-haiku-4-5`) — the weak/cheap end. If the
+  hypothesis "the gate's value is largest for weaker models" is right, this
+  is where the effect is biggest.
+- **Claude Sonnet 5** (`claude-sonnet-5`) — the mid-tier control. The
+  counter-hypothesis is that weak models are also the *worst at operating*
+  the gate (authoring claims/probes/traps is multi-step discipline), so the
+  value-vs-model-strength curve may be an inverted U rather than monotonic.
+  Two models give the first two points on that curve and de-risk the
+  "Haiku couldn't drive the harness" confound.
+
+Same pinned task set for all four cells, so every comparison is paired:
+arm effect within each model (ΔFDR per model), and the model×gate
+interaction across them (does the gate help Haiku more than Sonnet?).
 
 ### 0.1 · Benchmark choice: BigCodeBench-Hard
 
@@ -42,10 +53,11 @@ revision hash in the loader claim.
 
 ### 0.2 · The two arms
 
-Both arms run **Claude Haiku 4.5** (`claude-haiku-4-5`) through the existing
-BYO-agent seam — `claude -p --bare --permission-mode bypassPermissions
---model claude-haiku-4-5` — under an **identical token cap** per task
-(budget-matched; start at 60k tokens/task, revisit after the pilot).
+Every cell runs through the existing BYO-agent seam —
+`claude -p --bare --permission-mode bypassPermissions --model <model>` with
+`<model>` ∈ {`claude-haiku-4-5`, `claude-sonnet-5`} — under an **identical
+token cap** per task (budget-matched across arms *and* across models; start
+at 60k tokens/task, revisit after the pilot).
 
 - **Arm A0 — 0% recurve.** Fresh workspace containing only the task
   statement (`instruct_prompt`) and an empty `solution.py`. The agent solves
@@ -67,7 +79,7 @@ bigcodebench requirements) runs the hidden unittest suite against the final
 `solution.py`. Flake control: 3× oracle runs, majority verdict, flake rate
 reported.
 
-Per arm, over the same pinned task set:
+Per cell (model × arm), over the same pinned task set:
 
 - **Shipped-bad-work rate** (headline): `P(declared done ∧ hidden tests fail)`
   — this is what the gate exists to prevent, and it handles the asymmetry
@@ -75,17 +87,24 @@ Per arm, over the same pinned task set:
 - **FDR** conditional form: `P(hidden fail | declared done)`.
 - **Oracle pass rate** at the matched budget (does the gate's overhead cost
   outcomes?).
-- **Price of trust**: tokens, cost (Haiku: $1/M in, $5/M out), wall-clock,
-  A3/A0 ratios.
+- **Price of trust**: tokens, cost (Haiku: $1/M in, $5/M out; Sonnet:
+  $3/M in, $15/M out), wall-clock, A3/A0 ratios per model.
 - **Gate activity in A3**: rejections (attempts − closes), refused-to-declare
   count, and — for each A0 shipped-bad task — whether A3 on the same task
-  passed, refused, or also shipped bad (the paired table).
+  passed, refused, or also shipped bad (the paired table, per model).
+- **Process-failure vs gate-refusal split** in A3: a run that never produced
+  a well-formed claim/probe/trap is a *harness-operation failure*, not the
+  gate catching bad work — the two must be reported separately or the weak
+  model's numbers are uninterpretable.
+- **Model×gate interaction**: ΔFDR(Haiku) vs ΔFDR(Sonnet) — the first
+  two-point read on whether gate value falls, rises, or peaks with model
+  strength (previewing E4).
 
 Stats: all 148 tasks (or a pinned-seed n=50 pilot first), paired design,
-McNemar on paired oracle outcomes, Wilson 95% intervals on rates, raw
-fractions always shown. Estimated cost: ~148 tasks × 2 arms × ≤60k Haiku
-tokens ≈ **$25–75 total**; wall-clock manageable by running ~8 tasks
-concurrently.
+McNemar on paired oracle outcomes within each model, Wilson 95% intervals on
+rates, raw fractions always shown. Estimated cost: ~148 tasks × 2 arms ×
+≤60k tokens ≈ $25–75 for the Haiku pair and ~3× that for the Sonnet pair —
+**~$100–300 total**; wall-clock manageable by running ~8 tasks concurrently.
 
 ### 0.4 · What has to be built (each a claim in a `bench` suite)
 
@@ -105,12 +124,32 @@ concurrently.
 ### 0.5 · What the POC does and doesn't prove
 
 Proves: the pipeline end-to-end (fetch → materialize → run → quarantine →
-analyze), and a first directional ΔFDR on an external benchmark with a real
-held-out oracle. Doesn't prove: generality (one model, one benchmark — that
-is E2/E4's job), contamination-immunity (BigCodeBench predates Haiku's
-cutoff; the paired design means both arms share the advantage, and the
-LiveCodeBench sensitivity arm comes later). **A ΔFDR ≈ 0 result is a result
-— it gets reported, not shelved.**
+analyze), a first directional ΔFDR on an external benchmark with a real
+held-out oracle, and a first read on the model×gate interaction. Doesn't
+prove: generality (two models, one benchmark — the full matrix is E2/E4's
+job), contamination-immunity (BigCodeBench predates both models' cutoffs;
+the paired design means all cells share the advantage, and the LiveCodeBench
+sensitivity arm comes later). **A ΔFDR ≈ 0 result is a result — it gets
+reported, not shelved.**
+
+### 0.6 · Pre-registered guesses (written 2026-07-04, before any run)
+
+Recorded so the POC can surprise us honestly:
+
+1. A0-Haiku ships bad work on ~75–80% of tasks (declares done almost
+   always; solve rate in the 15–25% band).
+2. ΔFDR(Haiku) is real but modest — 10–20 points — driven more by
+   *refusals* than by catch-and-fix; genuine catch→repair→oracle-pass is
+   the smallest bucket of the paired table (correlated authorship: the
+   same misreading writes both the solution and the probe).
+3. A meaningful share of A3-Haiku runs fail on *harness operation*, not on
+   the task — this is why the process-failure split in §0.3 exists, and it
+   likely forces one prompt/skill iteration after the pilot.
+4. Sonnet: lower A0 shipped-bad (~45–65%), cleaner harness operation, and
+   the open question — whether ΔFDR(Sonnet) is smaller than ΔFDR(Haiku)
+   (monotonic hypothesis) or larger (inverted-U: gate value peaks where the
+   model is strong enough to drive the loop but weak enough to need it).
+5. Price of trust: A3/A0 token ratio 3–5× for both models.
 
 ---
 
@@ -378,7 +417,7 @@ don't have — but gate FPR≈0, so ΔFDR is nearly pure gain).
 
 | Phase | Builds | Cost (rough) | Paper payoff |
 |---|---|---|---|
-| P0 (days) | **the §0 POC**: bench/ skeleton, TaskStore + quarantine + telemetry claims, BigCodeBench-Hard × Haiku, A0 vs A3 | ~$25–75 API | pipeline exists + **first ΔFDR number**; §5 gains "the harness" |
+| P0 (days) | **the §0 POC**: bench/ skeleton, TaskStore + quarantine + telemetry claims, BigCodeBench-Hard × {Haiku, Sonnet}, A0 vs A3 | ~$100–300 API | pipeline exists + **first ΔFDR numbers + model×gate interaction**; §5 gains "the harness" |
 | P1 (days–week) | E1 interception: BugsInPy + mutmut, layer arms A2–A4 | CPU only | **the confusion-matrix + ablation table** — the single biggest metrics upgrade |
 | P2 (week+) | E2 pilot (Lite n=20) then Verified n=50, 3 arms × 2–3 models; E3 budget grid on subset | ~$1–5k API | **ΔFDR headline + price-of-trust + scaling curve** |
 | P3 (opportunistic) | E4 model matrix, E5 decorrelation, LiveCodeBench sensitivity | ~$1–3k | ablations complete; residue #3 measured |
