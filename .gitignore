@@ -3,7 +3,7 @@ __pycache__/
 
 # run state (parked gaps, run records, receipts) — each install accumulates
 # its own; commit it per-project if you want the dataset in history
-.recurve/
+.recurve/state/
 
 # mkdocs build output
 site/
@@ -16,3 +16,9 @@ acceptance/ancestors.env
 acceptance/configs/
 acceptance/golden/
 acceptance/originals/
+
+# macOS
+.DS_Store
+
+# recurve run state (parked gaps, records, receipts)
+.recurve/state/

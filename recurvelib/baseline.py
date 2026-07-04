@@ -47,7 +47,7 @@ def _entry_yaml(entry: dict) -> str:
     ordered = {}
     for key in ("id", "title", "class", "status", "severity", "reads", "covers",
                 "evidence", "observed", "smallest_fix", "probe", "unlocks",
-                "trap_waiver", "oracle_waiver"):
+                "trap_waiver", "oracle_waiver", "reference"):
         if key in entry and entry[key] not in (None, "", [], ()):
             ordered[key] = entry[key]
     return yaml.safe_dump([ordered], sort_keys=False, allow_unicode=True, width=88)

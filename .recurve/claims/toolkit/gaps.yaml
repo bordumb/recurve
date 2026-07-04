@@ -1,0 +1,840 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: TK-1
+  title: no origin vocabulary ships in the engine, CLI, schemas, templates, or packs
+  class: staging
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-1
+  evidence:
+  - acceptance/provenance.sh:1
+  observed: 'GREEN at baseline 2026-06-12: shipped surface carries no origin vocabulary'
+  smallest_fix: keep provenance confined to plan.md's designated zones and the acceptance
+    dir
+  probe: probes/tk-1.sh
+  unlocks: installing recurve anywhere without importing its first customer
+
+- id: TK-2
+  title: live-equivalent to both ancestor instances on every shared command
+  class: wire-mismatch
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - TK-2
+  evidence:
+  - acceptance/diff.sh:1
+  observed: 'GREEN at baseline 2026-06-12: live-equivalent to both ancestors (fast subset)'
+  smallest_fix: (already conformant at extraction) — guard the equivalence forever
+  probe: probes/tk-2.sh
+  unlocks: the migration IS the test suite; if this breaks, the engine generalized wrong
+  oracle_waiver: the ancestor instances are an external acceptance target, absent from a
+    standalone checkout; the probe skips (non-blocking) when they are not present and runs
+    full-strength — RED on any divergence — wherever they are
+
+- id: TK-3
+  title: 'the verdict map is total: crash/signal/timeout coerce to BROKEN, never a verdict'
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-3
+  evidence:
+  - recurvelib/probe.py:1
+  observed: 'GREEN at baseline 2026-06-12: verdict map total; records and receipts validate'
+  smallest_fix: keep the {0,1}→verdict map closed; everything else is BROKEN
+  probe: probes/tk-3.sh
+  unlocks: no fourth state — a segfault can never bless or damn a claim
+
+- id: TK-4
+  title: a second loop on a locked tree is refused, never admitted
+  class: staging
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-4
+  evidence:
+  - recurvelib/lock.py:1
+  observed: 'GREEN at baseline 2026-06-12: second loop refused while the first holds the tree'
+  smallest_fix: O_EXCL lock keyed by resolved tree path; steal is human-only
+  probe: probes/tk-4.sh
+  unlocks: suites sharing a tree federate into one gate instead of corrupting each other
+
+- id: TK-5
+  title: validate refuses an unfalsified probe (no trap fixture, no waiver)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-5
+  evidence:
+  - recurvelib/cli.py:1
+  observed: 'GREEN at baseline 2026-06-12: unfalsified probe rejected by validate'
+  smallest_fix: trap discipline enforced at validate; waivers are counted, listed debt
+  probe: probes/tk-5.sh
+  unlocks: a probe that has never been seen RED can never silently guard nothing
+
+- id: TK-6
+  title: a receipt edited after the fact fails validation loudly
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-6
+  evidence:
+  - recurvelib/records.py:1
+  observed: 'GREEN at baseline 2026-06-12: tampered receipt rejected — the evidence is tamper-evident'
+  smallest_fix: self-hash over canonical content; the chain breaks visibly or it is not a
+    chain
+  probe: probes/tk-6.sh
+  unlocks: code accompanied by its evidence, checkable by someone who was not there
+
+- id: TK-7
+  title: triage deals N parallel lanes from pairwise-disjoint suites
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-7
+  evidence:
+  - recurvelib/triage.py:1
+  observed: 'GREEN at cycle triage-deals-n-parallel 2026-06-12: lanes dealt from disjoint suites, value-first within each'
+  smallest_fix: add lanes() to triage (top gap per suite, value-first) and `next --json --lanes
+    N`
+  probe: probes/tk-7.sh
+  unlocks: parallel lanes that can never sculpt the same ledger or prose
+
+- id: TK-8
+  title: an orchestrator can hold the tree lock across CLI invocations
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-8
+  evidence:
+  - recurvelib/cli.py:1
+  observed: 'RED at baseline 2026-06-12: ours=no acquire surface oracle=lock acquire/release
+    for orchestrators'
+  smallest_fix: add `lock acquire` (refused while held) and `lock release` beside status/steal
+  probe: probes/tk-8.sh
+  unlocks: a shell orchestrator that spans many commands can still be the single loop on the
+    tree
+
+- id: TK-9
+  title: parallel lanes land through one gated serialization point
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-9
+  evidence:
+  - templates/workflows/burndown.js:1
+  observed: 'RED at baseline 2026-06-12: ours=no parallel loop oracle=worktree lanes + gated
+    serialization (plan §15.9)'
+  smallest_fix: ship workflows/burndown-parallel.sh — worktree lanes over disjoint suites;
+    per-landing gap-GREEN + fleet-gate check; revert-and-discard on failure; per-landing commit
+  probe: probes/tk-9.sh
+  unlocks: wall-clock scales with lanes while the ratchet stays single-file — the v2 contract,
+    proven
+
+- id: TK-10
+  title: 'the unarmed backlog is visible: next --json reports drafts and pending adjudications'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-10
+  evidence:
+  - recurvelib/cli.py:1
+  observed: 'GREEN at baseline 2026-06-13: drafts and pending adjudications visible to orchestrators'
+  smallest_fix: next --json carries a drafts list (suite, pending count) and an adjudications_pending
+    count read from gaps.draft.yaml and ADJUDICATE.md
+  probe: probes/tk-10.sh
+  unlocks: loops that arm their own next wave instead of stranding the draft backlog
+
+- id: TK-11
+  title: 'record append is idempotent: one cycle, one journal line, however many appenders'
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-11
+  evidence:
+  - recurvelib/cli.py:1
+  observed: 'GREEN at baseline 2026-06-13: one record appended twice lands once'
+  smallest_fix: cmd_record skips an append whose canonical serialization already exists in
+    records.jsonl
+  probe: probes/tk-11.sh
+  unlocks: triage priors and cost prediction that do not double-count cycles
+
+- id: TK-12
+  title: the burndown loops arm the next wave instead of stranding a draft backlog
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - TK-12
+  evidence:
+  - templates/workflows/burndown.sh:1
+  observed: 'GREEN at baseline 2026-06-13: burndown templates arm or surface the draft backlog'
+  smallest_fix: serial loop gains an arm_wave stage (author probes for a draft batch, run
+    baseline, continue; bounded by ARM_WAVES, refused while forks pend); parallel and orchestrator
+    twins surface the unarmed backlog at halt
+  probe: probes/tk-12.sh
+  unlocks: one launch burns down the whole spec, wave after wave, with humans only at forks
+    and review gates
+
+- id: TK-13
+  title: report renders the deterministic run dataset with no narrator and no network
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-13
+  evidence:
+  - recurvelib/report.py:1
+  observed: 'GREEN at baseline 2026-06-13: deterministic run dataset rendered from records+ledger+git;
+    the seeded TODO was counted'
+  smallest_fix: add recurvelib/report.py + a `report` subcommand — progress from the ledger,
+    cycle durations and an ETA projection from records.jsonl, and a diff honesty scan over
+    the git range the records cover
+  probe: probes/tk-13.sh
+  unlocks: a run dataset a maintainer reads before signing, free with every cycle
+
+- id: TK-14
+  title: --narrate appends narrator prose without ever owning the report
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-14
+  evidence:
+  - recurvelib/report.py:1
+  observed: 'GREEN at baseline 2026-06-13: narrator prose appended; missing config fails clean;
+    a dying narrator never costs the report'
+  smallest_fix: '`report --narrate` pipes the rendered report + a JSON array of the cycle
+    records to [report] narrator on stdin and appends its stdout; no narrator configured is
+    a clean exit 2; a failing/timed-out narrator costs the prose only (exit 1)'
+  probe: probes/tk-14.sh
+  unlocks: LLM judgment over the run, priced by the narrator, with the numbers always free
+
+- id: TK-15
+  title: the stamped burndown workflow carries no sandbox-forbidden runtime call
+    and resolves its paths from an absolute root
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-15
+  evidence:
+  - templates/workflows/burndown.js:1
+  - recurvelib/init.py:1
+  observed: 'GREEN at baseline 2026-06-14: a freshly stamped burndown.js carries no Date.now/Math.random/new
+    Date call and reads ${ROOT}/.recurve/RUN.md from an absolute const ROOT'
+  smallest_fix: burndown.js uses a deterministic RUN_ID (no Date.now), stamps an absolute
+    `const ROOT = '{{ROOT}}'`, and its agent prompts read ${ROOT}/.recurve/RUN.md + write
+    ${ROOT}/.recurve/state/reports/...; init.py adds ROOT=str(target) to the template subs
+  probe: probes/tk-15.sh
+  unlocks: an unattended burndown that resumes deterministically and resolves its paths
+    regardless of the orchestrator's launching cwd
+
+- id: TK-16
+  title: matrix --gate federates each sculpt's own gate command; a single-tree config
+    is unchanged
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-16
+  evidence:
+  - recurvelib/cli.py:188
+  - recurvelib/config.py:67
+  observed: 'GREEN at baseline 2026-06-14: a config with [sculpts.x] gate = "false" makes
+    matrix --gate exit non-zero, gate = "true" passes, and a no-[sculpts.*] config gates
+    as before'
+  smallest_fix: cmd_matrix's --gate path iterates cfg.sculpts, runs each non-empty gate
+    via subprocess (cwd = sculpt tree dir), prints one line per sculpt, and ANDs each
+    exit==0 into gate_ok; config.py parses [sculpts.<name>] into SculptConfig
+  probe: probes/tk-16.sh
+  unlocks: the first-class scaffold-sculpts-platform feedback loop — one loop gates a
+    target's probes AND every secondary tree's own gate
+
+- id: TK-17
+  title: the stamped in-session loop skill spawns a fresh sub-agent per cycle, locks, and
+    gates
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-17
+  evidence:
+  - templates/skills/loop.md
+  - recurvelib/init.py:295
+  observed: 'GREEN at baseline 2026-07-01: stamped loop skill spawns a fresh sub-agent per
+    cycle, acquires the lock, and gates on matrix --gate'
+  smallest_fix: templates/skills/loop.md drives the loop in-session as the orchestrator, spawning
+    one fresh sub-agent per cycle (the ledger is the only memory), acquiring the tree lock,
+    and gating on matrix --gate; init.py stamps skills/loop.md into .claude/skills/loop/SKILL.md
+    alongside burndown/cycle/review
+  probe: probes/tk-17.sh
+  unlocks: the in-session loop as a first-class surface (the primary entry point of the command-surface
+    plan) without losing the clean-agent-per-cycle hygiene
+
+- id: TK-18
+  title: recurve run defaults the agent to a bypass-permissions Claude when AGENT_CMD is unset
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-18
+  evidence:
+  - recurvelib/run.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: unset AGENT_CMD -> ''claude -p --permission-mode
+    bypassPermissions'' [default] — the loop never stalls on a permission prompt'
+  smallest_fix: recurvelib/run.py resolve_agent() returns DEFAULT_AGENT ("claude -p --permission-mode
+    bypassPermissions") with source "default" when both the --agent flag and $AGENT_CMD are
+    unset; cmd_run wires it into `recurve run` so an unattended loop never stalls on a permission
+    prompt
+  probe: probes/tk-18.sh
+  unlocks: a headless loop that flows without setting AGENT_CMD by hand — the P1 wrapper with
+    a safe, visible bypass default
+
+- id: TK-19
+  title: init stamps .claude/settings.json defaulting the permission mode to bypassPermissions
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-19
+  evidence:
+  - templates/settings.json
+  - recurvelib/init.py
+  observed: 'GREEN at baseline 2026-07-01: stamped .claude/settings.json defaults permissions.defaultMode=bypassPermissions
+    — the loop flows without prompts'
+  smallest_fix: templates/settings.json sets permissions.defaultMode=bypassPermissions; init.py
+    stamps it to <target>/.claude/settings.json alongside the skills, so a Claude Code CLI
+    session in the target runs the loop without permission prompts
+  probe: probes/tk-19.sh
+  unlocks: the in-session loop flowing with no launch flag on the Claude Code CLI/desktop
+    (claude.ai web ignores the committed default, by design)
+
+- id: TK-20
+  title: recurve status summarizes health without ever greenwashing a failed gate
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-20
+  evidence:
+  - recurvelib/status.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: ours=gate_ok=False,open=2,closed=3 oracle=gate_ok=False,open=2,closed=3
+    — the summary never greenwashes a failed gate'
+  smallest_fix: add recurvelib/status.py with a pure summarize(ledger, matrix_result) that
+    folds open/closed claim counts plus the matrix result's OWN gate_ok, regressions, broken,
+    and stale into a dict — never recomputing or hardcoding the verdict; cmd_status calls
+    it, prints a compact health block, and registers a `status` subparser
+  probe: probes/tk-20.sh
+  unlocks: a one-glance health read (open/closed, true gate verdict, broken/stale, pending
+    drafts) that an operator or orchestrator trusts because it can never hide a failed gate
+
+- id: TK-21
+  title: recurve demo genuinely demonstrates one claim going RED then GREEN behind the gate
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-21
+  evidence:
+  - recurvelib/demo.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: ours=steps=RED->GREEN oracle=RED-then-GREEN — the
+    demo showed a failing probe going green'
+  smallest_fix: add recurvelib/demo.py with a pure run_demo(workdir) that builds a tiny claim
+    and probe inside workdir, runs the probe while the claim is unmet (RED), applies a trivial
+    fix so the same probe passes (GREEN), and returns a trace of that ordered RED -> GREEN
+    transition; cmd_demo creates a temp dir, calls run_demo, prints a compact narrative of
+    the loop's shape, removes the temp dir, and a `demo` subparser registers it — zero config,
+    no network, no cwd pollution
+  probe: probes/tk-21.sh
+  unlocks: a one-command sign-of-life a newcomer runs to understand recurve by watching one
+    claim go RED to GREEN
+
+- id: TK-22
+  title: recurve init <path> infers the mode from what path is, never silently ignoring a
+    spec
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-22
+  evidence:
+  - recurvelib/init.py
+  - recurvelib/cli.py
+  observed: 'GREEN at baseline 2026-07-01: ours=file=from-prd,gitdir=from-repo,empty=blank
+    oracle=file=from-prd,gitdir=from-repo,empty=blank — init infers the mode and never silently
+    ignores a spec'
+  smallest_fix: add a pure infer_init_mode(path) to recurvelib/init.py that returns (mode,
+    reason) — from-prd for a FILE, from-repo for a directory that is a git repo or holds README/docs,
+    blank for an empty directory — doing no I/O beyond exists/is_file/is_dir and checking
+    for .git/README/docs; cli.py adds an optional positional `path` to the init subparser
+    and cmd_init calls infer_init_mode when no explicit mode flag is set, prints the inferred
+    line, and resolves to the matching mode (an explicit flag always overrides)
+  probe: probes/tk-22.sh
+  unlocks: zero-config `recurve init <path>` — a newcomer points at a PRD, a repo, or an empty
+    dir and the right mode is chosen and announced, never guessed silently
+
+- id: TK-23
+  title: matrix --gate runs each sculpt's rebuild before probing; a failing rebuild fails
+    the gate
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-23
+  evidence:
+  - recurvelib/cli.py:275
+  - recurvelib/config.py:67
+  observed: 'GREEN at baseline 2026-07-02: matrix --gate runs each sculpt''s rebuild before
+    probing; a failing rebuild fails the gate'
+  smallest_fix: 'cmd_matrix''s --gate path runs each sculpt''s rebuild (cwd = the sculpt tree)
+    before run_matrix, so the target''s probes and the sculpt''s own gate read a fresh artifact;
+    a non-zero rebuild is ANDed into gate_ok as a failure and that sculpt''s gate is skipped.
+    config.py already parses rebuild into SculptConfig.
+
+    '
+  probe: probes/tk-23.sh
+  unlocks: a sculpt's artifact is produced by the loop, not by hand — the multi-repo produce
+    path, not only the verify path
+
+- id: TK-24
+  title: baseline does not re-promote a draft id already in the ledger
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-24
+  evidence:
+  - recurvelib/baseline.py:76
+  observed: 'GREEN at baseline 2026-07-02: baseline does not re-promote an id already in the
+    ledger; new draft entries still promote'
+  smallest_fix: 'run_baseline loads the ledger''s ids before the promote loop and keeps (does
+    not re-promote) any draft entry whose id already appears, so re-running baseline over
+    a full draft never appends a duplicate ledger line.
+
+    '
+  probe: probes/tk-24.sh
+  unlocks: a full draft can be re-baselined idempotently — no backup-and-reconstruct dance
+    to add one claim
+
+- id: TK-25
+  title: receipts verify checks each signature against the configured verifier
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-25
+  evidence:
+  - recurvelib/receipts.py:120
+  - recurvelib/cli.py:835
+  observed: 'GREEN at baseline 2026-07-02: receipts verify checks each signature against the
+    [receipts] verifier; a tampered signature is caught'
+  smallest_fix: 'config parses [receipts] verifier; verify_signatures shells it per signed
+    receipt (self_sha256 on stdin, signature as argv, exit 0 = valid); cmd_receipts folds
+    signature problems into `receipts verify`.
+
+    '
+  probe: probes/tk-25.sh
+  unlocks: the receipts seam verifies, not only signs — a countersignature is checkable, the
+    dual of the signer
+
+- id: TK-26
+  title: import refuses to overwrite an authored gaps.draft.yaml without --force
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-26
+  evidence:
+  - recurvelib/cli.py:556
+  observed: 'GREEN at baseline 2026-07-02: import refuses to overwrite an authored gaps.draft.yaml
+    without --force; the authored draft is preserved'
+  smallest_fix: 'cmd_import checks `out.exists() and not args.force` and refuses (exit non-zero)
+    before regenerating, so a hand-authored draft is never silently clobbered with stubs;
+    --force is required to overwrite.
+
+    '
+  probe: probes/tk-26.sh
+  unlocks: re-running import is safe — an authored draft is not lost to regenerated stubs
+
+- id: TK-27
+  title: the receipts signer may return a JSON object recurve merges onto the receipt
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-27
+  evidence:
+  - recurvelib/receipts.py
+  observed: 'GREEN at baseline 2026-07-02: the [receipts] signer may return a JSON object
+    (signer_did + envelope_ref merged, chain fields protected); a bare-string signer still
+    works'
+  smallest_fix: '_sign interprets the signer''s stdout: a JSON object is merged onto the receipt
+    (add-only — it may add signer_did, envelope_ref, … but never overwrite the receipt''s
+    own chain/identity fields), while any non-object output is the opaque signature string
+    as before. So a signer records its identity and a link to the verifiable envelope ON the
+    receipt instead of in a sidecar, and legacy bare-string signers keep working.
+
+    '
+  probe: probes/tk-27.sh
+  unlocks: the signer contract is richer without breaking the old one — a signing adapter
+    can drop its sidecar
+
+- id: TK-28
+  title: a suite exports to a portable pack and installs+gates in a different project
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-28
+  evidence:
+  - recurvelib/pack.py
+  observed: 'GREEN at baseline 2026-07-02: a suite exports to a pack and installs+gates in
+    a different project (probes+traps travel); install writes drafts only — the receiver re-measures'
+  smallest_fix: 'pack export bundles a suite (claims demoted to drafts + probes + traps +
+    manifest) into a portable pack; pack install unpacks it into a different project as drafts
+    and registers the suite, never touching the ledger. So a claim pack round-trips across
+    projects carrying its adversarial traps, and the receiver re-measures for itself — install
+    writes drafts only, and the baseline ceremony stays the only door into the ledger.
+
+    '
+  probe: probes/tk-28.sh
+  unlocks: claims become a distributable, re-measured unit — the seed of a shared claim registry
+
+- id: TK-29
+  title: recurve install writes the global /recurve-plan and /recurve-work skills
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-29
+  evidence:
+  - recurvelib/cli.py
+  - templates/global-skills
+  observed: 'GREEN at baseline 2026-07-03: recurve install writes /recurve-plan and /recurve-work
+    into the skills dir (idempotent), each carrying its template'
+  smallest_fix: recurve install copies templates/global-skills/*.md into <skills-dir>/<name>/SKILL.md
+    after linking the binary; idempotent; --no-skills to skip, --skills-dir to relocate
+  probe: probes/tk-29.sh
+  unlocks: a fresh clone gets the CLI AND the /recurve-* slash commands from one `recurve
+    install`
+
+- id: TK-30
+  title: drill --fuzz measures per-probe false-positive rate against generated known-bads
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-30
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: drill --fuzz measures per-probe fpr from generated known-bads: strict 0/n green, leaky k/n fails the drill'
+  smallest_fix: run probes/<id>.fuzz.sh generators (FUZZ_OUT/FUZZ_N contract) for closed fuzz-capable
+    claims inside drill; a variant the probe GREENs is a false positive; report fpr per probe
+    and exit nonzero when fpr exceeds the threshold
+  probe: probes/tk-30.sh
+  unlocks: the RED-first law extended from curated traps to generated known-bads — measured
+    verifier reliability
+
+- id: TK-31
+  title: fuzzing is parameterized — off by default, fuzz_n and fuzz_fpr_max knobs
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-31
+  evidence:
+  - recurvelib/cli.py
+  - recurvelib/config.py
+  observed: 'GREEN at close 2026-07-04: fuzzing is parameterized: off by default, fuzz_n bounds variants, fuzz_fpr_max sets the failure threshold'
+  smallest_fix: plain drill is byte-compatible (no fuzz work, no fpr output); [drill] fuzz_n
+    bounds variants per probe; [drill] fuzz_fpr_max turns a leak from fatal into reported
+  probe: probes/tk-31.sh
+  unlocks: users tune fuzz cost/strictness to their budget instead of a hardcoded policy
+
+- id: TK-32
+  title: recurve trajectories exports provenance-bearing JSONL rows from the run-log
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-32
+  evidence:
+  - recurvelib/cli.py
+  - recurvelib/records.py
+  observed: 'GREEN at close 2026-07-04: trajectories exports one provenance-bearing JSON row per cycle record (reward 1 iff closed)'
+  smallest_fix: 'new read-only subcommand joining records.jsonl with the ledger: one JSON
+    object per cycle record with gap/suite/action/attempts/reward/files_touched/severity/verified
+    and provenance (probe path, trap count); reward 1 iff closed'
+  probe: probes/tk-32.sh
+  unlocks: the run-log as a training-ready dataset whose every reward names its verifier
+
+- id: TK-33
+  title: trajectory export excludes unverified rewards by default (contamination gate)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-33
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: contamination gate holds: unverified rewards excluded by default, marked when re-admitted, counts summarized'
+  smallest_fix: a row is verified iff its gap has a probe and a non-waived trap fixture on
+    disk; default export drops unverified rows and summarizes counts on stderr; --include-unverified
+    re-admits them marked verified:false
+  probe: probes/tk-33.sh
+  unlocks: mitigation for the measured 1%-contamination hazard in trajectory training data
+
+- id: TK-34
+  title: trajectory export is deterministic and read-only
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-34
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: trajectories is deterministic (byte-identical re-runs) and read-only (records + ledger untouched)'
+  smallest_fix: stable row sort (suite, gap, run_id, cycle) + sorted JSON keys make re-runs
+    byte-identical; the command never writes records.jsonl or the ledger
+  probe: probes/tk-34.sh
+  unlocks: exports that are diffable evidence, not one-off dumps
+
+- id: TK-35
+  title: stats reports budget-attached close rates (close%@1, close%@2)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-35
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: stats reports budget-attached close rates: raw 75% alongside close%@1 50% and close%@2 50% on the mixed-attempts fixture'
+  smallest_fix: per class, alongside raw close%, print the share of cycle records closed with
+    attempts <=1 and <=2 — attempt inflation becomes visible instead of silently flattering
+    the rate
+  probe: probes/tk-35.sh
+  unlocks: run statistics that survive the budget-matched-evaluation critique
+
+- id: TK-36
+  title: stats surfaces trap debt (waived guards) next to the close rates
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-36
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: stats surfaces verification debt: trap debt: 1 waived guard on a one-waiver ledger''trap debt: 1 waived
+    guard'' for one waived closed gap'
+  smallest_fix: 'count closed gaps carrying trap_waiver and print "trap debt: N waived guard(s)"
+    in stats output'
+  probe: probes/tk-36.sh
+  unlocks: verification debt visible in the same view as the rates it qualifies
+
+- id: TK-37
+  title: drill honors a declared oracle_waiver on a trap's SKIP (F1.1)
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-37
+  evidence:
+  - recurvelib/cli.py
+  - recurvelib/conformance.py:32
+  observed: 'GREEN at close 2026-07-04: drill honors the declared oracle_waiver: a SKIP
+    trap is non-blocking, visible debt (1 oracle-waived)'
+  smallest_fix: mirror is_waived_skip inside cmd_drill's trap loop — a trap outcome of SKIP
+    on a claim declaring oracle_waiver is counted as an oracle-waived counterexample beside
+    the waived-guards figure, never a drill failure
+  probe: probes/tk-37.sh
+  unlocks: the drill agrees with the gate on the same fact instead of screaming at a clean
+    fleet ("a guard would bless its own defect") over a legitimately absent external oracle
+
+- id: TK-38
+  title: an undeclared SKIP still fails the drill beside a waived one (F1.2)
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-38
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: an undeclared SKIP still fails the drill on a
+    mixed fleet, beside a correctly-waived one'
+  smallest_fix: the oracle-waived exemption in cmd_drill's trap loop checks BOTH the SKIP
+    outcome AND a declared oracle_waiver — an undeclared SKIP falls through to the ordinary
+    failure path, so F1.1's debt-forgiveness never widens into a general dodge
+  probe: probes/tk-38.sh
+  unlocks: the floor F1.2 requires stays load-bearing exactly where F1.1 introduces the exemption,
+    proven on a mixed fleet rather than in isolation
+
+- id: TK-39
+  title: the isomorphic generator convention — probes/<id>.iso.sh (F2.1)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-39
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: drill --iso discovers probes/<id>.iso.sh generators,
+    consumes up to ISO_N variants, leaves generator-less claims untouched'
+  smallest_fix: drill --iso discovers probes/<id>.iso.sh the same way --fuzz discovers probes/<id>.fuzz.sh
+    — called with ISO_OUT/ISO_N, it writes up to n semantics-preserving variant directories;
+    claims shipping no generator are untouched and report nothing
+  probe: probes/tk-39.sh
+  unlocks: a place to hang semantics-preserving variants without ever writing generated state
+    into a claim's probes/ directory or the ledger
+
+- id: TK-40
+  title: iso verdict invariance is measured, not assumed (F2.2)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-40
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: drill --iso measures verdict invariance: form-insensitive
+    0/n green, surface-keyed probe flips and fails the drill'
+  smallest_fix: drill --iso runs each iso-capable closed claim's probe once per variant with
+    ISO_FIXTURE set; a verdict other than GREEN is a flip, printed per probe as "iso flips
+    f/n"; the drill fails when any probe's flip rate exceeds the threshold
+  probe: probes/tk-40.sh
+  unlocks: a probe that latched onto surface form instead of meaning is caught the same way
+    a probe that blesses generated known-bads already is (TK-30's dual)
+
+- id: TK-41
+  title: the isomorphic pass is a budget knob, not a policy (F2.3)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-41
+  evidence:
+  - recurvelib/config.py
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: isomorphic checking is parameterized: off by default,
+    iso_n bounds variants, iso_flip_max sets the failure threshold'
+  smallest_fix: '[drill] iso_n (default 8) bounds variants per probe; [drill] iso_flip_max
+    (default 0.0) is the failure threshold; --iso is required to run the pass at all — a plain
+    drill stays byte-identical to today''s'
+  probe: probes/tk-41.sh
+  unlocks: strictness that is a budget decision the operator makes, never a hardcoded policy
+    the engine imposes
+
+- id: TK-42
+  title: reference oracles — differential probes via drill --diff (F2.4)
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-42
+  evidence:
+  - recurvelib/model.py
+  - recurvelib/baseline.py
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: drill --diff alarms on probe/reference disagreement,
+    passes on agreement, and the reference field survives baseline'
+  smallest_fix: a claim may declare reference probes/<id>.ref.sh; drill --diff runs both the
+    probe and its reference against the true state and alarms on disagreement (one GREEN,
+    one RED), naming both verdicts; the field survives baseline promotion via the ledger entry
+    carry-list
+  probe: probes/tk-42.sh
+  unlocks: a coincidence nobody checks (a stricter oracle silently disagreeing with the fast
+    probe) becomes a loud, gated alarm
+
+- id: TK-43
+  title: records may carry branches — the road not taken, schema-validated (F3.1)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-43
+  evidence:
+  - schema/run-record.schema.json
+  - recurvelib/records.py
+  observed: 'GREEN at close 2026-07-04: record append accepts well-formed branches (stored
+    verbatim) and rejects one missing rejected_because'
+  smallest_fix: the run-record schema gains an optional branches array (kind, description,
+    rejected_because per entry); record append accepts a record carrying well-formed entries
+    and stores them verbatim, and rejects one whose entry is missing rejected_because
+  probe: probes/tk-43.sh
+  unlocks: a trajectory dataset that can record the decomposition considered and rejected,
+    not just the path taken
+
+- id: TK-44
+  title: trajectories exports branches verbatim, byte-identical (F3.2)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-44
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: trajectories exports branches verbatim (empty array
+    when none), byte-identical across re-runs'
+  smallest_fix: each exported row carries its record's branches verbatim (an empty array when
+    the record has none), under the same provenance gating as the rest of the row, with export
+    determinism unchanged
+  probe: probes/tk-44.sh
+  unlocks: the single-path-bias fix — a corpus of only-winners no longer teaches selection
+    nothing, without touching the read-only export's determinism

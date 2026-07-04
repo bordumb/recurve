@@ -101,7 +101,8 @@ class ProbeRunner(Protocol):
 class ShellProbeRunner:
     """Adapter: runs an executable probe file, mapping exit codes to outcomes."""
 
-    def run(self, gap: Gap, timeout_s: int = 120, trap_fixture: Path | None = None) -> ProbeResult:
+    def run(self, gap: Gap, timeout_s: int = 120, trap_fixture: Path | None = None,
+            iso_fixture: Path | None = None) -> ProbeResult:
         if gap.probe is None:
             return ProbeResult(gap, Outcome.MISSING, None, 0.0, "no probe declared")
         if not gap.probe.exists():
@@ -110,6 +111,8 @@ class ShellProbeRunner:
         env = {**os.environ, "NO_COLOR": "1", "RECURVE_PROBE": gap.id}
         if trap_fixture is not None:
             env["TRAP_FIXTURE"] = str(trap_fixture)
+        if iso_fixture is not None:
+            env["ISO_FIXTURE"] = str(iso_fixture)
         start = time.monotonic()
         try:
             proc = subprocess.run(

@@ -43,9 +43,24 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "self_sha256 of each evidence receipt emitted at this cycle's gate run."
+    },
+    "branches": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/branch" },
+      "description": "The road not taken: decompositions considered and rejected, attempts abandoned. Additive — records without it remain valid."
     }
   },
   "$defs": {
+    "branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "description", "rejected_because"],
+      "properties": {
+        "kind": { "enum": ["attempt", "decomposition", "approach"] },
+        "description": { "type": "string", "description": "What the branch was." },
+        "rejected_because": { "type": "string", "description": "Why it was not taken." }
+      }
+    },
     "verdict_counts": {
       "type": "object",
       "additionalProperties": false,

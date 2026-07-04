@@ -29,6 +29,26 @@ If there is no `.recurve/` directory, run `recurve init` — it stamps
 `recurve.toml`, `.recurve/RUN.md`, the claims scaffold, and the per-repo
 cycle/loop/burndown skills. Then confirm a sound baseline with `recurve validate`.
 
+**Single-tree or multi-repo?** Ask one scoping question: *will reaching this
+goal require changing another repository* (a platform this repo feeds, a
+sibling library, a shared toolchain)? The default — one repo — needs nothing.
+If the answer is yes, declare each secondary tree as a `[sculpts.<name>]`
+table in `recurve.toml` **with the user** (they own these values):
+
+```toml
+[sculpts.platform]
+tree = "../platform"              # resolved against this config
+branch = "dev-platform"           # sculpt commits land on THIS branch, in THAT repo
+rebuild = "cargo build --release" # how fresh artifacts reach its checks
+gate = "cargo test"               # its OWN gate — folded into the federated gate
+forbidden_strings = ["GAP-"]      # this tree's leak vocabulary
+```
+
+`recurve matrix --gate` then federates: green only when the target's probes
+AND every sculpt's rebuild + gate pass. /recurve-work knows the per-tree
+commit rules from there. Do not invent sculpts speculatively — declare one
+only when the goal genuinely requires cross-repo work.
+
 ## 3 · Ensure a PRD exists
 
 Look for `docs/PRD.md` (or ask the user which file is the PRD). If none exists,
@@ -38,6 +58,7 @@ carved from it, so vague prose is worthless here:
 - What is the goal, in one sentence?
 - What does "done" / "better" mean **concretely and observably**?
 - What are the top-level sub-goals, and the named intermediate pieces each needs?
+- If multi-repo: which sub-goals live in the target, and which in a sculpt tree?
 - What must **never** happen (behaviors to forbid)?
 
 Propose the shape before writing it out, then draft `docs/PRD.md` from the answers.

@@ -1,0 +1,67 @@
+# recurve hosts itself — a claims tool whose own claims aren't probed is a
+# joke at its own expense. This suite guards the toolkit's machine-probeable
+# promises; human wall-clock promises live in plan.md §14's acceptance
+# criteria, where humans verify them.
+
+[project]
+name = "recurve"
+label = "suite"
+default_reads = "none"
+cycles_dir = ".recurve/claims/toolkit/cycles"
+schema = "1"
+
+[target]
+tree = "."
+sacred = []
+forbidden_strings = []
+
+[commit]
+policy = "unsigned-per-cycle"   # STERN WARNING: this repo normally SIGNS commits. The loop commits UNSIGNED (signing prompts hang headless agents) — review and sign/squash the cycle commits after every run; do not leave unsigned commits as the permanent record
+hooks = "run"
+
+[gate]
+traps = "required"
+quality = "pre-launch"
+
+[reads.none]
+method = "none"
+
+[suites.toolkit]
+dir = ".recurve/claims/toolkit"
+rebuild = ""               # the engine runs from source; nothing to copy
+harness = []
+
+[suites.completeness]
+dir = ".recurve/claims/completeness"
+rebuild = ""               # pure engine module; nothing to copy
+harness = []
+
+[suites.stopping]
+dir = ".recurve/claims/stopping"
+rebuild = ""               # pure engine module; nothing to copy
+harness = []
+
+[suites.admission]
+dir = ".recurve/claims/admission"
+rebuild = ""               # pure engine module; nothing to copy
+harness = []
+
+[suites.runtime]
+dir = ".recurve/claims/runtime"
+rebuild = ""               # pure engine module; nothing to copy
+harness = []
+
+[suites.adapters]
+dir = ".recurve/claims/adapters"
+rebuild = ""               # git-backed adapters; probes drive real temp repos
+harness = []
+
+[suites.self_recursion]
+dir = ".recurve/claims/self_recursion"
+rebuild = ""               # pure engine module (recurvelib.run); nothing to copy
+harness = []
+
+[suites.plumbing]
+dir = ".recurve/claims/plumbing"
+rebuild = ""               # wires the verification layer into the loop (#4)
+harness = []

@@ -45,7 +45,9 @@ traces a single promise through the system:
   change that quietly breaks it is caught. And every probe carries a **trap** —
   a known-bad input it is *required* to turn RED. A probe never seen to fail
   proves nothing, so weakening a probe until it passes everything makes its trap
-  stop failing, and the tampering is caught mechanically.
+  stop failing, and the tampering is caught mechanically. Opt in further and
+  the checks are *measured*, not just spot-proven: generated known-bads yield a
+  per-probe false-positive rate ([hardening](hardening.md)).
 - **The burndown loop clears the backlog.** Each cycle a *fresh* agent takes the
   highest-value RED claim and turns it GREEN without breaking any guarded claim.
   The **gate** — every probe plus its trap — is the arbiter of what may land;
@@ -145,3 +147,11 @@ drives recurve's development on the recurve tree itself — a fresh agent per cy
 each stop decided by the controller, each change proven by the gate before it
 lands. The tool improves itself the way it asks you to improve anything. Recurve
 walks the walk.
+
+## Further reading
+
+The full technical treatment — the formal model of the gate, the oracle-spectrum
+thesis, the self-hosted record, and positioning against the 2025–2026
+verification literature — is the paper:
+[**recurve: a falsifiability-gated framework for autonomous, verifiable
+problem-solving** (PDF)](papers/recurve-framework.pdf).

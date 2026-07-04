@@ -76,6 +76,9 @@ recurve baseline checkout
 
 # 3 · burn red → green: from your agent session (the loop skill), or headless:
 recurve run                       # agent defaults to a bypass-permissions Claude
+
+# 4 · audit the checks themselves — every trap must still fail, measurably:
+recurve drill --fuzz              # false-positive rate per probe, from generated known-bads
 ```
 
 The primary way to run recurve is **inside your agent session**: invoke the
@@ -105,6 +108,24 @@ point: **evidence, not belief.** ([ways to run](usage-provider-agnostic.md#step-
     Initialize, design the claims, kick off the loop — and stop it safely.
 
     [Walk through it →](usage-provider-agnostic.md)
+
+-   :material-shield-search: **Harden the checks**
+
+    ---
+
+    Who verifies the verifier? Traps re-proven, false positives measured,
+    reference oracles compared.
+
+    [Audit it →](hardening.md)
+
+-   :material-database-outline: **Run data & trajectories**
+
+    ---
+
+    Every cycle is a record; the log exports as a dataset with reward
+    provenance on every row.
+
+    [Mine it →](run-data.md)
 
 -   :material-source-branch: **Multi-repo & packs**
 
