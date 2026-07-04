@@ -101,3 +101,40 @@
   probe: probes/r2-1.sh
   unlocks: a CLI a contributor can navigate by command, with the framework swap isolated to
     the next phase
+
+- id: R3-1
+  title: Typer becomes the dispatcher (declared dependency)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R3-1
+  evidence:
+  - recurvelib/cli/main.py
+  - pyproject.toml
+  observed: 'GREEN at close 2026-07-04: Typer is the dispatcher (no argparse under cli/),
+    declared in pyproject, entrypoint intact'
+  smallest_fix: rewrite the dispatch layer as a Typer app (no argparse under cli/), declare
+    typer in pyproject dependencies, keep command bodies unchanged and recurvelib.cli:main
+    intact; real-invocation behavior held by R0/R1 + the CLI probes
+  probe: probes/r3-1.sh
+  unlocks: a navigable CLI on a modern framework with native help/errors, the dependency cost
+    priced and isolated to this phase
+
+- id: R3-2
+  title: no framework color or chrome leaks into captured output
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R3-2
+  evidence:
+  - recurvelib/cli/main.py
+  observed: 'GREEN at baseline 2026-07-04: no ANSI color or chrome leaks into piped/captured
+    output (help, errors, and a real command)'
+  smallest_fix: ensure Typer emits no ANSI under a pipe or NO_COLOR — help, errors, and command
+    output stay plain for the probes that capture them
+  probe: probes/r3-2.sh
+  unlocks: the 29 CLI-shelling probes keep matching captured bytes after the framework swap

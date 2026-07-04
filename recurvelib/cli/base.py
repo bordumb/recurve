@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from __future__ import annotations
-
-import argparse
 import re
 import sys
+from enum import Enum
 from pathlib import Path
 
 from .. import SCHEMA_VERSION
@@ -108,3 +106,26 @@ def _draft_backlog(cfg) -> tuple[list[dict], int]:
     adj = cfg.assets_dir / "ADJUDICATE.md"
     forks = adj.read_text().count("DECIDED: (pending") if adj.exists() else 0
     return drafts, forks
+
+
+# Choice-typed command arguments, shared with the Typer dispatch layer.
+class RecordAction(str, Enum):
+    append = "append"
+    list = "list"
+
+
+class ReceiptsAction(str, Enum):
+    verify = "verify"
+    list = "list"
+
+
+class LockAction(str, Enum):
+    status = "status"
+    acquire = "acquire"
+    release = "release"
+    steal = "steal"
+
+
+class ReportFormat(str, Enum):
+    md = "md"
+    json = "json"

@@ -29,7 +29,7 @@ classifiers = [
   "Topic :: Software Development :: Quality Assurance",
   "Topic :: Software Development :: Testing",
 ]
-dependencies = ["pyyaml>=6.0"]
+dependencies = ["pyyaml>=6.0", "typer>=0.12"]
 # Runtime SYSTEM requirement (not a Python package, so not installable here): `git` must be on PATH for the
 # git-backed features — receipts, `init` scaffolding, and the GitWorld runtime adapter. When git is absent
 # recurve raises a typed error (never a raw crash); see the adapters suite (AP-12).

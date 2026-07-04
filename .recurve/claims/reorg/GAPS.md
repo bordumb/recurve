@@ -67,3 +67,21 @@ this phase changes no flag and no output — behavioral inertness is enforced by
 the standing R0/R1 guards the fleet gate runs. Covers PRD R2.1 and R2.2.
 Negative space (guarded by the trap): a `cli/` package that merely relocated the
 monolith into one oversized module.
+
+## R3-1 — Typer becomes the dispatcher (declared dependency)
+
+The CLI layer dispatches through Typer with no `import argparse` anywhere under
+`recurvelib/cli/`, and `typer` is a declared runtime dependency in
+`pyproject.toml`, so a fresh install resolves and runs the entrypoint. The
+command bodies are unchanged — only the dispatch and argument-declaration layer
+moves. Real-invocation behavior is held by the standing R0/R1 guards + the CLI
+probes; Typer's native help and unknown-command errors replace argparse's.
+Covers PRD R3.1 and R3.2. Negative space (guarded by the trap): a `cli/` that
+imports typer but leaves argparse dispatching (imported but unused).
+
+## R3-2 — no framework color or chrome leaks into captured output
+
+Under a pipe or with `NO_COLOR` set, the CLI emits no ANSI styling into stdout
+or stderr — a real Typer/click gotcha — so captured and piped output stays plain
+for the probes that read it. Covers PRD R3.3. Negative space (guarded by the
+trap): a detector that misses an ANSI escape in captured output.
