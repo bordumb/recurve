@@ -560,3 +560,127 @@
   probe: probes/tk-29.sh
   unlocks: a fresh clone gets the CLI AND the /recurve-* slash commands from one `recurve
     install`
+
+- id: TK-30
+  title: drill --fuzz measures per-probe false-positive rate against generated known-bads
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers:
+  - TK-30
+  evidence:
+  - recurvelib/cli.py
+  observed: 'RED at baseline 2026-07-04: ours=drill --fuzz rc=2 on a strict probe (recurve:
+    error: unrecognized arguments: --fuzz) oracle=exit 0, fpr 0'
+  smallest_fix: run probes/<id>.fuzz.sh generators (FUZZ_OUT/FUZZ_N contract) for closed fuzz-capable
+    claims inside drill; a variant the probe GREENs is a false positive; report fpr per probe
+    and exit nonzero when fpr exceeds the threshold
+  probe: probes/tk-30.sh
+  unlocks: the RED-first law extended from curated traps to generated known-bads — measured
+    verifier reliability
+
+- id: TK-31
+  title: fuzzing is parameterized — off by default, fuzz_n and fuzz_fpr_max knobs
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers:
+  - TK-31
+  evidence:
+  - recurvelib/cli.py
+  - recurvelib/config.py
+  observed: 'RED at baseline 2026-07-04: ours=fuzz_n=2 not honored (no /2 denominator) oracle=[drill]
+    fuzz_n bounds variants per probe'
+  smallest_fix: plain drill is byte-compatible (no fuzz work, no fpr output); [drill] fuzz_n
+    bounds variants per probe; [drill] fuzz_fpr_max turns a leak from fatal into reported
+  probe: probes/tk-31.sh
+  unlocks: users tune fuzz cost/strictness to their budget instead of a hardcoded policy
+
+- id: TK-32
+  title: recurve trajectories exports provenance-bearing JSONL rows from the run-log
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers:
+  - TK-32
+  evidence:
+  - recurvelib/cli.py
+  - recurvelib/records.py
+  observed: 'RED at baseline 2026-07-04: ours=recurve trajectories rc=2, no rows oracle=one
+    JSON object per cycle record on stdout'
+  smallest_fix: 'new read-only subcommand joining records.jsonl with the ledger: one JSON
+    object per cycle record with gap/suite/action/attempts/reward/files_touched/severity/verified
+    and provenance (probe path, trap count); reward 1 iff closed'
+  probe: probes/tk-32.sh
+  unlocks: the run-log as a training-ready dataset whose every reward names its verifier
+
+- id: TK-33
+  title: trajectory export excludes unverified rewards by default (contamination gate)
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers:
+  - TK-33
+  evidence:
+  - recurvelib/cli.py
+  observed: 'RED at baseline 2026-07-04: ours=trajectories rc=2 oracle=exit 0 with a summary'
+  smallest_fix: a row is verified iff its gap has a probe and a non-waived trap fixture on
+    disk; default export drops unverified rows and summarizes counts on stderr; --include-unverified
+    re-admits them marked verified:false
+  probe: probes/tk-33.sh
+  unlocks: mitigation for the measured 1%-contamination hazard in trajectory training data
+
+- id: TK-34
+  title: trajectory export is deterministic and read-only
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers:
+  - TK-34
+  evidence:
+  - recurvelib/cli.py
+  observed: 'RED at baseline 2026-07-04: ours=trajectories rc=2 oracle=exit 0'
+  smallest_fix: stable row sort (suite, gap, run_id, cycle) + sorted JSON keys make re-runs
+    byte-identical; the command never writes records.jsonl or the ledger
+  probe: probes/tk-34.sh
+  unlocks: exports that are diffable evidence, not one-off dumps
+
+- id: TK-35
+  title: stats reports budget-attached close rates (close%@1, close%@2)
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers:
+  - TK-35
+  evidence:
+  - recurvelib/cli.py
+  observed: 'RED at baseline 2026-07-04: ours=no attempt-budget column in stats header oracle=close%@1
+    and close%@2 reported per class'
+  smallest_fix: per class, alongside raw close%, print the share of cycle records closed with
+    attempts <=1 and <=2 — attempt inflation becomes visible instead of silently flattering
+    the rate
+  probe: probes/tk-35.sh
+  unlocks: run statistics that survive the budget-matched-evaluation critique
+
+- id: TK-36
+  title: stats surfaces trap debt (waived guards) next to the close rates
+  class: missing-surface
+  status: open
+  severity: feature
+  reads: none
+  covers:
+  - TK-36
+  evidence:
+  - recurvelib/cli.py
+  observed: 'RED at baseline 2026-07-04: ours=no trap-debt line oracle=''trap debt: 1 waived
+    guard'' for one waived closed gap'
+  smallest_fix: 'count closed gaps carrying trap_waiver and print "trap debt: N waived guard(s)"
+    in stats output'
+  probe: probes/tk-36.sh
+  unlocks: verification debt visible in the same view as the rates it qualifies

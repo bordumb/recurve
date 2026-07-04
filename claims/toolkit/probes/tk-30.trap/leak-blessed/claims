@@ -1,0 +1,1 @@
+drill --fuzz exits 0 on a project whose probe GREENs a generated known-bad
