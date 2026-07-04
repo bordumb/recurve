@@ -1,6 +1,6 @@
 ---
 title: "recurve: A Falsifiability-Gated Framework for Autonomous, Verifiable Problem-Solving"
-author: "Brian S. Deely · the recurve project"
+author: "bordumb · bordumbb@gmail.com"
 date: 4 July 2026
 abstract: |
   Autonomous systems built on large language models can now generate code and

@@ -89,7 +89,7 @@ toolkit is built with itself, and its claims are probed like anyone else's:
 
 ```bash
 git clone https://github.com/bordumb/recurve.git && cd recurve
-recurve --config recurve.toml matrix --gate
+recurve matrix --gate
 ```
 
 ## Use it on your project
@@ -181,7 +181,7 @@ lying dashboards) — is in [docs/plan.md](docs/plan.md).
 | `schema/` | versioned schemas: gap entry, run record, evidence receipt |
 | `templates/` | what `init` stamps into a target: the per-cycle contract (`RUN.md`), unattended runbook, review protocol, troubleshooting, quality presets, burndown workflows, skills |
 | `packs/` | claim packs — reusable claim+probe+trap bundles (CLI contract, perf SLO); install as drafts, your baseline measures them |
-| `claims/toolkit/` | recurve hosts itself: its own promises, probed and gated |
+| `.recurve/claims/toolkit/` | recurve hosts itself: its own promises, probed and gated (contained layout — the same one `init` stamps) |
 | `acceptance/` | proof the extraction worked: live side-by-side equivalence with the two projects the method came from, plus end-to-end phase tests |
 
 ## Status

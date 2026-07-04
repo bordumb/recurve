@@ -106,6 +106,8 @@ recurvelib/            the engine (Python, stdlib + PyYAML only)
 schema/                versioned: gap entry, run record, receipt
 templates/             everything `init` stamps (docs, workflows, skills)
 packs/                 shipped claim packs (cli-contract, perf-slo)
+.recurve/              recurve's own self-host: contained config + claim suites,
+                       gated by the engine it contains (state/ is run-local, ignored)
 ```
 
 ## Target layout (contained)
