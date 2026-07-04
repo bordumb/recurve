@@ -650,15 +650,14 @@
 - id: TK-35
   title: stats reports budget-attached close rates (close%@1, close%@2)
   class: missing-surface
-  status: open
+  status: closed
   severity: feature
   reads: none
   covers:
   - TK-35
   evidence:
   - recurvelib/cli.py
-  observed: 'RED at baseline 2026-07-04: ours=no attempt-budget column in stats header oracle=close%@1
-    and close%@2 reported per class'
+  observed: 'GREEN at close 2026-07-04: stats reports budget-attached close rates: raw 75% alongside close%@1 50% and close%@2 50% on the mixed-attempts fixture'
   smallest_fix: per class, alongside raw close%, print the share of cycle records closed with
     attempts <=1 and <=2 — attempt inflation becomes visible instead of silently flattering
     the rate
@@ -668,14 +667,14 @@
 - id: TK-36
   title: stats surfaces trap debt (waived guards) next to the close rates
   class: missing-surface
-  status: open
+  status: closed
   severity: feature
   reads: none
   covers:
   - TK-36
   evidence:
   - recurvelib/cli.py
-  observed: 'RED at baseline 2026-07-04: ours=no trap-debt line oracle=''trap debt: 1 waived
+  observed: 'GREEN at close 2026-07-04: stats surfaces verification debt: trap debt: 1 waived guard on a one-waiver ledger''trap debt: 1 waived
     guard'' for one waived closed gap'
   smallest_fix: 'count closed gaps carrying trap_waiver and print "trap debt: N waived guard(s)"
     in stats output'
