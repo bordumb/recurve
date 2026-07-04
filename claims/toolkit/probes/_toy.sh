@@ -65,3 +65,35 @@ toy_record() {  # $1=dir $2=gap $3=status $4=attempts $5=run_id $6=cycle
   printf '{"schema_version":"1.0.0","project":"toy","run_id":"%s","cycle":"%s","gap":"%s","suite":"s","class":"missing-surface","severity":"feature","status":"%s","attempts":%s,"files_touched":["f.txt"],"net_new_gaps":0,"regressions_caught":0,"summary":"toy cycle","wall_clock_s":10}\n' \
     "$5" "$6" "$2" "$3" "$4" >> "$1/.recurve/state/records.jsonl"
 }
+
+toy_oracle_waiver() {  # $1=dir $2=id $3=text — declare oracle_waiver on that claim (F1)
+  local d="$1" id="$2" text="$3"
+  python3 - "$d/claims/s/gaps.yaml" "$id" "$text" <<'PY'
+import sys, pathlib
+path, gid, text = sys.argv[1], sys.argv[2], sys.argv[3]
+p = pathlib.Path(path)
+marker = f"probe: probes/{gid}.sh\n"
+content = p.read_text()
+assert content.count(marker) == 1, f"expected exactly one {marker!r}"
+p.write_text(content.replace(marker, marker + f"  oracle_waiver: {text}\n", 1))
+PY
+}
+
+toy_reference() {  # $1=dir $2=id $3=ref-filename(relative to probes/) — declare a reference oracle (F2.4)
+  local d="$1" id="$2" ref="$3"
+  python3 - "$d/claims/s/gaps.yaml" "$id" "$ref" <<'PY'
+import sys, pathlib
+path, gid, ref = sys.argv[1], sys.argv[2], sys.argv[3]
+p = pathlib.Path(path)
+marker = f"probe: probes/{gid}.sh\n"
+content = p.read_text()
+assert content.count(marker) == 1, f"expected exactly one {marker!r}"
+p.write_text(content.replace(marker, marker + f"  reference: probes/{ref}\n", 1))
+PY
+}
+
+toy_iso_gen() {  # $1=dir $2=id ; generator body on stdin (gets ISO_OUT, ISO_N)
+  local d="$1" id="$2"
+  cat > "$d/claims/s/probes/$id.iso.sh"
+  chmod +x "$d/claims/s/probes/$id.iso.sh"
+}

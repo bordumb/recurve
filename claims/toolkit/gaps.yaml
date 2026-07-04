@@ -680,3 +680,42 @@
     in stats output'
   probe: probes/tk-36.sh
   unlocks: verification debt visible in the same view as the rates it qualifies
+
+- id: TK-37
+  title: drill honors a declared oracle_waiver on a trap's SKIP (F1.1)
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-37
+  evidence:
+  - recurvelib/cli.py
+  - recurvelib/conformance.py:32
+  observed: 'GREEN at close 2026-07-04: drill honors the declared oracle_waiver: a SKIP
+    trap is non-blocking, visible debt (1 oracle-waived)'
+  smallest_fix: mirror is_waived_skip inside cmd_drill's trap loop — a trap outcome of SKIP
+    on a claim declaring oracle_waiver is counted as an oracle-waived counterexample beside
+    the waived-guards figure, never a drill failure
+  probe: probes/tk-37.sh
+  unlocks: the drill agrees with the gate on the same fact instead of screaming at a clean
+    fleet ("a guard would bless its own defect") over a legitimately absent external oracle
+
+- id: TK-38
+  title: an undeclared SKIP still fails the drill beside a waived one (F1.2)
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-38
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: an undeclared SKIP still fails the drill on a
+    mixed fleet, beside a correctly-waived one'
+  smallest_fix: the oracle-waived exemption in cmd_drill's trap loop checks BOTH the SKIP
+    outcome AND a declared oracle_waiver — an undeclared SKIP falls through to the ordinary
+    failure path, so F1.1's debt-forgiveness never widens into a general dodge
+  probe: probes/tk-38.sh
+  unlocks: the floor F1.2 requires stays load-bearing exactly where F1.1 introduces the exemption,
+    proven on a mixed fleet rather than in isolation

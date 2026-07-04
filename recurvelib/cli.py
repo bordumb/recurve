@@ -1128,6 +1128,7 @@ def cmd_drill(args):
         print("nothing to drill: no closed gaps guard anything yet.")
         return
     failures, waived, audited = [], 0, 0
+    oracle_waived = 0
     fuzz_probes, fuzz_fps = 0, 0
     try:
         with TreeLock(cfg.tree or cfg.root):
@@ -1137,6 +1138,17 @@ def cmd_drill(args):
                     continue
                 for t in run_traps(g, timeout_s=args.timeout):
                     audited += 1
+                    # F1.1: a trap whose external oracle is absent (SKIP) on a
+                    # claim that DECLARED oracle_waiver mirrors the gate's
+                    # is_waived_skip — visible, non-blocking debt, never a
+                    # drill failure. F1.2: without a declared waiver the SKIP
+                    # is not excused — it falls through to the failure path
+                    # below like any other non-RED outcome.
+                    if t.outcome is Outcome.SKIP and g.oracle_waiver:
+                        oracle_waived += 1
+                        print(f"  {C['amber']}⊘{C['reset']} {g.id}/{t.trap} "
+                              f"oracle-waived (external oracle absent, declared) — {t.detail[:60]}")
+                        continue
                     mark = C["green"] + "●" if t.ok else C["red"] + "▲"
                     print(f"  {mark}{C['reset']} {g.id}/{t.trap} "
                           f"{'RED (still catches it)' if t.ok else t.outcome.value + ' — ' + t.detail[:60]}")
@@ -1214,7 +1226,8 @@ def cmd_drill(args):
     except LockHeld as e:
         _fail(f"\033[31m✗ {e}\033[0m", 1)
     print(f"drill: {audited} counterexample(s) audited across {len(guards)} guard(s), "
-          f"{waived} waived (debt — the drill cannot repay what no fixture exercises)")
+          f"{waived} waived (debt — the drill cannot repay what no fixture exercises), "
+          f"{oracle_waived} oracle-waived (external oracle absent, declared)")
     if args.fuzz:
         print(f"fuzz: {fuzz_probes} fuzz-capable probe(s) measured, "
               f"{fuzz_fps} false positive(s)")
