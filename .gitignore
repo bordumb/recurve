@@ -16,3 +16,6 @@ acceptance/ancestors.env
 acceptance/configs/
 acceptance/golden/
 acceptance/originals/
+
+# macOS
+.DS_Store
