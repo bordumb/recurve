@@ -81,3 +81,22 @@
   probe: probes/ev-4.sh
   unlocks: every FDR number rests on a held-out oracle that is isolated, flake-controlled,
     and tamper-evident
+
+- id: EV-5
+  title: 'Analysis: deterministic tables from results.jsonl'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-5
+  evidence:
+  - eval/evallib/analyze.py
+  observed: 'GREEN at baseline 2026-07-04: analyze is deterministic + order-invariant; FDR/ΔFDR/shipped-bad
+    computed correctly'
+  smallest_fix: analyze_rows sorts the results and renders the §4 tables (shipped-bad rate,
+    FDR, ΔFDR, oracle pass rate, Wilson intervals, paired McNemar) as a byte-stable, order-invariant
+    pure function — stdlib only
+  probe: probes/ev-5.sh
+  unlocks: the run dir reads like a lab notebook — results.jsonl in, the same tables out,
+    reproducible from the JSONL alone

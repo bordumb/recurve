@@ -52,3 +52,12 @@ suite N times and returns the majority verdict plus the flake rate; `evaluate`
 refuses to grade unless the oracle's test text matches the checksum recorded at
 fetch time. Negative space (guarded by the trap): grading a solution with a
 tampered oracle against the original pin.
+
+## EV-5 — Analysis: deterministic tables from results.jsonl
+
+`analyze.py` is a pure function of the results: same rows in any order produce
+byte-identical output. It computes the §4 metrics — per model × arm
+shipped-bad-work rate, FDR, ΔFDR, oracle pass rate — with Wilson 95% intervals
+and a paired McNemar within each model, all closed-form in stdlib (no scipy, no
+notebook state). Negative space (guarded by the trap): an analysis whose output
+depends on input row order (non-deterministic).
