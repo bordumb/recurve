@@ -31,17 +31,21 @@ see — never the hidden `test` field — and `assert_quarantined` refuses any
 workspace in which the hidden test text appears. Negative space (guarded by the
 trap): a materializer that accepts a workspace containing the hidden oracle.
 
-## EV-3 — Runner: pinned matrix + resumable work queue
+## EV-3 — Runner: pinned matrix + crash-resilient resumable queue
 
 `plan.expand` turns a manifest and a pinned task set into the full cross product
 (task × arm × model × budget × seed) with cell IDs derived from coordinates,
-written to `matrix.jsonl` before any agent runs. `runner.run` drives each cell
-through a BYO-agent adapter and seals exactly one row per cell; the resume
-invariant is load-bearing — a re-run over a completed matrix invokes the agent
-zero times, so a long paid run is safe to stop and restart. The adapters
-(`claude.py`, `telemetry.py`) and the three CLI verbs complete the surface; the
-gated logic is driven by a mock adapter (no spend). Negative space (guarded by
-the trap): a runner that re-invokes the agent on already-sealed cells.
+written to `matrix.jsonl` before any agent runs. `runner.run` seals each cell's
+row the moment it finishes (append + flush + fsync), which buys the properties a
+long headless run needs: a crash mid-run leaves every completed cell durable (a
+resume loses only the in-flight cell, not the batch); an adapter that raises is
+sealed as a `status: "error"` row and the run continues; a re-run skips sealed
+ids (errors included, so a deterministic failure never re-spends) and a completed
+matrix invokes the agent zero times; and `sealed_ids` skips a truncated final
+line (the partial write a crash leaves), so resume never trips on it. The
+adapters and the three CLI verbs complete the surface; gated logic is driven by
+mock adapters (no spend). Negative space (guarded by the traps): a runner that
+re-invokes sealed cells; a mid-run crash that loses the cells already finished.
 
 ## EV-4 — Quarantine evaluator: isolated oracle, 3× majority, tamper-refused
 

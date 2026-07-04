@@ -43,7 +43,7 @@
     for every honest FDR number
 
 - id: EV-3
-  title: 'Runner: pinned matrix + resumable work queue'
+  title: 'Runner: pinned matrix + crash-resilient resumable queue'
   class: missing-surface
   status: closed
   severity: feature
@@ -54,11 +54,11 @@
   - eval/evallib/plan.py
   - eval/evallib/runner.py
   - eval/evallib/adapters
-  observed: 'GREEN at baseline 2026-07-04: runner expands a pinned matrix, seals one row per
-    cell, and resumes with zero new invocations'
-  smallest_fix: plan.expand writes a deterministic cross-product matrix with coordinate-derived
-    cell ids; runner.run seals one row per cell and resumes by skipping sealed ids, so a re-run
-    over a completed matrix invokes the agent zero times
+  observed: 'GREEN at close 2026-07-05: runner: pinned matrix + per-cell durable sealing (crash-resilient,
+    error-isolated, resumable)'
+  smallest_fix: plan.expand writes a deterministic cross-product matrix; runner.run seals each
+    row durably (append+flush+fsync) the moment its cell finishes, isolates a raising cell as
+    status=error, skips sealed ids on resume, and tolerates a truncated final line
   probe: probes/ev-3.sh
   unlocks: an interrupted run resumes safely and re-running is always free — the precondition
     for a long, expensive matrix
