@@ -11,6 +11,7 @@ dependencies = []
 [project.optional-dependencies]
 run = ["datasets>=2.0"]        # fetch + pin the real benchmark from HuggingFace
 oracle = ["bigcodebench"]      # build the quarantine venv for the hidden suites
+figures = ["matplotlib>=3.6"]  # the deterministic figure renderer
 
 [project.scripts]
 eval = "evallib.cli:main"

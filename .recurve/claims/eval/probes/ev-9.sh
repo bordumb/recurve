@@ -22,7 +22,7 @@ rows=[]
 def add(m,a,t,d,v,o=None):
     r={"model":m,"arm":a,"task_id":t,"cell_id":f"{m}-{a}-{t}","budget":60000,"seed":0,
        "declared_done":d,"oracle_verdict":v}
-    if o: r["a3_outcome"]=o
+    if o: r["gate_outcome"]=o
     rows.append(r)
 # mA: A0 ships bad on t2,t3; A3 fixes t2, refuses t3, passes t1/t4
 add("mA","A0","t1",True,"pass"); add("mA","A0","t2",True,"fail")
@@ -61,12 +61,12 @@ spec=figure_specs(rows)
 h=spec['hero']
 assert h['kind']=='dumbbell' and h['x_domain']==[0.0,1.0], h
 row=[r for r in h['rows'] if r['model']=='mA'][0]
-assert abs(row['a0']['rate']-0.5)<1e-9 and row['a3']['rate']==0.0, row   # shipped-bad A0 2/4, A3 0/4
+assert abs(row['baseline']['rate']-0.5)<1e-9 and row['gated']['rate']==0.0, row   # shipped-bad A0 2/4, A3 0/4
 assert abs(row['delta']-0.5)<1e-9, row
-lo,hi=wilson(2,4); assert abs(row['a0']['ci_lo']-lo)<1e-9 and abs(row['a0']['ci_hi']-hi)<1e-9, row
-assert row['a3']['refused']==1, row
+lo,hi=wilson(2,4); assert abs(row['baseline']['ci_lo']-lo)<1e-9 and abs(row['baseline']['ci_hi']-hi)<1e-9, row
+assert row['gated']['refused']==1, row
 d=[r for r in spec['decomposition']['rows'] if r['model']=='mA'][0]
-assert d['among_a0_bad']==2 and d['fixed']==1 and d['refused']==1 and d['also_bad']==0, d
+assert d['among_baseline_bad']==2 and d['fixed']==1 and d['refused']==1 and d['also_bad']==0, d
 # deterministic + order-invariant
 import random
 a=figure_specs(rows); r2=list(rows); random.Random(3).shuffle(r2)

@@ -68,13 +68,11 @@ def cmd_run(args) -> int:
 
 
 def cmd_analyze(args) -> int:
-    from evallib.analyze import analyze_file  # built by EV-5; imported lazily
+    from evallib.analyze import analyze_and_emit  # tables + figures, one pass
     run_dir = Path(args.rundir)
-    md = analyze_file(run_dir / "results.jsonl")
-    out = run_dir / "analysis" / "summary.md"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(md)
-    print(f"analysis → {out}")
+    out_dir = run_dir / "analysis"
+    analyze_and_emit(run_dir / "results.jsonl", out_dir)
+    print(f"analysis → {out_dir}/ (summary.md + figures)")
     return 0
 
 

@@ -161,3 +161,27 @@
   probe: probes/ev-8.sh
   unlocks: the price-of-trust metrics have a data source and the key budget-matching control
     is actually enforced, not assumed
+
+- id: EV-9
+  title: 'Figures as data: deterministic, honest, byte-stable'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-9
+  evidence:
+  - eval/evallib/analyze.py
+  - eval/evallib/render.py
+  observed: 'GREEN at baseline 2026-07-05: render OK ⏎ figure_specs is deterministic + honest;
+    matplotlib render is byte-stable'
+  smallest_fix: figure_specs computes the hero dumbbell + decomposition as a deterministic,
+    order-invariant pure function (roles inferred from gate_outcome, not arm names); spec_is_honest
+    guards the full 0-100% axis + synthetic watermark; render.py draws them byte-stably and
+    analyze_and_emit renders alongside the tables
+  probe: probes/ev-9.sh
+  unlocks: publication-grade figures that regenerate from results.jsonl with one command and
+    cannot drift from the tables — no notebook in the truth path
+  oracle_waiver: byte-stable rendering needs the optional matplotlib dependency; figure_specs
+    + spec_is_honest are tested hermetically, and the render is verified full-strength where
+    matplotlib is importable

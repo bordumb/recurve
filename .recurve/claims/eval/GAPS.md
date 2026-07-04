@@ -105,3 +105,18 @@ bounded by cap + one cycle's overshoot, never many multiples of it. The gated
 Claude adapter drives the real run through it. Negative space (guarded by the
 traps): `cost_usd` silently pricing an unknown model at $0; a per-cycle cap that
 lets a cell overshoot without bound.
+
+## EV-9 — Figures as data: deterministic, honest, byte-stable
+
+`analyze.figure_specs` is a pure, order-invariant function of the results: the
+hero **dumbbell** (baseline→gated shipped-bad per model, Wilson-95% on both
+endpoints, Δ, refused count) and the Fig-2 **decomposition** (among
+baseline-shipped-bad tasks, what the gated arm did: fixed / refused /
+also-shipped-bad / process-failed). Roles are inferred from the data (a gated
+arm's rows carry `gate_outcome`), so nothing is baked to an arm name.
+`spec_is_honest` encodes two craft rules as guards: the hero x-axis spans the
+full [0,1] (never truncated) and a synthetic spec carries a watermark the
+renderer stamps onto the image. `render.py` draws them deterministically (fixed
+rcParams, no timestamps, the paper's validated palette) to byte-stable SVG+PDF;
+`analyze_and_emit` renders them in the same pass as the tables. Negative space
+(guarded by the trap): a truncated-axis hero accepted as honest.
