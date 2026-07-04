@@ -106,20 +106,117 @@ rates, raw fractions always shown. Estimated cost: ~148 tasks × 2 arms ×
 ≤60k tokens ≈ $25–75 for the Haiku pair and ~3× that for the Sonnet pair —
 **~$100–300 total**; wall-clock manageable by running ~8 tasks concurrently.
 
-### 0.4 · What has to be built (each a claim in a `bench` suite)
+### 0.4 · Build this first: the `eval/` pipeline (matrix as data)
 
-1. **TaskStore** — `datasets.load_dataset("bigcode/bigcodebench-hard")`
-   pinned to a revision hash; probe asserts the hash and task count.
-2. **Materializer** — task → fresh workspace (git-init'd tmpdir; the A3
-   variant adds `recurve init` + the arm's config); trap: a workspace that
-   contains the hidden `test` text must be refused.
-3. **Arm runner** — drives the adapter with the token cap; records
-   declared/refused, tokens, wall-clock into one JSONL row per (task, arm).
-4. **Quarantine evaluator** — the separate venv + 3× unittest runs; trap: a
-   tampered oracle (edited `test` text) must be caught by a checksum against
-   the pinned dataset.
-5. **Analysis script** — deterministic: `results.jsonl` in → the §0.3 table
-   + paired McNemar out. Byte-stable given the same input.
+The POC does not get built as a one-off script. **Before any cell runs, the
+`eval/` pipeline below exists and its claims are GREEN** — then the POC is
+nothing but the first manifest fed through it. Design principle: **the
+matrix is data, not code.** An experiment is declared in a small manifest;
+everything downstream is a pure function of it — so scaling to E2/E4 later
+(more models, more arms) is a config change, not new code.
+
+**Three verbs, with a file between each** (every phase boundary is an
+inspectable, diffable artifact):
+
+- `eval plan` — expands the manifest's cross product into `matrix.jsonl`,
+  the pinned cell list (task × arm × model × budget × seed), written
+  **before** any agent runs (the registered-report affordance: the sample
+  is committed before results exist). Prints the cost estimate.
+- `eval run` — a resumable work queue over the cells: k workers, one sealed
+  row per cell. Cell IDs derive from their coordinates, so an interrupted
+  run resumes by skipping sealed cells; re-running is always safe.
+- `eval analyze` — deterministic: `results.jsonl` in, tables out. No
+  notebook state, no manual steps.
+
+**Layout** (own uv project at the repo root; `recurvelib` never imports it,
+so the engine's stdlib+PyYAML posture is untouched):
+
+```
+eval/
+  pyproject.toml               # own uv project — recurvelib never imports it
+  README.md                    # how to reproduce any run, end to end
+  evallib/                     # infrastructure
+    taskstore.py               #   fetch + pin benchmarks (HF revision, git commit)
+    materialize.py             #   task → fresh workspace (A0 / A3 variants)
+    arms.py                    #   arm name → recurve.toml + flags (pure)
+    adapters/claude.py         #   the AGENT_CMD wrapper (--model param)
+    adapters/telemetry.py      #   uniform token/cost capture + dated price table
+    runner.py                  #   matrix → work queue → sealed cell rows
+    quarantine.py              #   held-out oracle, separate venv, 3× majority
+    analyze.py                 #   results.jsonl → McNemar / Wilson / paired table
+  experiments/                 # one manifest per experiment — small, committed
+    poc-bcb-hard.toml
+  runs/                        # one immutable dir per launch: {date}_{experiment}
+    2026-07-XX_poc-bcb-hard/
+      manifest.toml            #   frozen copy of the manifest at launch time
+      matrix.jsonl             #   the expanded cells, pinned BEFORE running
+      cells/                   #   per-cell workspaces + transcripts (gitignored)
+      results.jsonl            #   one row per cell (committed — this is the data)
+      analysis/summary.md      #   generated tables (committed)
+```
+
+**The POC manifest** (`eval/experiments/poc-bcb-hard.toml`) is the whole
+experiment in ~15 lines:
+
+```toml
+[experiment]
+name = "poc-bcb-hard"
+question = "Does the gate reduce shipped-bad-work at matched budget?"
+
+[matrix]
+models  = ["claude-haiku-4-5", "claude-sonnet-5"]
+arms    = ["A0", "A3"]
+budgets = [60000]
+seeds   = [0]
+
+[tasks]
+benchmark = "bigcodebench-hard"
+revision  = "<pinned HF revision hash>"
+sample    = { n = 50, seed = 7 }   # pilot; "all" for the full 148
+
+[oracle]
+runs = 3
+verdict = "majority"
+```
+
+**Reproducibility rules:**
+
+1. **Runs are immutable** — never overwrite a run dir; a re-run is a new
+   dated dir; the frozen manifest copy keeps old runs legible even after
+   `experiments/` evolves.
+2. **Every results row carries its own provenance** — dataset revision,
+   model version string verbatim, recurve commit, adapter version, seed.
+   Any single row is re-executable from its own fields.
+3. **Commit policy** — manifests, `matrix.jsonl`, `results.jsonl`, and
+   `analysis/` are committed (small; they are the evidence); `cells/`
+   workspaces and transcripts are gitignored (tarballed on demand).
+4. **A run dir reads like a lab notebook**, top to bottom: manifest (what
+   we intended) → matrix (what we planned) → results (what happened) →
+   analysis/summary.md (what it means) — compared against the §0.6
+   pre-registered guesses.
+5. **No sweep frameworks** (hydra/wandb) — manifest + queue + JSONL gives
+   the same matrix semantics with nothing hidden, which matters when the
+   pipeline's credibility is the product.
+
+**The gateable claims** (an `eval` suite in the ledger — the instrument is
+held to the standard it measures), mapped to modules:
+
+1. **TaskStore** (`taskstore.py`) —
+   `datasets.load_dataset("bigcode/bigcodebench-hard")` pinned to a revision
+   hash; probe asserts the hash and task count.
+2. **Materializer** (`materialize.py` + `arms.py`) — task → fresh workspace
+   (git-init'd tmpdir; the A3 variant adds `recurve init` + the arm's
+   config); trap: a workspace that contains the hidden `test` text must be
+   refused.
+3. **Runner** (`runner.py` + `adapters/`) — drives the adapter under the
+   token cap; seals one row per cell; trap: a re-run over a completed matrix
+   must produce zero new agent invocations (resume correctness).
+4. **Quarantine evaluator** (`quarantine.py`) — separate venv + 3× unittest
+   majority; trap: a tampered oracle (edited `test` text) must be caught by
+   a checksum against the pinned dataset.
+5. **Analysis** (`analyze.py`) — deterministic: `results.jsonl` in → the
+   §0.3 tables + paired McNemar out; probe: byte-stable output given the
+   same input.
 
 ### 0.5 · What the POC does and doesn't prove
 
@@ -296,8 +393,8 @@ What each provider needs is a ~50-line wrapper conforming to that contract:
 **What IS missing** (small, real): a **telemetry normalization layer** — the
 run-record schema already has a `tokens` object; the adapters must populate
 it uniformly (prompt/completion/total + provider list price → cost). One
-shared `bench/adapters/telemetry.py` + a per-provider price table, pinned by
-date. Plus per-adapter: version pinning (model string recorded verbatim),
+shared `eval/evallib/adapters/telemetry.py` + a per-provider price table,
+pinned by date. Plus per-adapter: version pinning (model string recorded verbatim),
 timeout policy, and a retry contract (retries count as attempts — they're
 part of the cost story, never silently absorbed).
 
@@ -316,7 +413,7 @@ flowchart LR
   RES --> AN[Analysis\npaired stats, CIs, curves, tables]
 ```
 
-Components (each a claim suite in the bench target):
+Components (each a claim in the `eval` suite):
 
 1. **TaskStore** — downloads + pins benchmark instances (HF `datasets` /
    git clones at fixed revisions); materializes a task as `(repo state,
@@ -351,13 +448,15 @@ Components (each a claim suite in the bench target):
    matrix table, price-of-trust table. Every figure in the paper regenerates
    from `results.jsonl` by one command.
 
-**Where it lives:** `bench/` in the recurve repo as its **own uv project**
-(`bench/pyproject.toml` with `datasets`, `docker` SDK etc.) — the engine's
-stdlib+PyYAML posture is untouched because `recurvelib` never imports bench.
-The bench is a recurve *target* (own suite in the ledger): the TaskStore
-pinning, quarantine isolation, telemetry normalization, and analysis
-determinism are all claims with traps (e.g. trap: a workspace that *does*
-contain the oracle file must be refused by the factory).
+**Where it lives:** `eval/` at the repo root, exactly the §0.4 layout — its
+own uv project (`eval/pyproject.toml` with `datasets`, `docker` SDK etc.);
+the engine's stdlib+PyYAML posture is untouched because `recurvelib` never
+imports it. The pipeline is a recurve *target* (the `eval` suite in the
+ledger): TaskStore pinning, quarantine isolation, resume correctness,
+telemetry normalization, and analysis determinism are all claims with traps
+(§0.4). The generalizations this section adds over the POC pipeline are
+incremental: docker workspaces for SWE-bench, more adapters, more arms —
+same manifest → matrix → results → analysis spine.
 
 ## 7 · Experimental designs, per metric family
 
@@ -417,7 +516,7 @@ don't have — but gate FPR≈0, so ΔFDR is nearly pure gain).
 
 | Phase | Builds | Cost (rough) | Paper payoff |
 |---|---|---|---|
-| P0 (days) | **the §0 POC**: bench/ skeleton, TaskStore + quarantine + telemetry claims, BigCodeBench-Hard × {Haiku, Sonnet}, A0 vs A3 | ~$100–300 API | pipeline exists + **first ΔFDR numbers + model×gate interaction**; §5 gains "the harness" |
+| P0 (days) | **the §0 POC**: the `eval/` pipeline (§0.4) built + its claims GREEN first, then BigCodeBench-Hard × {Haiku, Sonnet}, A0 vs A3 | ~$100–300 API | pipeline exists + **first ΔFDR numbers + model×gate interaction**; §5 gains "the harness" |
 | P1 (days–week) | E1 interception: BugsInPy + mutmut, layer arms A2–A4 | CPU only | **the confusion-matrix + ablation table** — the single biggest metrics upgrade |
 | P2 (week+) | E2 pilot (Lite n=20) then Verified n=50, 3 arms × 2–3 models; E3 budget grid on subset | ~$1–5k API | **ΔFDR headline + price-of-trust + scaling curve** |
 | P3 (opportunistic) | E4 model matrix, E5 decorrelation, LiveCodeBench sensitivity | ~$1–3k | ablations complete; residue #3 measured |
@@ -431,17 +530,17 @@ meets the headline number.
 
 This document decomposes into two PRDs, both admissible in the usual form:
 
-- **PRD-EVAL-1 (P0+P1):** bench skeleton + the three to-build ablation
+- **PRD-EVAL-1 (P0+P1):** the `eval/` pipeline (§0.4 layout: evallib,
+  experiments/, runs/, the five claims) + the three to-build ablation
   switches (boundary-off flag, single-context runner mode, controller-off
-  runner mode — each engine/harness knob a claim with a trap) + TaskStore
-  pinning + quarantine + E1 end-to-end with the confusion-matrix table as a
-  generated artifact. All CPU; fully gateable; the fixture-repo suites are
-  authored once and reused.
+  runner mode — each engine/harness knob a claim with a trap) + E1
+  end-to-end with the confusion-matrix table as a generated artifact.
+  Mostly CPU; the POC run itself (§0) is the exit criterion.
 - **PRD-EVAL-2 (P2+):** provider adapters (OpenAI/Gemini/open-model drivers
   + telemetry normalization), SWE-bench workspace factory (docker), E2/E3
   runs, analysis tables. Gateable except the spend itself, which is a budget
   decision (knob, not policy: `--budget` caps per arm).
 
 First concrete steps if green-lit: write PRD-EVAL-1, `recurve admit` it,
-author the bench suite claims RED-first, and let the loop build its own
+author the `eval` suite claims RED-first, and let the loop build its own
 measuring instrument.
