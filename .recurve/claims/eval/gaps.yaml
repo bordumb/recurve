@@ -151,11 +151,13 @@
   evidence:
   - eval/evallib/adapters/telemetry.py
   - eval/evallib/budget.py
-  observed: 'GREEN at baseline 2026-07-05: telemetry captures tokens/cost/wall-clock; TokenBudget
-    enforces the cap (A3 halts at budget)'
-  smallest_fix: parse_usage + cost_usd (raises on an unpriced model) + wall_clock capture
-    the price of trust; TokenBudget/run_capped enforce the token cap so the A3 burndown halts
-    at budget and A0/A3 are matched on it
+  - eval/evallib/adapters/claude.py
+  observed: 'GREEN at close 2026-07-05: telemetry captures the price of trust; run_gated_burndown
+    enforces a per-cell cap (bounded overshoot, stop_reason recorded)'
+  smallest_fix: parse_usage + cost_usd (raises on an unpriced model) + wall_clock capture the
+    price of trust; run_gated_burndown accumulates a cell's spend across cycles against one
+    budget and stops at the cap (per-cell, bounded overshoot), reporting the stop_reason EV-6/7
+    consume; the gated Claude adapter drives the real run through it
   probe: probes/ev-8.sh
   unlocks: the price-of-trust metrics have a data source and the key budget-matching control
     is actually enforced, not assumed

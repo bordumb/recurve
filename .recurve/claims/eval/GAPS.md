@@ -97,7 +97,11 @@ miscredited to the gate as a refusal.
 `cost_usd` prices them from the dated table and RAISES on an unpriced model
 (never a silent $0); `wall_clock` captures elapsed. Because `claude -p` has no
 hard token cap and `recurve run --cap` bounds cycles not tokens, `budget.py`'s
-`TokenBudget` accumulates per-cycle spend and `run_capped` stops the A3 burndown
-at (or within one cycle of) the cap, with a hard cycle bound so a zero-token
-cycle can never loop forever — so A0 and A3 are matched on the budget. Negative
-space (guarded by the trap): `cost_usd` silently pricing an unknown model at $0.
+`run_gated_burndown` accumulates a cell's spend across its many cycles against
+ONE `TokenBudget` and stops starting cycles once the cap is reached — reporting
+the `stop_reason` (gate_green vs budget_exhausted) that EV-6 records and EV-7
+classifies from. The cap is **per cell, not per cycle**: the recorded total is
+bounded by cap + one cycle's overshoot, never many multiples of it. The gated
+Claude adapter drives the real run through it. Negative space (guarded by the
+traps): `cost_usd` silently pricing an unknown model at $0; a per-cycle cap that
+lets a cell overshoot without bound.

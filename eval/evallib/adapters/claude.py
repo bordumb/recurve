@@ -19,31 +19,56 @@ def agent_argv(model: str, extra: list[str] | None = None) -> list[str]:
             "--model", model, *(extra or [])]
 
 
-def _declared_done(cell: dict, workspace: Path) -> bool:
-    """A0: a non-empty solution.py = declared done. A3: a green
-    `recurve matrix --gate` = declared done (budget-exhausted red gate =
-    refused-to-declare — counted, not hidden)."""
-    if cell["arm"] == "A0":
-        sol = workspace / "solution.py"
-        return sol.exists() and sol.read_text().strip() != ""
-    r = subprocess.run(["recurve", "matrix", "--gate"], cwd=workspace,
-                       capture_output=True, text=True)
-    return r.returncode == 0
-
-
 def make_adapter(prompt_for):
-    """Return an adapter closure. `prompt_for(cell)` builds the stdin prompt for
-    a cell's arm. Kept as a factory so the arm-specific prompt is injectable and
-    testable without spawning an agent."""
+    """A single-shot adapter for a bare (non-gated) arm: run the agent once and
+    report termination. `prompt_for(cell)` builds the stdin prompt. Kept as a
+    factory so the prompt is injectable and testable without spawning an agent."""
     def adapter(cell: dict, workspace) -> dict:  # pragma: no cover - paid path
         workspace = Path(workspace)
         argv = agent_argv(cell["model"])
         proc = subprocess.run(argv, cwd=workspace, input=prompt_for(cell),
                               capture_output=True, text=True)
-        return {
-            "declared_done": _declared_done(cell, workspace),
-            "agent_exit": proc.returncode,
-            # token/cost telemetry is filled from the agent's own report by the
-            # caller; the adapter records what it can observe here.
-        }
+        return {"terminated": True, "agent_exit": proc.returncode,
+                "stop_reason": "single_shot"}
     return adapter
+
+
+def make_gated_adapter(cycle_prompt_for, cap: int):
+    """A gated-arm adapter: drive a recurve burndown under the PER-CELL token cap
+    (run_gated_burndown), so many fresh per-cycle agents share one budget. Each
+    cycle runs the agent once and the gate is re-checked between cycles; the
+    loop stops on a green gate or budget exhaustion, and the returned
+    stop_reason is exactly what EV-6 records and EV-7 classifies from."""
+    from evallib.budget import run_gated_burndown  # noqa: F401 - paid path
+    from evallib.adapters.telemetry import parse_usage
+
+    def adapter(cell: dict, workspace) -> dict:  # pragma: no cover - paid path
+        workspace = Path(workspace)
+        spend = {"in": 0, "out": 0}
+
+        def cycle() -> int:
+            argv = agent_argv(cell["model"], ["--output-format", "json"])
+            proc = subprocess.run(argv, cwd=workspace, input=cycle_prompt_for(cell),
+                                  capture_output=True, text=True)
+            try:
+                import json
+                ti, to = parse_usage(json.loads(proc.stdout))
+            except Exception:
+                ti, to = 0, 0
+            spend["in"] += ti
+            spend["out"] += to
+            return ti + to
+
+        def gate_check() -> bool:
+            return _default_gate_green(workspace)
+
+        result = run_gated_burndown(cap, cycle, gate_check)
+        return {"terminated": True, "stop_reason": result["stop_reason"],
+                "cycles": result["cycles"],
+                "tokens_in": spend["in"], "tokens_out": spend["out"]}
+    return adapter
+
+
+def _default_gate_green(workspace: Path) -> bool:  # pragma: no cover - paid path
+    return subprocess.run(["recurve", "matrix", "--gate"], cwd=workspace,
+                          capture_output=True).returncode == 0

@@ -1,1 +1,1 @@
-cost_usd silently returns $0 for an unpriced model instead of raising
+EV-8 guard fails the silent-zero-cost case
