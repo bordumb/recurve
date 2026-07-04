@@ -977,6 +977,7 @@ def cmd_trajectories(args):
             "run_id": r.get("run_id"), "cycle": r.get("cycle"),
             "summary": r.get("summary", ""),
             "verified": verified,
+            "branches": r.get("branches", []),
             "provenance": {
                 "probe": str(probe) if probe else None,
                 "traps": traps,

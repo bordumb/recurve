@@ -799,3 +799,42 @@
   probe: probes/tk-42.sh
   unlocks: a coincidence nobody checks (a stricter oracle silently disagreeing with the fast
     probe) becomes a loud, gated alarm
+
+- id: TK-43
+  title: records may carry branches — the road not taken, schema-validated (F3.1)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-43
+  evidence:
+  - schema/run-record.schema.json
+  - recurvelib/records.py
+  observed: 'GREEN at close 2026-07-04: record append accepts well-formed branches (stored
+    verbatim) and rejects one missing rejected_because'
+  smallest_fix: the run-record schema gains an optional branches array (kind, description,
+    rejected_because per entry); record append accepts a record carrying well-formed entries
+    and stores them verbatim, and rejects one whose entry is missing rejected_because
+  probe: probes/tk-43.sh
+  unlocks: a trajectory dataset that can record the decomposition considered and rejected,
+    not just the path taken
+
+- id: TK-44
+  title: trajectories exports branches verbatim, byte-identical (F3.2)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-44
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: trajectories exports branches verbatim (empty array
+    when none), byte-identical across re-runs'
+  smallest_fix: each exported row carries its record's branches verbatim (an empty array when
+    the record has none), under the same provenance gating as the rest of the row, with export
+    determinism unchanged
+  probe: probes/tk-44.sh
+  unlocks: the single-path-bias fix — a corpus of only-winners no longer teaches selection
+    nothing, without touching the read-only export's determinism
