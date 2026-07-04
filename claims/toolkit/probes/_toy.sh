@@ -97,3 +97,9 @@ toy_iso_gen() {  # $1=dir $2=id ; generator body on stdin (gets ISO_OUT, ISO_N)
   cat > "$d/claims/s/probes/$id.iso.sh"
   chmod +x "$d/claims/s/probes/$id.iso.sh"
 }
+
+toy_ref_probe() {  # $1=dir $2=id ; reference-oracle probe body on stdin -> probes/<id>.ref.sh
+  local d="$1" id="$2"
+  cat > "$d/claims/s/probes/$id.ref.sh"
+  chmod +x "$d/claims/s/probes/$id.ref.sh"
+}

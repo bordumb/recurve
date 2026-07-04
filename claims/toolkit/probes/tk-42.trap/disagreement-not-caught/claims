@@ -1,0 +1,1 @@
+drill --diff passes despite a probe/reference disagreement

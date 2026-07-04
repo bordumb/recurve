@@ -75,6 +75,9 @@ class Gap:
     trap_waiver: str = ""    # reason this probe carries no trap (counted, visible debt)
     oracle_waiver: str = ""  # reason the probe's external oracle may be absent — a
                              # SKIP (exit 3) is then non-blocking, counted, visible debt
+    # Absolute path to a stricter/slower reference oracle, or None. `drill
+    # --diff` runs it beside the probe and alarms on disagreement (F2.4).
+    reference: Path | None = None
 
     @property
     def trap_dir(self) -> Path | None:
@@ -158,6 +161,11 @@ class Gap:
         if probe_field:
             probe = (suite_dir / str(probe_field)).resolve()
 
+        reference_field = raw.get("reference")
+        reference: Path | None = None
+        if reference_field:
+            reference = (suite_dir / str(reference_field)).resolve()
+
         # The parse-time invariant the whole loop rests on: a non-permanent gap
         # must name a probe. We allow the file to be absent here (intake may be
         # mid-flight) — `validate` reports missing files — but a null probe
@@ -185,6 +193,7 @@ class Gap:
             source_file=source_file,
             trap_waiver=str(raw.get("trap_waiver", "")).strip(),
             oracle_waiver=str(raw.get("oracle_waiver", "")).strip(),
+            reference=reference,
         )
 
 

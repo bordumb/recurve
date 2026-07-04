@@ -719,3 +719,83 @@
   probe: probes/tk-38.sh
   unlocks: the floor F1.2 requires stays load-bearing exactly where F1.1 introduces the exemption,
     proven on a mixed fleet rather than in isolation
+
+- id: TK-39
+  title: the isomorphic generator convention — probes/<id>.iso.sh (F2.1)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-39
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: drill --iso discovers probes/<id>.iso.sh generators,
+    consumes up to ISO_N variants, leaves generator-less claims untouched'
+  smallest_fix: drill --iso discovers probes/<id>.iso.sh the same way --fuzz discovers probes/<id>.fuzz.sh
+    — called with ISO_OUT/ISO_N, it writes up to n semantics-preserving variant directories;
+    claims shipping no generator are untouched and report nothing
+  probe: probes/tk-39.sh
+  unlocks: a place to hang semantics-preserving variants without ever writing generated state
+    into a claim's probes/ directory or the ledger
+
+- id: TK-40
+  title: iso verdict invariance is measured, not assumed (F2.2)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-40
+  evidence:
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: drill --iso measures verdict invariance: form-insensitive
+    0/n green, surface-keyed probe flips and fails the drill'
+  smallest_fix: drill --iso runs each iso-capable closed claim's probe once per variant with
+    ISO_FIXTURE set; a verdict other than GREEN is a flip, printed per probe as "iso flips
+    f/n"; the drill fails when any probe's flip rate exceeds the threshold
+  probe: probes/tk-40.sh
+  unlocks: a probe that latched onto surface form instead of meaning is caught the same way
+    a probe that blesses generated known-bads already is (TK-30's dual)
+
+- id: TK-41
+  title: the isomorphic pass is a budget knob, not a policy (F2.3)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-41
+  evidence:
+  - recurvelib/config.py
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: isomorphic checking is parameterized: off by default,
+    iso_n bounds variants, iso_flip_max sets the failure threshold'
+  smallest_fix: '[drill] iso_n (default 8) bounds variants per probe; [drill] iso_flip_max
+    (default 0.0) is the failure threshold; --iso is required to run the pass at all — a plain
+    drill stays byte-identical to today''s'
+  probe: probes/tk-41.sh
+  unlocks: strictness that is a budget decision the operator makes, never a hardcoded policy
+    the engine imposes
+
+- id: TK-42
+  title: reference oracles — differential probes via drill --diff (F2.4)
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - TK-42
+  evidence:
+  - recurvelib/model.py
+  - recurvelib/baseline.py
+  - recurvelib/cli.py
+  observed: 'GREEN at close 2026-07-04: drill --diff alarms on probe/reference disagreement,
+    passes on agreement, and the reference field survives baseline'
+  smallest_fix: a claim may declare reference probes/<id>.ref.sh; drill --diff runs both the
+    probe and its reference against the true state and alarms on disagreement (one GREEN,
+    one RED), naming both verdicts; the field survives baseline promotion via the ledger entry
+    carry-list
+  probe: probes/tk-42.sh
+  unlocks: a coincidence nobody checks (a stricter oracle silently disagreeing with the fast
+    probe) becomes a loud, gated alarm

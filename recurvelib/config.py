@@ -127,6 +127,12 @@ class Config:
     # decision, never a hardcoded policy.
     drill_fuzz_n: int = 8
     drill_fuzz_fpr_max: float = 0.0
+    # [drill] iso knobs — the isomorphic pass is opt-in (`drill --iso`): its
+    # dual measures whether a probe's verdict HOLDS on semantics-preserving
+    # variants instead of rejecting broken ones. iso_n bounds cost per probe;
+    # iso_flip_max sets the failure threshold, same shape as the fuzz knobs.
+    drill_iso_n: int = 8
+    drill_iso_flip_max: float = 0.0
     # [receipts] signer: optional command handed each receipt's self_sha256;
     # its stdout is stored as the signature. recurve defines the receipt,
     # never the signature scheme.
@@ -310,6 +316,8 @@ def load(path: Path) -> Config:
         burndown_runaway_net_positive_cycles=int(burndown.get("runaway_net_positive_cycles", 2)),
         drill_fuzz_n=int(drill.get("fuzz_n", 8)),
         drill_fuzz_fpr_max=float(drill.get("fuzz_fpr_max", 0.0)),
+        drill_iso_n=int(drill.get("iso_n", 8)),
+        drill_iso_flip_max=float(drill.get("iso_flip_max", 0.0)),
         receipts_signer=str(receipts.get("signer", "")),
         receipts_verifier=str(receipts.get("verifier", "")),
         report_narrator=str(report.get("narrator", "")),
