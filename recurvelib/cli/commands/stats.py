@@ -13,7 +13,7 @@ from ..base import (
 
 def cmd_stats(args):
     import json as _json
-    from ... import render
+    from recurvelib.io import render
     C = render.C
     cfg = _config(args)
     path = cfg.state_dir / "records.jsonl"

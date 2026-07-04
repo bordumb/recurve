@@ -9,15 +9,15 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.controller import Progress, Verdict
-    from recurvelib.admission import Assertion, admit
+    from recurvelib.loop.controller import Progress, Verdict
+    from recurvelib.analysis.admission import Assertion, admit
     if fixture:
         spec = importlib.util.spec_from_file_location("rtrap", Path(fixture) / "broken_runtime.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         run = mod.run
     else:
-        from recurvelib.runtime import run
+        from recurvelib.loop.runtime import run
 
     class GreenWorld:
         def gate(self):

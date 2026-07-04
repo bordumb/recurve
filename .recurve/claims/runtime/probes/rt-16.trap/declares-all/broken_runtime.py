@@ -1,7 +1,7 @@
 """RT-16 counterexample: sense_measured marks the whole surface covered instead of tracing the exercises, so
 an unexercised point never reaches the frontier."""
 
-from recurvelib.runtime import sense
+from recurvelib.loop.runtime import sense
 
 
 def sense_measured(gate_counts, surface, exercises, goal_counterexamples, deferred_ids=()):

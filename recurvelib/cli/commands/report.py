@@ -13,7 +13,7 @@ from ..base import (
 
 def cmd_report(args):
     import json as _json
-    from ...report import NarratorError, gather, load_records, run_narrator, to_markdown
+    from recurvelib.io.report import NarratorError, gather, load_records, run_narrator, to_markdown
     cfg = _config(args)
     if args.suite and args.suite not in cfg.suites:
         _fail(f"unknown {cfg.label} {args.suite!r}; configured: {', '.join(cfg.suites)}")

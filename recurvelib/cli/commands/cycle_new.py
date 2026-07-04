@@ -12,7 +12,7 @@ from ..base import (
 )
 
 def cmd_cycle_new(args):
-    from ... import render
+    from recurvelib.io import render
     cfg = _config(args)
     ids = [s.strip() for s in args.gaps.split(",") if s.strip()]
     try:

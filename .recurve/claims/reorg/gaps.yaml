@@ -138,3 +138,44 @@
     output stay plain for the probes that capture them
   probe: probes/r3-2.sh
   unlocks: the 29 CLI-shelling probes keep matching captured bytes after the framework swap
+
+- id: R4-1
+  title: recurvelib regroups into concern subpackages
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R4-1
+  evidence:
+  - recurvelib/core
+  - recurvelib/loop
+  - recurvelib/io
+  - recurvelib/analysis
+  observed: 'GREEN at baseline 2026-07-04: recurvelib regrouped into concern subpackages (<=3
+    loose, no junk-drawer); imports resolve; resource_dir intact'
+  smallest_fix: move the flat modules into core/loop/io/analysis subpackages (only __init__.py
+    loose, no junk-drawer), rewrite every internal import to the new absolute path so the
+    engine still runs, and keep resource_dir resolving templates/schema/packs
+  probe: probes/r4-1.sh
+  unlocks: a recurvelib a contributor navigates by concern instead of scanning ~35 sibling
+    files
+
+- id: R4-2
+  title: probe imports follow the move (no retired flat paths)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - R4-2
+  evidence:
+  - .recurve/claims
+  observed: 'GREEN at baseline 2026-07-04: no probe or fixture under the claims tree imports
+    a retired flat recurvelib.<mod> path'
+  smallest_fix: update every probe and trap fixture that imported a moved module to its new
+    subpackage path in the same change, import lines only; no .sh/.py under claims imports
+    a retired flat recurvelib.<mod> path
+  probe: probes/r4-2.sh
+  unlocks: the fleet keeps proving behavior across the move — no probe silently detached from
+    a module that relocated

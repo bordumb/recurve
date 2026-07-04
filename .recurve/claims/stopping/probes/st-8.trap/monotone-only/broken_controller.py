@@ -2,7 +2,7 @@
 like [5,1,5] (net zero progress) escapes forever. Passes ST-2 (constant [5,5,5] is non-decreasing) and
 ST-3 ([5,3,1] has down-steps, correctly not reverted)."""
 
-from recurvelib.controller import Verdict
+from recurvelib.loop.controller import Verdict
 
 
 def decide(history, k=3):

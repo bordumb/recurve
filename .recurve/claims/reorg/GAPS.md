@@ -85,3 +85,25 @@ Under a pipe or with `NO_COLOR` set, the CLI emits no ANSI styling into stdout
 or stderr — a real Typer/click gotcha — so captured and piped output stays plain
 for the probes that read it. Covers PRD R3.3. Negative space (guarded by the
 trap): a detector that misses an ANSI escape in captured output.
+
+## R4-1 — recurvelib regroups into concern subpackages
+
+The flat modules gather by concern: `core/` (model, probe, conformance,
+freshness, baseline, config), `loop/` (run, controller, runtime, adapters, lock,
+cycle, parked, demo), `io/` (records, receipts, pack, importer, report, render,
+init, status, adjudicate), and `analysis/` (triage, frontier, coverage,
+completeness, measured, surface, admission, claimify, fidelity, and the *_cli
+helpers). Only `__init__.py` stays loose at the top; no misc/util junk-drawer.
+Every internal import resolves (`recurve validate` runs) and
+`recurvelib.resource_dir` still finds the templates/schema/packs trees. Covers
+PRD R4.1, R4.3, R4.4. Negative space (guarded by the trap): a scan that accepts
+a flat layout or a junk-drawer subpackage.
+
+## R4-2 — probe imports follow the move (no retired flat paths)
+
+Every probe and trap fixture that imported a moved module now names its new
+subpackage path; no `.sh`/`.py` under the claims tree still imports a retired
+flat `recurvelib.<mod>`. Updating an import to follow a moved module is
+maintenance, not weakening — the fleet gate and every trap re-prove RED after
+it. Covers PRD R4.2. Negative space (guarded by the trap): a scan that misses a
+probe importing a retired flat path.

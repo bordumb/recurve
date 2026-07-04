@@ -20,7 +20,7 @@ try:
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         run_demo = mod.run_demo
     else:
-        from recurvelib.demo import run_demo
+        from recurvelib.loop.demo import run_demo
 except Exception as e:
     print(f"selfcheck could not run: {e}")
     sys.exit(2)

@@ -9,14 +9,14 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.admission import Assertion
+    from recurvelib.analysis.admission import Assertion
     if fixture:
         spec = importlib.util.spec_from_file_location("atrap", Path(fixture) / "broken_admission.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         worklist = mod.worklist
     else:
-        from recurvelib.admission import worklist
+        from recurvelib.analysis.admission import worklist
 
     def A(i, f, c, b):
         return Assertion(i, "", f, c, b)

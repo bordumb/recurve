@@ -13,8 +13,8 @@ from ..base import (
 
 def cmd_next(args):
     import json as _json
-    from ... import render
-    from ...parked import ParkedStore
+    from recurvelib.io import render
+    from recurvelib.loop.parked import ParkedStore
     C = render.C
     cfg = _config(args)
     prog = args.prog
@@ -28,7 +28,7 @@ def cmd_next(args):
     drafts, forks_pending = _draft_backlog(cfg)
 
     if getattr(args, "lanes", None):
-        from ...triage import lanes as deal_lanes
+        from recurvelib.analysis.triage import lanes as deal_lanes
         dealt = deal_lanes(ledger, cfg, args.lanes, exclude=parked_ids)
         if getattr(args, "json", False):
             print(_json.dumps({"lanes": [

@@ -9,14 +9,14 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.fidelity import GoalCounterexample
+    from recurvelib.analysis.fidelity import GoalCounterexample
     if fixture:
         spec = importlib.util.spec_from_file_location("ftrap", Path(fixture) / "broken_fidelity.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         divergent_ids = mod.divergent_ids
     else:
-        from recurvelib.fidelity import divergent_ids
+        from recurvelib.analysis.fidelity import divergent_ids
 
     goals = [
         GoalCounterexample("low", accepted=True, weight=1),

@@ -15,7 +15,7 @@ def cmd_review(args):
     """Print the adversarial-review brief for a review-gated gap — the brief you
     hand to an INDEPENDENT reviewer (an agent/human prompted to REFUTE the
     change's safety), not to the implementer."""
-    from ... import render
+    from recurvelib.io import render
     C = render.C
     cfg = _config(args)
     prog = args.prog

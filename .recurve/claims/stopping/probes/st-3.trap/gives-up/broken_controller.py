@@ -1,7 +1,7 @@
 """ST-3 counterexample: a controller that reverts the moment any open work remains — it abandons a
 converging approach. Still stops on green and reverts on flat, so it passes ST-1/2."""
 
-from recurvelib.controller import Verdict
+from recurvelib.loop.controller import Verdict
 
 
 def decide(history, k=3):

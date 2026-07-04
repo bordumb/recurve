@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         capture = mod.capture
     else:
-        from recurvelib.runtime import capture
+        from recurvelib.loop.runtime import capture
 
     discriminating = capture(True, True)    # RED on wrong, GREEN on real
     catches_nothing = capture(False, True)  # GREEN on wrong -> does not catch the bug

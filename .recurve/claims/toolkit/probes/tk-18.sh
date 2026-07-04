@@ -17,7 +17,7 @@ try:
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         resolve_agent = mod.resolve_agent
     else:
-        from recurvelib.run import resolve_agent
+        from recurvelib.loop.run import resolve_agent
     agent, source = resolve_agent(None, None)
 except Exception as e:
     print(f"selfcheck could not run: {e}")

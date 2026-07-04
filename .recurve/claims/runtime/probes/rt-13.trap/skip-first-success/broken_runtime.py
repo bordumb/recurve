@@ -1,8 +1,8 @@
 """RT-13 counterexample: STOP_SUCCESS is suppressed on the first cycle, so an already-green world has the
 actor run against done code before the loop finally stops. Passes RT-1 (its world starts RED)."""
 
-from recurvelib.admission import admitted
-from recurvelib.controller import Verdict, decide
+from recurvelib.analysis.admission import admitted
+from recurvelib.loop.controller import Verdict, decide
 
 
 def run(world, actor, admission_report, contract, max_cycles=64):

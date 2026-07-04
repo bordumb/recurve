@@ -17,8 +17,8 @@ def cmd_demo(args):
     compact narrative of the loop's shape (claim → probe → gate → green). The
     temp dir is removed before returning."""
     import tempfile
-    from ... import render
-    from ...demo import run_demo
+    from recurvelib.io import render
+    from recurvelib.loop.demo import run_demo
     C = render.C
     with tempfile.TemporaryDirectory(prefix="recurve-demo-") as tmp:
         trace = run_demo(Path(tmp))

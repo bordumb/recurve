@@ -1,7 +1,7 @@
 """ST-9 counterexample: no empty-frontier guard, so pick_next raises IndexError exactly when the frontier
 is exhausted. Passes ST-4..6 (all use a 2-item frontier)."""
 
-from recurvelib.controller import Verdict
+from recurvelib.loop.controller import Verdict
 
 
 def pick_next(frontier, current_id=None, stalled=False):

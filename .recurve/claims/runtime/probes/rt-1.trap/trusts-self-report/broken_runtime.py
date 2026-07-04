@@ -1,8 +1,8 @@
 """RT-1 counterexample: the loop trusts the actor's self-reported 'done', so a lying actor stops it with
 success while the gate is still RED."""
 
-from recurvelib.admission import admitted
-from recurvelib.controller import Verdict, decide
+from recurvelib.analysis.admission import admitted
+from recurvelib.loop.controller import Verdict, decide
 
 
 def run(world, actor, admission_report, contract, max_cycles=64):

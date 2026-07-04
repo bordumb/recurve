@@ -1,8 +1,8 @@
 """AP-15 counterexample: rollback is unguarded and unlinks any existing path, so a patch key over a
 pre-existing directory aborts rollback mid-loop, leaving an earlier key mutated (a mixed tree)."""
 import posixpath
-from recurvelib.adapters import GitWorld as _R, BoundaryViolation
-from recurvelib.runtime import within_boundary
+from recurvelib.loop.adapters import GitWorld as _R, BoundaryViolation
+from recurvelib.loop.runtime import within_boundary
 class GitWorld(_R):
     def apply(self, patch):
         rels = list(patch)

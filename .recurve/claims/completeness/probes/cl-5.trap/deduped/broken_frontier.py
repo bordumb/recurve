@@ -1,7 +1,7 @@
 """CL-5 counterexample: a frontier that dedupes the surface by id, erasing a real uncovered point from
 the accounting. Passes cl-1/2/3 (their fixtures have all-distinct ids)."""
 
-from recurvelib.frontier import FrontierReport
+from recurvelib.analysis.frontier import FrontierReport
 
 
 def compute_frontier(surface, covered_ids, deferred_ids=()):

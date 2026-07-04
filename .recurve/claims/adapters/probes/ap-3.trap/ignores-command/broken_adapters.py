@@ -1,7 +1,7 @@
 """AP-3 counterexample: CommandActor ignores the external command and returns a canned patch, so the loop is
 no longer driven by the agent at all."""
 
-from recurvelib.adapters import CommandActor as _Real
+from recurvelib.loop.adapters import CommandActor as _Real
 
 
 class CommandActor(_Real):

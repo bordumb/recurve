@@ -4,7 +4,7 @@ unfalsifiable "claims" enter cycles, the exact thing admission exists to refuse.
 
 from types import SimpleNamespace
 
-from recurvelib.admission import Verdict
+from recurvelib.analysis.admission import Verdict
 
 
 def admit_result(result):

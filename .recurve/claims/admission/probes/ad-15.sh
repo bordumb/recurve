@@ -9,14 +9,14 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.admission import Assertion, InterviewVerdict
+    from recurvelib.analysis.admission import Assertion, InterviewVerdict
     if fixture:
         spec = importlib.util.spec_from_file_location("atrap", Path(fixture) / "broken_admission.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         interview_step = mod.interview_step
     else:
-        from recurvelib.admission import interview_step
+        from recurvelib.analysis.admission import interview_step
 
     def vague(n):
         return [Assertion(f"a{i}", "", False, True, True) for i in range(n)]

@@ -9,14 +9,14 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.admission import Assertion, admit, Verdict
+    from recurvelib.analysis.admission import Assertion, admit, Verdict
     if fixture:
         spec = importlib.util.spec_from_file_location("rtrap", Path(fixture) / "broken_runtime.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         guarded_propose = mod.guarded_propose
     else:
-        from recurvelib.runtime import guarded_propose
+        from recurvelib.loop.runtime import guarded_propose
 
     # a gateable spine (2 probe-able) but a vague third -> REFUSE-AND-INTERVIEW, NOT admitted.
     report = admit([Assertion("a", "", True, True, True), Assertion("b", "", True, True, True),

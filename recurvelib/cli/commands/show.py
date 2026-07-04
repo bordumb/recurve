@@ -12,7 +12,7 @@ from ..base import (
 )
 
 def cmd_show(args):
-    from ... import render
+    from recurvelib.io import render
     cfg = _config(args)
     g = _load(cfg).by_id(args.gap_id)
     if not g:

@@ -13,8 +13,8 @@ from ..base import (
 
 def cmd_park(args):
     import time
-    from ... import render
-    from ...parked import ParkedStore
+    from recurvelib.io import render
+    from recurvelib.loop.parked import ParkedStore
     C = render.C
     cfg = _config(args)
     store = ParkedStore(cfg.root)

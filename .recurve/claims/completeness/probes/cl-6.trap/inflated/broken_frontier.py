@@ -1,7 +1,7 @@
 """CL-6 counterexample: a frontier that counts the SIZES of the covered/deferred input sets rather than
 surface hits, so phantom ids inflate the accounting. Passes cl-1/2/3 (their covered ids are all on-surface)."""
 
-from recurvelib.frontier import FrontierReport
+from recurvelib.analysis.frontier import FrontierReport
 
 
 def compute_frontier(surface, covered_ids, deferred_ids=()):

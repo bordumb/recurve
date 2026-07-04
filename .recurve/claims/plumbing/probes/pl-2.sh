@@ -12,7 +12,7 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.frontier import compute_frontier, SurfacePoint  # the oracle
+    from recurvelib.analysis.frontier import compute_frontier, SurfacePoint  # the oracle
 except Exception as e:
     print(f"selfcheck could not run: {e}")
     sys.exit(2)
@@ -24,7 +24,7 @@ try:
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         frontier_ids = mod.frontier_ids
     else:
-        from recurvelib.frontier_cli import frontier_ids
+        from recurvelib.analysis.frontier_cli import frontier_ids
 except ImportError:
     print("ours=no `recurve frontier` surface yet oracle=frontier_ids mirrors compute_frontier")
     sys.exit(1)  # RED-first: the surface does not exist

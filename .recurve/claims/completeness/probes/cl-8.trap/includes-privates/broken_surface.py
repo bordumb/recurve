@@ -2,7 +2,7 @@
 
 import ast
 
-from recurvelib.frontier import SurfacePoint
+from recurvelib.analysis.frontier import SurfacePoint
 
 
 def extract(source, location=""):

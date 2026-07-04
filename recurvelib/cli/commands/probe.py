@@ -12,7 +12,7 @@ from ..base import (
 )
 
 def cmd_probe(args):
-    from ... import render
+    from recurvelib.io import render
     cfg = _config(args)
     gaps = _filter(_load(cfg), args.suite, args.gap)
     matrix = run_matrix(gaps, cfg, timeout_s=args.timeout)

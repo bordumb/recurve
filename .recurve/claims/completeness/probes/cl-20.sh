@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         extract = mod.extract
     else:
-        from recurvelib.surface import PythonAdapter
+        from recurvelib.analysis.surface import PythonAdapter
         extract = PythonAdapter().extract
 except Exception as e:
     print(f"selfcheck could not run: {e}")

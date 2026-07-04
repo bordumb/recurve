@@ -1,6 +1,6 @@
 """AD-12 counterexample: the interview never escalates -- a stuck goal is interviewed forever."""
 
-from recurvelib.admission import InterviewVerdict
+from recurvelib.analysis.admission import InterviewVerdict
 
 
 def interview_step(history, max_rounds=3):

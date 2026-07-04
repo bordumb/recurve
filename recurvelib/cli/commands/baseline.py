@@ -13,9 +13,9 @@ from ..base import (
 
 def cmd_baseline(args):
     import time
-    from ... import render
-    from ...baseline import run_baseline
-    from ...lock import LockHeld
+    from recurvelib.io import render
+    from recurvelib.core.baseline import run_baseline
+    from recurvelib.loop.lock import LockHeld
     C = render.C
     cfg = _config(args)
     adj = cfg.assets_dir / "ADJUDICATE.md"

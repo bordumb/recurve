@@ -15,7 +15,7 @@ try:
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         _jsonable = mod._jsonable
     else:
-        from recurvelib.adapters import _jsonable
+        from recurvelib.loop.adapters import _jsonable
 
     @dataclass
     class Bad:

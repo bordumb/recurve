@@ -1,6 +1,6 @@
 """AD-4 counterexample: never admits, so a fully probe-able good contract is held back forever."""
 
-from recurvelib.admission import AdmissionReport, Verdict, worklist
+from recurvelib.analysis.admission import AdmissionReport, Verdict, worklist
 
 
 def admit(assertions, min_invariants=2):

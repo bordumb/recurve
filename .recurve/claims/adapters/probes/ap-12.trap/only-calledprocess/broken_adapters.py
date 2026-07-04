@@ -1,7 +1,7 @@
 """AP-12 counterexample: _git catches only CalledProcessError, so a missing git binary leaks a raw
 FileNotFoundError out of restore."""
 import subprocess
-from recurvelib.adapters import GitWorld as _R, GitError
+from recurvelib.loop.adapters import GitWorld as _R, GitError
 class GitWorld(_R):
     def _git(self, *args, timeout=60):
         try:

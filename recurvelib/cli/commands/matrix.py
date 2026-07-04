@@ -12,7 +12,7 @@ from ..base import (
 )
 
 def cmd_matrix(args):
-    from ... import render
+    from recurvelib.io import render
     cfg = _config(args)
     # Refresh each sculpt's artifacts before probing. A sculpt's rebuild turns
     # its source into what the target's probes and the sculpt's own gate consume,
@@ -43,7 +43,7 @@ def cmd_matrix(args):
     print(render.matrix_table(matrix))
     gate_ok = matrix.gate_ok and rebuild_ok
     if getattr(args, "receipts", False):
-        from ...receipts import emit_for_matrix
+        from recurvelib.io.receipts import emit_for_matrix
         n = emit_for_matrix(cfg, matrix)
         print(render.dim(f"receipts: {n} verdict(s) chained under .recurve/receipts/"))
     for fed in getattr(args, "federate", None) or []:
@@ -60,7 +60,7 @@ def cmd_matrix(args):
         print(render.matrix_table(fmatrix))
         gate_ok = gate_ok and fmatrix.gate_ok
         if getattr(args, "receipts", False):
-            from ...receipts import emit_for_matrix
+            from recurvelib.io.receipts import emit_for_matrix
             emit_for_matrix(fcfg, fmatrix)
     # FR-C3: federate each sculpt's OWN gate into the verdict. A sculpt is a
     # secondary tree (frontend, platform) the loop may sculpt; its gate is run

@@ -10,7 +10,7 @@ from pathlib import Path
 RECURVE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RECURVE))
 
-from recurvelib.records import (  # noqa: E402
+from recurvelib.io.records import (  # noqa: E402
     RECORD_SCHEMA_VERSION, RecordError, make_receipt, receipt_hash,
     validate_receipt, validate_run_record,
 )
@@ -18,8 +18,8 @@ from recurvelib.records import (  # noqa: E402
 
 def check_probe_totality():
     """Exit 0→GREEN, 1→RED, anything else (incl. crash/127) → BROKEN."""
-    from recurvelib.model import Gap, GapClass, Severity, Status
-    from recurvelib.probe import Outcome, ShellProbeRunner
+    from recurvelib.core.model import Gap, GapClass, Severity, Status
+    from recurvelib.core.probe import Outcome, ShellProbeRunner
 
     cases = [("exit 0", Outcome.GREEN), ("exit 1", Outcome.RED),
              ("exit 2", Outcome.BROKEN), ("exit 7", Outcome.BROKEN),

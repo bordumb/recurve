@@ -4,7 +4,7 @@ non-zero exit as a silent {}. A misbehaving agent is fatal or invisible, never a
 import json
 import subprocess
 
-from recurvelib.adapters import CommandActor as _Real
+from recurvelib.loop.adapters import CommandActor as _Real
 
 
 class CommandActor(_Real):

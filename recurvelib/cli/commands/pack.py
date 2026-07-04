@@ -12,7 +12,7 @@ from ..base import (
 )
 
 def cmd_pack(args):
-    from ...pack import PackError, export_pack, install_pack
+    from recurvelib.io.pack import PackError, export_pack, install_pack
     cfg = _config(args)
     try:
         if args.action == "export":

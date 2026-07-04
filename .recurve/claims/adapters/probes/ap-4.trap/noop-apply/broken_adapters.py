@@ -1,6 +1,6 @@
 """AP-4 counterexample: GitWorld.apply never writes the actor's patch, so the loop can never fix the tree."""
 
-from recurvelib.adapters import GitWorld as _Real
+from recurvelib.loop.adapters import GitWorld as _Real
 
 
 class GitWorld(_Real):

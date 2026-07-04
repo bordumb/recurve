@@ -1,6 +1,6 @@
 """AD-11 counterexample: the interview never admits -- even a fully probe-able round keeps interviewing."""
 
-from recurvelib.admission import InterviewVerdict
+from recurvelib.analysis.admission import InterviewVerdict
 
 
 def interview_step(history, max_rounds=3):

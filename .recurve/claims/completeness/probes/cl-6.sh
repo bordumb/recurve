@@ -10,14 +10,14 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.frontier import SurfacePoint
+    from recurvelib.analysis.frontier import SurfacePoint
     if fixture:
         spec = importlib.util.spec_from_file_location("ftrap", Path(fixture) / "broken_frontier.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         compute_frontier = mod.compute_frontier
     else:
-        from recurvelib.frontier import compute_frontier
+        from recurvelib.analysis.frontier import compute_frontier
 
     # one real surface point "a"; covered carries two phantom ids that are not on the surface.
     surface = [SurfacePoint("a", 5)]

@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         covered_by = mod.covered_by
     else:
-        from recurvelib.measured import covered_by
+        from recurvelib.analysis.measured import covered_by
 
     def fa():
         return 1

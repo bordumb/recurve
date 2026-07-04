@@ -13,8 +13,8 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.config import find_config, load
-    from recurvelib.run import resolve_workflow
+    from recurvelib.core.config import find_config, load
+    from recurvelib.loop.run import resolve_workflow
     cfg = load(find_config(Path(root)))
     script = resolve_workflow(cfg, False)
     if fixture:
@@ -23,7 +23,7 @@ try:
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         materialize_workflow = mod.materialize_workflow
     else:
-        from recurvelib.run import materialize_workflow
+        from recurvelib.loop.run import materialize_workflow
     wf = Path(materialize_workflow(cfg, script))
     wf_text = wf.read_text()
     contract = wf.parent / "RUN.md"

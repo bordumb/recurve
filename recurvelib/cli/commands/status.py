@@ -15,8 +15,8 @@ def cmd_status(args):
     """One-glance health: open/closed claim counts, the TRUE gate verdict
     (computed from a full matrix run, never hardcoded), any broken/stale
     counts, and the pending draft backlog."""
-    from ... import render
-    from ...status import summarize
+    from recurvelib.io import render
+    from recurvelib.io.status import summarize
     C = render.C
     cfg = _config(args)
     ledger = _load(cfg)

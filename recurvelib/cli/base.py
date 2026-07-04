@@ -5,15 +5,15 @@ import sys
 from enum import Enum
 from pathlib import Path
 
-from .. import SCHEMA_VERSION
-from ..config import Config, ConfigError, find_config, load
-from ..conformance import run_matrix
-from ..coverage import coverage
-from ..cycle import write_cycle_plan
-from ..freshness import gap_freshness
-from ..importer import parse_gaps_md, to_yaml_skeleton
-from ..model import GapParseError, Ledger, Status, load_ledger
-from ..triage import review_gated, triage
+from recurvelib import SCHEMA_VERSION
+from recurvelib.core.config import Config, ConfigError, find_config, load
+from recurvelib.core.conformance import run_matrix
+from recurvelib.analysis.coverage import coverage
+from recurvelib.loop.cycle import write_cycle_plan
+from recurvelib.core.freshness import gap_freshness
+from recurvelib.io.importer import parse_gaps_md, to_yaml_skeleton
+from recurvelib.core.model import GapParseError, Ledger, Status, load_ledger
+from recurvelib.analysis.triage import review_gated, triage
 
 
 def _fail(msg: str, code: int = 2):
@@ -58,7 +58,7 @@ def _filter(ledger: Ledger, suite: str | None, gap: str | None):
 
 def _parse_point(spec: str):
     """Parse one `ID[:WEIGHT]` surface point from the command line."""
-    from ..frontier import SurfacePoint
+    from recurvelib.analysis.frontier import SurfacePoint
     id_part, _, w_part = spec.partition(":")
     id_part = id_part.strip()
     if not id_part:
@@ -75,7 +75,7 @@ def _parse_goal(spec: str):
 
     A goal named on `--goal` is one that was observed *accepted* this cycle — a
     divergence signal — so it is always constructed with ``accepted=True``."""
-    from ..fidelity import GoalCounterexample
+    from recurvelib.analysis.fidelity import GoalCounterexample
     id_part, _, w_part = spec.partition(":")
     id_part = id_part.strip()
     if not id_part:

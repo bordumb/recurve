@@ -2,7 +2,7 @@
 the loop to keep working an item that does not exist. Passes ST-4..6 (their current_id is always on-frontier
 or None)."""
 
-from recurvelib.controller import Verdict
+from recurvelib.loop.controller import Verdict
 
 
 def pick_next(frontier, current_id=None, stalled=False):

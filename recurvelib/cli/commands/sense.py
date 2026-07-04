@@ -16,7 +16,7 @@ def cmd_sense(args):
     gate counts plus the uncovered (completeness) and divergent (fidelity)
     signals, exactly as the loop senses it for the controller. A thin honest
     report over `sense_cli.sense_vector`, which mirrors `runtime.sense`."""
-    from ...sense_cli import sense_vector
+    from recurvelib.analysis.sense_cli import sense_vector
     gate = {"open": args.open, "regressed": args.regressed, "broken": args.broken}
     surface = [_parse_point(s) for s in (args.point or [])]
     covered = set(args.covered or [])

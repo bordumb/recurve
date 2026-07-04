@@ -1,8 +1,8 @@
 """CL-12 counterexample: a report that empties the frontier and declares completeness — the cardinal sin,
 a green gate that silently says nothing about the uncovered surface."""
 
-from recurvelib.completeness import CompletenessReport
-from recurvelib.frontier import compute_frontier
+from recurvelib.analysis.completeness import CompletenessReport
+from recurvelib.analysis.frontier import compute_frontier
 
 
 def completeness_report(surface, covered, deferred_ids=()):

@@ -8,7 +8,7 @@ from pathlib import Path
 
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
-from recurvelib.records import make_receipt
+from recurvelib.io.records import make_receipt
 
 if fixture:
     spec = importlib.util.spec_from_file_location(
@@ -17,8 +17,8 @@ if fixture:
     spec.loader.exec_module(stub)
     validate, RecordError = stub.validate_receipt, stub.RecordError
 else:
-    from recurvelib.records import RecordError
-    from recurvelib.records import validate_receipt as validate
+    from recurvelib.io.records import RecordError
+    from recurvelib.io.records import validate_receipt as validate
 
 r = make_receipt(gap="T-1", suite="s", verdict="GREEN", exit_code=0, detail="",
                  probe_path=None, tree_kind="git", tree_value="abc",

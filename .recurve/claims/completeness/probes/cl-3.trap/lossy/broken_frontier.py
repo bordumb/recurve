@@ -1,6 +1,6 @@
 """CL-3 counterexample: covered/deferred points are not counted, so the parts don't sum to the total."""
 
-from recurvelib.frontier import FrontierReport
+from recurvelib.analysis.frontier import FrontierReport
 
 
 def compute_frontier(surface, covered_ids, deferred_ids=()):

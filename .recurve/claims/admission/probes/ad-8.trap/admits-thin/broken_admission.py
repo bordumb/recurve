@@ -1,7 +1,7 @@
 """AD-8 counterexample: admits any all-probe-able goal regardless of min_invariants, so a single perfect
 assertion (spine=1,total=1) is ADMITted. Passes AD-4/5/6."""
 
-from recurvelib.admission import AdmissionReport, Verdict, worklist
+from recurvelib.analysis.admission import AdmissionReport, Verdict, worklist
 
 
 def admit(assertions, min_invariants=2):

@@ -168,7 +168,7 @@ def test_validate_traps(tmp: Path):
 
 def test_lock(tmp: Path):
     print("tree lock:")
-    from recurvelib.lock import LockHeld, TreeLock
+    from recurvelib.loop.lock import LockHeld, TreeLock
     tree = tmp / "locktree"
     tree.mkdir()
     a = TreeLock(tree)

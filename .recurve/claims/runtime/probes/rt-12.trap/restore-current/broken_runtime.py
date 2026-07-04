@@ -1,8 +1,8 @@
 """RT-12 counterexample: STOP_REVERT restores the CURRENT checkpoint instead of the last green one, so the
 damage is left in place. Passes RT-1 (its lying actor mutates nothing, so the two checkpoints coincide)."""
 
-from recurvelib.admission import admitted
-from recurvelib.controller import Verdict, decide
+from recurvelib.analysis.admission import admitted
+from recurvelib.loop.controller import Verdict, decide
 
 
 def run(world, actor, admission_report, contract, max_cycles=64):

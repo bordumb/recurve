@@ -12,7 +12,7 @@ from ..base import (
 )
 
 def cmd_coverage(args):
-    from ... import render
+    from recurvelib.io import render
     C = render.C
     cfg = _config(args)
     reports = coverage(cfg, _load(cfg))

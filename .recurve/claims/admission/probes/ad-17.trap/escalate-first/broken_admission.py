@@ -1,7 +1,7 @@
 """AD-17 counterexample: checks ESCALATE before ADMIT, so a goal that just re-gated on the final round
 ([0,2,0]) is thrown out as not-gateable. Passes AD-11/12/13 (none hit the escalate branch wrongly)."""
 
-from recurvelib.admission import InterviewVerdict
+from recurvelib.analysis.admission import InterviewVerdict
 
 
 def interview_step(history, max_rounds=3):

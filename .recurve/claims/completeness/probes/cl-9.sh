@@ -19,7 +19,7 @@ try:
         spec.loader.exec_module(mod)
         extract = mod.extract
     else:
-        from recurvelib.surface import PythonAdapter
+        from recurvelib.analysis.surface import PythonAdapter
         extract = PythonAdapter().extract
     seq1 = [(p.id, p.location) for p in extract(SRC, "t.py")]
     seq2 = [(p.id, p.location) for p in extract(SRC, "t.py")]

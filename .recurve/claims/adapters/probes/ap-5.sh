@@ -9,14 +9,14 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.adapters import AgentError
+    from recurvelib.loop.adapters import AgentError
     if fixture:
         spec = importlib.util.spec_from_file_location("atrap", Path(fixture) / "broken_adapters.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         CommandActor = mod.CommandActor
     else:
-        from recurvelib.adapters import CommandActor
+        from recurvelib.loop.adapters import CommandActor
 
     def outcome(cmd):
         try:

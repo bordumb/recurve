@@ -20,7 +20,7 @@ def cmd_run(args):
     import os
     import subprocess
 
-    from ...run import build_run, bypasses_permissions, materialize_workflow, resolve_agent
+    from recurvelib.loop.run import build_run, bypasses_permissions, materialize_workflow, resolve_agent
 
     cfg = _config(args)
     agent, source = resolve_agent(args.agent, os.environ.get("AGENT_CMD"))

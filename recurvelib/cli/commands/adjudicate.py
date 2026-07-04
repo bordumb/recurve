@@ -13,8 +13,8 @@ from ..base import (
 
 def cmd_adjudicate(args):
     import time
-    from ... import render
-    from ...adjudicate import adjudicate, retire
+    from recurvelib.io import render
+    from recurvelib.io.adjudicate import adjudicate, retire
     C = render.C
     cfg = _config(args)
     g = _load(cfg).by_id(args.gap_id)

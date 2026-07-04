@@ -12,7 +12,7 @@ from ..base import (
 )
 
 def cmd_lock(args):
-    from ...lock import LockHeld, TreeLock, read_lock
+    from recurvelib.loop.lock import LockHeld, TreeLock, read_lock
     cfg = _config(args)
     tree = cfg.tree or cfg.root
     if args.action == "status":

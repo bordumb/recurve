@@ -18,8 +18,8 @@ def cmd_admit(args):
     assertions and runs `admission.admit`. This is the same gate `init
     --from-prd` runs at the front; running it standalone lets a human (or an
     orchestrator) score a goal before committing to claimify it."""
-    from ...admission import Verdict
-    from ...claimify import admit_result, parse_prd
+    from recurvelib.analysis.admission import Verdict
+    from recurvelib.analysis.claimify import admit_result, parse_prd
     prd = Path(args.prd)
     if not prd.exists():
         _fail(f"no such PRD/spec file: {prd}")

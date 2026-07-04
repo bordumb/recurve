@@ -13,7 +13,7 @@ from ..base import (
 
 def cmd_record(args):
     import json as _json
-    from ...records import RecordError, validate_run_record
+    from recurvelib.io.records import RecordError, validate_run_record
     cfg = _config(args)
     path = cfg.state_dir / "records.jsonl"
     if args.action == "append":

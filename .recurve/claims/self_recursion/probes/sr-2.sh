@@ -15,14 +15,14 @@ from types import SimpleNamespace
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.probe import Outcome
+    from recurvelib.core.probe import Outcome
     if fixture:
         spec = importlib.util.spec_from_file_location(
             "ctrap", Path(fixture) / "broken_conformance.py")
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         is_waived_skip = mod.is_waived_skip
     else:
-        from recurvelib.conformance import is_waived_skip
+        from recurvelib.core.conformance import is_waived_skip
 except Exception as e:
     print(f"selfcheck could not run: {e}")
     sys.exit(2)

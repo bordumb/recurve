@@ -12,7 +12,7 @@ from ..base import (
 )
 
 def cmd_init(args):
-    from ...init import infer_init_mode, run_init
+    from recurvelib.io.init import infer_init_mode, run_init
 
     # An explicit mode flag always wins over the positional; --target likewise
     # wins over an inferred directory. The positional is a convenience that
@@ -48,7 +48,7 @@ def cmd_init(args):
     except FileExistsError as e:
         _fail(str(e))
     if from_prd:
-        from ...claimify import run_claimify
+        from recurvelib.analysis.claimify import run_claimify
         notes += run_claimify(target, Path(from_prd), suite=suite,
                               prog=args.prog, skip_review=args.no_review)
     print(f"initialized {name} at {target}")

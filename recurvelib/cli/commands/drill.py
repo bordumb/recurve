@@ -22,9 +22,9 @@ def cmd_drill(args):
     import shutil
     import tempfile
     from dataclasses import replace
-    from ... import render
-    from ...lock import LockHeld, TreeLock
-    from ...probe import Outcome, ShellProbeRunner, run_traps
+    from recurvelib.io import render
+    from recurvelib.loop.lock import LockHeld, TreeLock
+    from recurvelib.core.probe import Outcome, ShellProbeRunner, run_traps
     C = render.C
     cfg = _config(args)
     ledger = _load(cfg)

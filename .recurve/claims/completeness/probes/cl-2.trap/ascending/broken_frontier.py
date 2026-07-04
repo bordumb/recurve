@@ -1,6 +1,6 @@
 """CL-2 counterexample: a frontier sorted ascending by weight (lowest-risk first), not descending."""
 
-from recurvelib.frontier import FrontierReport
+from recurvelib.analysis.frontier import FrontierReport
 
 
 def compute_frontier(surface, covered_ids, deferred_ids=()):

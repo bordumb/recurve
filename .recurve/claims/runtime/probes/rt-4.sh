@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         within_boundary = mod.within_boundary
     else:
-        from recurvelib.runtime import within_boundary
+        from recurvelib.loop.runtime import within_boundary
 
     target, referee = "repo/", ["repo/claims/"]
     clean = within_boundary(["repo/src/foo.py"], target, referee)            # target tree only

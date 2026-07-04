@@ -1,7 +1,7 @@
 """AD-7 counterexample: checks spine==total before the thinness gate, so an EMPTY goal (0==0) is ADMITted
 as a perfect contract. Passes AD-4/5/6 (their goals are non-empty)."""
 
-from recurvelib.admission import AdmissionReport, Verdict, worklist
+from recurvelib.analysis.admission import AdmissionReport, Verdict, worklist
 
 
 def admit(assertions, min_invariants=2):

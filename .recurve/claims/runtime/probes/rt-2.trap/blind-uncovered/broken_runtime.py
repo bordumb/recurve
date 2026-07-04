@@ -1,8 +1,8 @@
 """RT-2 counterexample: Sense drops the completeness half, always reporting uncovered=0 and an empty
 frontier -- a real uncovered unit is invisible."""
 
-from recurvelib.controller import Progress
-from recurvelib.fidelity import divergent
+from recurvelib.loop.controller import Progress
+from recurvelib.analysis.fidelity import divergent
 
 
 def sense(gate_counts, surface, covered_ids, goal_counterexamples, deferred_ids=()):

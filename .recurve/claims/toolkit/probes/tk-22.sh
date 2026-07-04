@@ -20,7 +20,7 @@ try:
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         infer_init_mode = mod.infer_init_mode
     else:
-        from recurvelib.init import infer_init_mode
+        from recurvelib.io.init import infer_init_mode
 except Exception as e:
     print(f"selfcheck could not run: {e}")
     sys.exit(2)

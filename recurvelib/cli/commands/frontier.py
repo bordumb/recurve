@@ -15,7 +15,7 @@ def cmd_frontier(args):
     """Print the ranked uncovered ids for a surface given on flags — what no
     claim covers, highest-risk first. A thin honest report over
     `frontier_cli.frontier_ids`, which mirrors `compute_frontier`."""
-    from ...frontier_cli import frontier_ids
+    from recurvelib.analysis.frontier_cli import frontier_ids
     surface = [_parse_point(s) for s in (args.point or [])]
     covered = set(args.covered or [])
     deferred = set(args.deferred or [])

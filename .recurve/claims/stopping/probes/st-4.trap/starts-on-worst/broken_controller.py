@@ -1,7 +1,7 @@
 """ST-4 counterexample: starts on the lowest-value item instead of the highest. Correct on pivots, so it
 passes ST-5/6."""
 
-from recurvelib.controller import Verdict
+from recurvelib.loop.controller import Verdict
 
 
 def pick_next(frontier, current_id=None, stalled=False):

@@ -12,5 +12,5 @@ from ..base import (
 )
 
 def cmd_decide(args):
-    from ...decide_cli import verdict_for
+    from recurvelib.analysis.decide_cli import verdict_for
     print(verdict_for(args.open, args.regressed, args.broken, args.uncovered, args.divergent))

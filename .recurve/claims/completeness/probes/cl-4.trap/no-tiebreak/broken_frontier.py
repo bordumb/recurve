@@ -1,7 +1,7 @@
 """CL-4 counterexample: a frontier sorted by weight only, with no id tiebreak — ties keep input order
 (nondeterministic relative to caller input). Passes cl-1/2/3 (their fixtures have distinct weights)."""
 
-from recurvelib.frontier import FrontierReport
+from recurvelib.analysis.frontier import FrontierReport
 
 
 def compute_frontier(surface, covered_ids, deferred_ids=()):

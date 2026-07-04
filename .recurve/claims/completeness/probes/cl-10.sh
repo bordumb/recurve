@@ -15,7 +15,7 @@ try:
         spec.loader.exec_module(mod)
         covered_ids = mod.covered_ids
     else:
-        from recurvelib.completeness import covered_ids
+        from recurvelib.analysis.completeness import covered_ids
 
     claims = [{"covers": ["a", "b"]}, {"covers": ["c"]}, {"id": "x"}]  # last claim covers nothing
     ids = covered_ids(claims)

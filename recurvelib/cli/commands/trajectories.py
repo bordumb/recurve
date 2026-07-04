@@ -23,7 +23,7 @@ def cmd_trajectories(args):
     sorted keys make two exports of the same state byte-identical."""
     import json as _json
     import sys as _sys
-    from ...report import load_records
+    from recurvelib.io.report import load_records
     cfg = _config(args)
     ledger = _load(cfg)
     gaps = {g.id: g for g in ledger.gaps}

@@ -9,14 +9,14 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.frontier import SurfacePoint
+    from recurvelib.analysis.frontier import SurfacePoint
     if fixture:
         spec = importlib.util.spec_from_file_location("rtrap", Path(fixture) / "broken_runtime.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         sense = mod.sense
     else:
-        from recurvelib.runtime import sense
+        from recurvelib.loop.runtime import sense
 
     progress, _ = sense({"open": 1, "regressed": 2, "broken": 3}, [SurfacePoint("a")], {"a"}, [])
 except Exception as e:

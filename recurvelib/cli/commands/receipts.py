@@ -12,8 +12,8 @@ from ..base import (
 )
 
 def cmd_receipts(args):
-    from ... import render
-    from ...receipts import ReceiptChain, verify_signatures
+    from recurvelib.io import render
+    from recurvelib.io.receipts import ReceiptChain, verify_signatures
     C = render.C
     cfg = _config(args)
     suites = [args.suite] if args.suite else list(cfg.suites)

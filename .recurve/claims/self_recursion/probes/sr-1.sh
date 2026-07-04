@@ -13,14 +13,14 @@ from pathlib import Path
 root, fixture = sys.argv[1], sys.argv[2]
 sys.path.insert(0, root)
 try:
-    from recurvelib.config import find_config, load
+    from recurvelib.core.config import find_config, load
     cfg = load(find_config(Path(root)))
     if fixture:
         spec = importlib.util.spec_from_file_location("rtrap", Path(fixture) / "broken_run.py")
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         resolve_workflow = mod.resolve_workflow
     else:
-        from recurvelib.run import resolve_workflow
+        from recurvelib.loop.run import resolve_workflow
     wf = resolve_workflow(cfg, False)
 except Exception as e:
     print(f"selfcheck could not run: {e}")

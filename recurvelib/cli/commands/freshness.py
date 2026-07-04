@@ -12,7 +12,7 @@ from ..base import (
 )
 
 def cmd_freshness(args):
-    from ... import render
+    from recurvelib.io import render
     cfg = _config(args)
     ledger = _load(cfg)
     cache, seen, reports = {}, set(), []
