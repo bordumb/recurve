@@ -21,3 +21,23 @@
   oracle_waiver: fetching the real BigCodeBench-Hard revision from HuggingFace needs the optional
     datasets dependency; the pinning logic is tested hermetically against a fixture, and the
     real fetch runs full-strength where datasets is importable
+
+- id: EV-2
+  title: Materializer builds A0/A3 workspaces and quarantines the oracle
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-2
+  evidence:
+  - eval/evallib/materialize.py
+  - eval/evallib/arms.py
+  observed: 'GREEN at baseline 2026-07-04: OK ⏎ materializer builds A0/A3 workspaces and quarantines
+    the hidden test'
+  smallest_fix: arm_spec maps A0/A3 to their workspace specs; materialize builds a git-init'd
+    workspace (A0 bare, A3 recurve-init'd) writing only the task statement + empty solution.py;
+    assert_quarantined refuses any workspace containing the hidden test text
+  probe: probes/ev-2.sh
+  unlocks: the held-out oracle can never leak into an agent's workspace — the precondition
+    for every honest FDR number
