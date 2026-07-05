@@ -21,3 +21,24 @@
   probe: probes/ab-1.sh
   unlocks: a cross-model adversary and a run-level governor have a concrete port to implement
     against
+
+- id: AB-2
+  title: context snapshots enforce the exclusion boundary mechanically
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-2
+  evidence:
+  - recurvelib/adapters/snapshot.py
+  observed: 'GREEN at baseline 2026-07-05: ClaimSnapshot is built only from git archive of
+    a pinned commit — a dirty tree is refused by default, and never leaks into the archive
+    even when permitted; the include_existing_traps knob controls exactly what §5 says it
+    should'
+  smallest_fix: recurvelib.adapters.snapshot.build_claim_snapshot/build_cycle_snapshot build
+    a ClaimSnapshot/CycleSnapshot only from git archive of a pinned, clean commit; include_existing_traps
+    strips or keeps the gap's own trap fixtures.
+  probe: probes/ab-2.sh
+  unlocks: an isolated reviewer sees exactly the committed artifacts under review, never the
+    acting agent's live session

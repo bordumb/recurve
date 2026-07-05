@@ -29,3 +29,18 @@ Negative space: a capture-rule regression (any of the four canonical
 the probe RED. A verdict type carrying a bypass-shaped field (`certified`,
 `closed`, `green`, ...) must be flagged by `has_bypass_field`, not silently
 accepted.
+
+## AB-2 — context snapshots enforce the exclusion boundary mechanically
+
+`ClaimSnapshot`/`CycleSnapshot` (`recurvelib.adapters.snapshot`) are built
+only from `git archive <pinned-commit>`, extracted into a fresh temp
+directory. A dirty working tree is refused by default
+(`require_clean=True`); even bypassing that refusal, the archive never
+contains an uncommitted change — `git archive`'s own guarantee, defense in
+depth beside the explicit check. `include_existing_traps` (default `False`
+for a claim snapshot, `True` for a cycle snapshot) strips or keeps the
+gap's own trap fixtures from the extracted tree.
+
+Negative space: a snapshot builder that silently accepts a dirty tree, or
+that leaks existing traps into a snapshot built with
+`include_existing_traps=False`, must turn the probe RED.

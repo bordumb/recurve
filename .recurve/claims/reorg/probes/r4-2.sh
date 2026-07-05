@@ -22,7 +22,12 @@ retired_refs() {
   local root="$1" f
   while IFS= read -r f; do
     case "$f" in */reorg/probes/r4-2.sh) continue ;; esac
-    grep -qE "(from|import)[[:space:]]+recurvelib\.($MODS)\b" "$f" 2>/dev/null && printf '%s\n' "$f"
+    # The trailing alternation requires a true LEAF reference (whitespace or
+    # end of line right after the module name) — `recurvelib.adapters.snapshot`
+    # (a NEW subpackage, docs/plans/ablation-infra.md) must NOT match just
+    # because it shares a prefix with the OLD retired flat `recurvelib.adapters`
+    # module; only a bare `recurvelib.adapters` (no further `.subpath`) does.
+    grep -qE "(from|import)[[:space:]]+recurvelib\.($MODS)([[:space:]]|\$)" "$f" 2>/dev/null && printf '%s\n' "$f"
   done < <(find "$root" \( -name '*.sh' -o -name '*.py' \) 2>/dev/null)
 }
 
