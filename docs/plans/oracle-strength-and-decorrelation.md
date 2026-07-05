@@ -11,6 +11,37 @@
 > in [ablation-infra.md](ablation-infra.md), so this PRD's requirements
 > stay in R2/R5's terms (assertion/trap/bounds) rather than architecture.
 
+> **Build order across both PRDs** (read this one first for the *why*;
+> [ablation-infra.md](ablation-infra.md) for the *how*; build in this
+> order regardless of which you read first):
+>
+> 1. **R1 + R3** here — oracle tier vocabulary, authoring-time nudge.
+>    Build first, independently: neither needs any new port/protocol,
+>    both just render/derive from mechanisms that already exist
+>    (`drill --diff`, `drill --fuzz`, `oracle_waiver`).
+> 2. **ablation-infra.md's scaffolding**: AI1 (protocols) → AI3 (snapshot
+>    mechanism) → AI4 (isolation strategy) → AI11 (shared reviewer
+>    plumbing) → AI7 (uniform provenance, both tiers).
+> 3. **ablation-infra.md AI2** — the registry plus the concrete
+>    `off`/`same_model`/`cross_model`/`mechanical`/`mechanical_review`
+>    adapters. This is what satisfies **R2** and **R5**'s automated
+>    tiers below.
+> 4. **ablation-infra.md AI6** — `human_required`, once AI7's
+>    cryptographic tier and the real `auths-core` reuse are in place.
+>    Satisfies **R5**'s third tier.
+> 5. **ablation-infra.md AI9 + AI10** — the policy floor and the
+>    mechanical-tier default, once the tiers above exist to floor/default
+>    toward.
+> 6. **ablation-infra.md AI8** — fold **R4**'s reversal event into the
+>    unified `challenge_event` schema now that the veto event (R5/AI6)
+>    exists to unify with.
+> 7. **ablation-infra.md AI5** — wire `eval/evallib`'s arm composer to
+>    the same registry, unblocking `eval-full.md`'s A7–A10.
+> 8. **Last, the finish line for both PRDs**: author the O6-incident
+>    regression fixtures — at claim level (R2) and run level (R5) — and
+>    prove them green using the real adapters this order built. Neither
+>    PRD is done until these pass.
+
 ## 1 · Why now — a real incident, not a hypothetical
 
 During the O6 live smoke (2026-07-05, BigCodeBench/13, arm A3, model

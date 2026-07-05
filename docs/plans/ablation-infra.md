@@ -8,6 +8,36 @@
 > defeating the point of an ablation matrix. This PRD makes adding switch
 > N+1 a new adapter file, not a change to the loop.
 
+> **Build order across both PRDs** (read
+> [oracle-strength-and-decorrelation.md](oracle-strength-and-decorrelation.md)
+> first for the *why*; this one for the *how*; build in this order
+> regardless of which you read first):
+>
+> 1. **R1 + R3** in the other PRD — oracle tier vocabulary,
+>    authoring-time nudge. Build first, independently: neither needs any
+>    new port/protocol, both just render/derive from mechanisms that
+>    already exist (`drill --diff`, `drill --fuzz`, `oracle_waiver`).
+> 2. **This PRD's scaffolding**: AI1 (protocols) → AI3 (snapshot
+>    mechanism) → AI4 (isolation strategy) → AI11 (shared reviewer
+>    plumbing) → AI7 (uniform provenance, both tiers).
+> 3. **AI2** — the registry plus the concrete
+>    `off`/`same_model`/`cross_model`/`mechanical`/`mechanical_review`
+>    adapters. This is what satisfies the other PRD's **R2** and **R5**
+>    automated tiers.
+> 4. **AI6** — `human_required`, once AI7's cryptographic tier and the
+>    real `auths-core` reuse are in place. Satisfies **R5**'s third tier.
+> 5. **AI9 + AI10** — the policy floor and the mechanical-tier default,
+>    once the tiers above exist to floor/default toward.
+> 6. **AI8** — fold **R4**'s reversal event into the unified
+>    `challenge_event` schema now that the veto event (R5/AI6) exists to
+>    unify with.
+> 7. **AI5** — wire `eval/evallib`'s arm composer to the same registry,
+>    unblocking `eval-full.md`'s A7–A10.
+> 8. **Last, the finish line for both PRDs**: author the O6-incident
+>    regression fixtures — at claim level (R2) and run level (R5) — and
+>    prove them green using the real adapters this order built. Neither
+>    PRD is done until these pass.
+
 ## 0 · This completes an intention the codebase already states
 
 `recurvelib/loop/runtime.py`'s own module docstring already says it:
