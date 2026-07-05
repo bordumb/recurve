@@ -60,7 +60,8 @@ elif sc=='live_workspace':
         o(cell('A0'), tempfile.mkdtemp()); print('QUARANTINED_LIVE')
     except SequencingError: print('REFUSED')
 elif sc=='routes_by_name':
-    import evallib.arms as A; A._ARMS['gated_x']={'recurve':True,'config':{},'label':'x'}
+    import evallib.arms as A
+    A._ARMS['gated_x']=A.ArmSpec(workspace='recurve_init', done_signal='gate', label='x')
     o=make_orchestrator(mock(lambda w:(claim(w),sol_ok(w),gate(w,'green')), stop_reason='gate_green'),
                         TASKS, PINS, PROV, gate_fn=gate_fn)
     r=o(cell('gated_x'), tempfile.mkdtemp())
@@ -101,7 +102,8 @@ assert r['gate_outcome']=='process_failed' and not r['declared_done'], r
 assert r['model']=='claude-haiku-4-5' and row_is_complete(r), r      # provenance verbatim + complete
 
 # decoupling: a differently-named recurve arm takes the gated path (keys on property, not name)
-import evallib.arms as A; A._ARMS['gated_x']={'recurve':True,'config':{},'label':'x'}
+import evallib.arms as A
+A._ARMS['gated_x']=A.ArmSpec(workspace='recurve_init', done_signal='gate', label='x')
 r=run(lambda w:(claim(w),sol_ok(w),gate(w,'green')),'gated_x',stop_reason='gate_green')
 assert r['gate_outcome']=='declared' and r['terminal_state']=={'gate':'green','stop_reason':'gate_green'}, r
 

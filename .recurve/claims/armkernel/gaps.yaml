@@ -1,0 +1,26 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: AK-1
+  title: ArmSpec replaces the flat dict; A0/A3/A7-A10 unchanged (K1)
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AK-1
+  evidence:
+  - eval/evallib/arms.py
+  - eval/evallib/orchestrate.py
+  observed: 'GREEN at baseline 2026-07-05: ArmSpec replaces the flat dict; A0=(bare,self_report,enforced,none,off,off),
+    A3=(recurve_init,gate,enforced,none,off,off), A7-A10 extend A3 by adversary=/governor=
+    only — and A0/A3/A7-A10 cells are byte-identical to the pre-ArmSpec pipeline (regression
+    fixture)'
+  smallest_fix: ArmSpec (frozen dataclass, six port fields) replaces _ARMS's flat {"recurve",
+    "config"} dict; make_orchestrator becomes a fixed pipeline of port lookups keyed on the
+    arm's ArmSpec, never a branch on arm identity.
+  probe: probes/ak-1.sh
+  unlocks: adding a 7th axis later is a new defaulted ArmSpec field, never an edit to an existing
+    arm's literal; the byte-identical regression fixture proves A0/A3/A7-A10 are unchanged,
+    not just unedited.

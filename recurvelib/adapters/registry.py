@@ -11,6 +11,7 @@ or `decide()`.
 from __future__ import annotations
 
 from recurvelib.loop.reviewers import Adversary, Governor
+from recurvelib.loop.boundary import Boundary
 
 
 class UnknownAdapterError(ValueError):
@@ -57,4 +58,19 @@ def resolve_adversary(name: str, registry: dict[str, type]) -> type:
 def resolve_governor(name: str, registry: dict[str, type]) -> type:
     if name not in registry:
         raise UnknownAdapterError(f"unknown governor {name!r}; known: {', '.join(sorted(registry))}")
+    return registry[name]
+
+
+def build_boundary_registry(entries: dict[str, type]) -> dict[str, type]:
+    """Validate and return a boundary registry: every entry must implement
+    `Boundary.check`. Raises `MalformedAdapterError` immediately on a bad
+    entry — registration fails loud, not at first apply()."""
+    for name, cls in entries.items():
+        _require_methods(cls, Boundary, ("check",))
+    return dict(entries)
+
+
+def resolve_boundary(name: str, registry: dict[str, type]) -> type:
+    if name not in registry:
+        raise UnknownAdapterError(f"unknown boundary {name!r}; known: {', '.join(sorted(registry))}")
     return registry[name]

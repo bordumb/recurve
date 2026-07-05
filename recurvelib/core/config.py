@@ -133,6 +133,13 @@ class Config:
     # default: zero cost (re-execution of existing work, no new agent calls),
     # and there is no existing deployment whose behavior this would change.
     gate_governor: str = "mechanical"
+    # [gate] boundary: enforced (default) | open — K3's write-boundary knob
+    # (docs/plans/eval-arm-kernel.md). "open" is a deliberately dangerous,
+    # off-by-default engine capability: reachable ONLY through this exact
+    # key/value, never a coincidence of any other config path (adversary/
+    # governor typos, partial configs, another arm's whole config all leave
+    # this at its default).
+    gate_boundary: str = "enforced"
     # [commit] — §11.1/§11.2: explicit, never prompting.
     commit_policy: str = "unsigned-per-cycle"   # none | unsigned-per-cycle | signed
     commit_hooks: str = "run"                   # run | gate-supersedes
@@ -288,6 +295,9 @@ def load(path: Path) -> Config:
     if gate_governor not in ("off", "mechanical", "mechanical_review", "human_required"):
         raise ConfigError(f"{path}: [gate] governor must be "
                           f"off|mechanical|mechanical_review|human_required, got {gate_governor!r}")
+    gate_boundary = str(gate.get("boundary", "enforced"))
+    if gate_boundary not in ("enforced", "open"):
+        raise ConfigError(f"{path}: [gate] boundary must be enforced|open, got {gate_boundary!r}")
 
     commit = doc.get("commit", {})
     commit_policy = str(commit.get("policy", "unsigned-per-cycle"))
@@ -344,6 +354,7 @@ def load(path: Path) -> Config:
         mechanical_references=mechanical_references,
         gate_adversary=gate_adversary,
         gate_governor=gate_governor,
+        gate_boundary=gate_boundary,
         quality=str(gate.get("quality", "pre-launch")),
         commit_policy=commit_policy,
         commit_hooks=commit_hooks,

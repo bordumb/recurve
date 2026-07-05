@@ -62,7 +62,7 @@ def make_pipeline_adapter(tasks_by_id: dict, pins: dict, provenance: dict, *,
         # A fresh, oracle-quarantined workspace BEFORE the agent ever runs.
         materialize(tasks_by_id[cell["task_id"]], cell["arm"], Path(workspace),
                     recurve_cmd=recurve_cmd)
-        agent = gated_agent if arm_spec(cell["arm"])["recurve"] else bare_agent
+        agent = gated_agent if arm_spec(cell["arm"]).recurve else bare_agent
         return agent(cell, workspace)
 
     return make_orchestrator(routed_agent, tasks_by_id, pins, provenance,

@@ -94,4 +94,8 @@ harness = []
 [suites.ablation]
 dir = ".recurve/claims/ablation"
 rebuild = ""               # pure engine module (recurvelib.adapters); nothing to copy
+
+[suites.armkernel]
+dir = ".recurve/claims/armkernel"
+rebuild = ""               # eval/evallib ports + one recurvelib port (adapters/boundary); nothing to copy
 harness = []

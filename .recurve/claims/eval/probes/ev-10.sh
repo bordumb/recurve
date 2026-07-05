@@ -69,7 +69,8 @@ if sc=='skips_materialize':
     adapter(cell('A0'), tempfile.mkdtemp())
     print('SAW' if seen.get('saw_task') else 'BLIND')
 elif sc=='routes_by_name':
-    import evallib.arms as A; A._ARMS['gated_x']={'recurve':True,'config':{},'label':'x'}
+    import evallib.arms as A
+    A._ARMS['gated_x']=A.ArmSpec(workspace='recurve_init', done_signal='gate', label='x')
     seen={}
     adapter=make_pipeline_adapter(TASKS, PINS, PROV, budget=60000, recurve_cmd=RECURVE,
                                   bare_agent=bare_mock({}), gated_agent=gated_mock(seen),
@@ -114,7 +115,8 @@ assert r2['gate_outcome']=='declared' and r2['terminal_state']['gate']=='green',
 assert r2['oracle_verdict']=='pass' and row_is_complete(r2), r2
 
 # decoupling: a differently-named recurve arm takes the gated agent (property, not name)
-import evallib.arms as A; A._ARMS['gated_x']={'recurve':True,'config':{},'label':'x'}
+import evallib.arms as A
+A._ARMS['gated_x']=A.ArmSpec(workspace='recurve_init', done_signal='gate', label='x')
 seen3={}
 adapter3=make_pipeline_adapter(TASKS, PINS, PROV, budget=60000, recurve_cmd=RECURVE,
                                bare_agent=bare_mock({}), gated_agent=gated_mock(seen3), gate_fn=gate_fn)

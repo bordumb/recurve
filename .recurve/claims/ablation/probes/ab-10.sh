@@ -72,12 +72,12 @@ check("arms.py imports both registries from recurvelib.adapters",
 # 2. A7-A10 are real arm entries whose config resolves through the SAME
 # recurvelib objects imported above (identity check, not just "looks similar").
 from evallib import arms
-check("A7 configures adversary=cross_model", arms.arm_spec("A7")["config"]["adversary"] == "cross_model")
-check("A8 configures governor=mechanical", arms.arm_spec("A8")["config"]["governor"] == "mechanical")
+check("A7 configures adversary=cross_model", arms.arm_spec("A7").adversary == "cross_model")
+check("A8 configures governor=mechanical", arms.arm_spec("A8").governor == "mechanical")
 check("A9 configures governor=mechanical_review",
-      arms.arm_spec("A9")["config"]["governor"] == "mechanical_review")
-check("A10 configures both switches", arms.arm_spec("A10")["config"]["adversary"] == "cross_model"
-      and arms.arm_spec("A10")["config"]["governor"] == "mechanical_review")
+      arms.arm_spec("A9").governor == "mechanical_review")
+check("A10 configures both switches", arms.arm_spec("A10").adversary == "cross_model"
+      and arms.arm_spec("A10").governor == "mechanical_review")
 
 check("arms.resolve_adversary_adapter resolves through the SAME registry object",
       arms.resolve_adversary_adapter("cross_model") is ADVERSARY_ADAPTERS["cross_model"])
@@ -123,8 +123,9 @@ except KeyError:
 # temporary bad entry into the real _ARMS table rather than a copy, so this
 # proves the ACTUAL function used by expand() checks it.
 from evallib import arms as arms_mod
-arms_mod._ARMS["_AB10_BOGUS"] = {"recurve": True, "config": {"adversary": "not-a-real-adapter"},
-                                  "label": "test-only bogus arm"}
+arms_mod._ARMS["_AB10_BOGUS"] = arms_mod.ArmSpec(
+    workspace="recurve_init", done_signal="gate", adversary="not-a-real-adapter",
+    label="test-only bogus arm")
 try:
     resolved_gate_config("_AB10_BOGUS")
     check("an unknown adversary value inside a known arm's config is refused", False)

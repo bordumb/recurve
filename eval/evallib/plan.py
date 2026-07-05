@@ -22,7 +22,12 @@ import json
 import re
 from pathlib import Path
 
-from evallib.arms import arm_spec, resolve_adversary_adapter, resolve_governor_adapter
+from evallib.arms import (
+    arm_spec, resolve_adversary_adapter, resolve_governor_adapter, resolve_boundary_adapter,
+)
+from evallib.audit import resolve_audit_port
+from evallib.done_signal import resolve_done_signal_port
+from evallib.materialize import resolve_workspace_port
 
 _SANITIZE = re.compile(r"[^A-Za-z0-9]+")
 
@@ -37,17 +42,38 @@ def cell_id(model: str, arm: str, budget: int, seed: int, task_id: str) -> str:
 
 
 def resolved_gate_config(arm: str) -> dict:
-    """The arm's `[gate]`-shaped config, with any `adversary=`/`governor=`
-    value validated through recurvelib's registry (AI5) — raises
+    """The arm's `[gate]`-shaped config, with `adversary=`/`governor=`/
+    `boundary=` validated through recurvelib's registry (AI5, K3) — raises
     `KeyError` on an unknown arm, and whatever `resolve_adversary_adapter`/
-    `resolve_governor_adapter` raise on an unknown adapter name. Never
-    silently accepted; a typo'd config value fails the plan, not the run."""
+    `resolve_governor_adapter`/`resolve_boundary_adapter` raise on an unknown
+    adapter name. Never silently accepted; a typo'd config value fails the
+    plan, not the run.
+
+    Only NON-DEFAULT axes appear in the returned dict — exactly the
+    convention this already followed for adversary=/governor= before K3
+    added boundary=: A0/A3/A7-A10 (all boundary="enforced") continue to
+    plan an identical (`{}`- or two-key-shaped) `gate_config`, byte-for-byte
+    (K1's regression fixture). The eval-only axes (`workspace`/`done_signal`/
+    `audit`) are ALSO validated here — even though they're never
+    manifest-supplied, a typo'd port name in a new `_ARMS` entry fails the
+    plan loud, not a mystery deep in a run — but they are not `[gate]`
+    config, so they never appear in this dict.
+    """
     spec = arm_spec(arm)
-    config = dict(spec.get("config") or {})
-    if "adversary" in config:
-        resolve_adversary_adapter(config["adversary"])
-    if "governor" in config:
-        resolve_governor_adapter(config["governor"])
+    resolve_workspace_port(spec.workspace)
+    resolve_done_signal_port(spec.done_signal)
+    resolve_audit_port(spec.audit)
+
+    config: dict = {}
+    if spec.adversary != "off":
+        resolve_adversary_adapter(spec.adversary)
+        config["adversary"] = spec.adversary
+    if spec.governor != "off":
+        resolve_governor_adapter(spec.governor)
+        config["governor"] = spec.governor
+    if spec.boundary != "enforced":
+        resolve_boundary_adapter(spec.boundary)
+        config["boundary"] = spec.boundary
     return config
 
 
