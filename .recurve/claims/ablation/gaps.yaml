@@ -120,3 +120,24 @@
     from the actor's, checked from the reviewer's actual reported identity.
   probe: probes/ab-6.sh
   unlocks: R2''s cross-model decorrelation is a real, invokable adapter, not prose in runtime.py
+
+- id: AB-7
+  title: the governor registry + off/mechanical/mechanical_review adapters
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-7
+  evidence:
+  - recurvelib/adapters/governor/
+  observed: 'GREEN at baseline 2026-07-05: the governor registry resolves off/mechanical/mechanical_review;
+    mechanical catches state leakage via fresh re-execution (not correlated authorship, by
+    design); mechanical_review catches a same-identity batch review, refusing rather than
+    silently clearing'
+  smallest_fix: recurvelib.adapters.governor.GOVERNOR_ADAPTERS resolves off/mechanical/ mechanical_review;
+    mechanical re-executes the cycle's probes+traps in a fresh isolated checkout, mechanical_review
+    reuses R2's identity machinery over the cycle's batch.
+  probe: probes/ab-7.sh
+  unlocks: R5''s two automated governor tiers are real, invokable adapters, not prose in a
+    PRD

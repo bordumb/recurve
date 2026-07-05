@@ -106,3 +106,20 @@ served one (the config-drift shape — the flag says one thing, the server did
 another), must turn the probe RED. A malformed adapter (no `.review`) must
 be refused at registration, not first invocation. The isolated reviewer must
 never see the acting agent's live working directory.
+
+## AB-7 — the governor registry + off/mechanical/mechanical_review adapters
+
+`recurvelib.adapters.governor.GOVERNOR_ADAPTERS` resolves `off` (always
+cleared), `mechanical` (fresh-checkout re-execution of the cycle's
+probes+traps — catches state leakage and trap-weakening, near-free, no LLM),
+and `mechanical_review` (a single decorrelated-model pass over the cycle's
+batch — catches correlated authorship, the O6 shape, at the run level).
+`mechanical_review` reuses R2's identity machinery exactly: it refuses
+(`GovernorIdentityViolation`) when its verified served identity does not
+verifiably differ from the cycle's claim-authoring identity, and never
+silently falls back to `AGENT_CMD` when `RECURVE_GOVERNOR_CMD` is unset.
+
+Negative space: a mechanical governor that clears regardless of what the
+fresh checkout's re-execution actually says (never catching state leakage)
+must turn the probe RED. A review-tier governor that skips the identity
+check, silently clearing a same-identity batch, must turn the probe RED.
