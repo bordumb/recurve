@@ -224,3 +224,22 @@ row that lacks it — so "graded by which oracle?" is answerable per row forever
 dereferencing the hash to the lock in the run dir. The rows stay small (one hash,
 not the whole lock). Negative space (the trap): a row without `oracle_env_hash`
 accepted as complete — the untraceable-oracle hole.
+
+## EV-16 — Calibration: the gate with teeth (canonical solutions can't be wrong)
+
+The structural defense against the whole bias-toward-headline class. Grade all
+148 canonical solutions through the finished oracle path; since a canonical
+solution cannot be wrong, any bug that turns correct solutions into errors drops
+the pass rate — so no paid cell runs while calibration is RED. Two teeth:
+`derive_calibration` REFUSES to produce a calibration when the non-pass fraction
+exceeds a cap (a broken harness must not "pass" by excluding everything — the
+residual genuinely-flaky tasks become registered, content-hashed exclusions, and
+the per-task timeout is derived from the canonical p99 under the real runtime,
+not guessed); `calibration_admits_spend` refuses at every boundary — no
+calibration, a calibration for a different oracle env (stale key), a different
+dataset, an edited exclusion list (hash mismatch), or a pass rate below the bar.
+Keyed by (oracle_env_hash, dataset_hash), so a changed oracle or dataset
+auto-invalidates a stale calibration instead of being silently reused. Negative
+space (a trap each): a stale-key calibration admits spend; an edited exclusion
+list admits spend; a harness that fails most canonicals still calibrates by
+excluding them.

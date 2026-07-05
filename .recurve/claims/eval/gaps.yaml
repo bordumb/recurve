@@ -308,3 +308,25 @@
   probe: probes/ev-15.sh
   unlocks: '"graded by which oracle?" is answerable per row forever — the rows dereference to the
     lock, so two rows are provably the same or different oracle without carrying the whole env'
+
+- id: EV-16
+  title: 'Calibration: the gate with teeth (canonical solutions can''t be wrong)'
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - EV-16
+  evidence:
+  - eval/evallib/calibration.py
+  observed: 'GREEN at close 2026-07-05: calibration: derived timeout+exclusions, refuses a broken
+    harness, admits spend only for the matching env/dataset with untouched exclusions'
+  smallest_fix: derive_calibration refuses to produce a calibration when the canonical non-pass
+    fraction exceeds a cap (no laundering a harness bug into exclusions), derives the timeout from
+    the canonical p99 and the exclusions with a content hash; calibration_admits_spend refuses no
+    calibration / stale oracle-env key / different dataset / edited exclusions / low pass rate,
+    keyed by (oracle_env_hash, dataset_hash)
+  probe: probes/ev-16.sh
+  unlocks: the structural defense that only passes when the harness is actually sound — every
+    bias-toward-headline bug, found or latent, drops the canonical pass rate and blocks the spend
+
