@@ -9,7 +9,7 @@ question = "Does the full paid path produce analyze-complete rows with real tele
 [matrix]
 models  = ["claude-haiku-4-5", "claude-sonnet-5"]
 arms    = ["A0", "A3"]
-budgets = [60000]
+budgets = [0.20]   # DOLLARS per cell (--max-budget-usd); tight so the cap visibly binds
 seeds   = [0]
 
 [tasks]

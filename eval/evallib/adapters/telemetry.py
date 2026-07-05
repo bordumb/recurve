@@ -72,11 +72,8 @@ def cost_usd(model: str, tokens_in: int, tokens_out: int,
     return (tokens_in / 1_000_000) * p["in"] + (tokens_out / 1_000_000) * p["out"]
 
 
-def estimate_usd(cells: list[dict], tokens_per_cell: int | None = None) -> float:
-    """A pre-run cost ceiling: every cell at its full budget, split 50/50
-    in/out. Deliberately an over-estimate — the number printed before spending."""
-    total = 0.0
-    for c in cells:
-        budget = tokens_per_cell if tokens_per_cell is not None else c.get("budget", 0)
-        total += cost_usd(c["model"], budget // 2, budget // 2)
-    return total
+def estimate_usd(cells: list[dict]) -> float:
+    """A pre-run cost ceiling: the sum of every cell's DOLLAR budget. Since a cell
+    is now bounded by a dollar cap (not a token count), the ceiling is exactly the
+    budgets — every cell spending its full allowance."""
+    return sum(float(c.get("budget", 0) or 0) for c in cells)

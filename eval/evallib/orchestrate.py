@@ -99,6 +99,7 @@ def make_orchestrator(agent, tasks_by_id: dict, pins: dict,
             "terminal_state": terminal_state,
             "tokens_in": agent_row.get("tokens_in", 0),
             "tokens_out": agent_row.get("tokens_out", 0),
+            "cost_usd": agent_row.get("cost_usd", 0.0),   # the real billed price of this cell
             "agent_exit": agent_row.get("agent_exit"),
             **{k: provenance.get(k) for k in
                ("dataset_revision", "recurve_commit", "adapter_version", "oracle_env_hash")},

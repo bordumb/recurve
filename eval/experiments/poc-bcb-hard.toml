@@ -5,7 +5,7 @@ question = "Does the gate reduce shipped-bad-work at matched budget?"
 [matrix]
 models  = ["claude-haiku-4-5", "claude-sonnet-5"]
 arms    = ["A0", "A3"]
-budgets = [60000]
+budgets = [0.50]   # DOLLARS per cell (--max-budget-usd); budget-matched control
 seeds   = [0]
 
 [tasks]
