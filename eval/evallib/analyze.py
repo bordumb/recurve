@@ -17,7 +17,14 @@ _Z = 1.959963984540054  # 95% normal quantile
 
 
 def wilson(k: int, n: int) -> tuple[float, float]:
-    """Wilson 95% score interval for a binomial rate. (0.0, 0.0) for n=0."""
+    """Wilson 95% score interval for a binomial rate. (0.0, 0.0) for n=0.
+
+    A score interval always contains its own point estimate p=k/n; boundary
+    floating-point noise can push a bound a hair past p (e.g. n=6, k=0 gives a
+    lower bound of ~2.8e-17 instead of exactly 0), so the result is clamped to
+    [0,1] AND to bracket p. An un-bracketed CI is both a drawing lie and a
+    matplotlib `errorbar` crash (a negative xerr), so this is fixed at the source
+    where every table and figure reads it."""
     if n == 0:
         return (0.0, 0.0)
     p = k / n
@@ -25,7 +32,9 @@ def wilson(k: int, n: int) -> tuple[float, float]:
     denom = 1 + z2 / n
     center = (p + z2 / (2 * n)) / denom
     half = (_Z * math.sqrt(p * (1 - p) / n + z2 / (4 * n * n))) / denom
-    return (max(0.0, center - half), min(1.0, center + half))
+    lo = max(0.0, center - half)
+    hi = min(1.0, center + half)
+    return (min(lo, p), max(hi, p))
 
 
 def _rate(k: int, n: int) -> float:
@@ -218,12 +227,24 @@ def figure_specs(rows: list[dict], synthetic: bool = False) -> dict:
     return spec
 
 
+def _endpoint_honest(e: dict) -> bool:
+    """A dumbbell endpoint is honest iff its Wilson CI lies in [0,1] and brackets
+    its own point (0 <= ci_lo <= rate <= ci_hi <= 1). A CI that does not contain
+    its estimate misdraws the uncertainty — and crashes the renderer."""
+    return 0.0 <= e.get("ci_lo", 0.0) <= e.get("rate", 0.0) <= e.get("ci_hi", 0.0) <= 1.0
+
+
 def spec_is_honest(spec: dict) -> bool:
     """The honesty craft rules, as a guard: the hero x-axis spans the full
-    [0,1] (never truncated to inflate an effect), and a synthetic spec carries a
-    watermark that the renderer stamps onto the image itself."""
-    if spec.get("hero", {}).get("x_domain") != [0.0, 1.0]:
+    [0,1] (never truncated to inflate an effect), every endpoint CI brackets its
+    point within the axis, and a synthetic spec carries a watermark that the
+    renderer stamps onto the image itself."""
+    hero = spec.get("hero", {})
+    if hero.get("x_domain") != [0.0, 1.0]:
         return False
+    for r in hero.get("rows", []):
+        if not (_endpoint_honest(r.get("baseline", {})) and _endpoint_honest(r.get("gated", {}))):
+            return False
     if spec.get("synthetic") and not spec.get("watermark"):
         return False
     return True

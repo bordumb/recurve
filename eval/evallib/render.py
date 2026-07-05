@@ -68,9 +68,12 @@ def render_hero(spec, out_dir) -> None:
         y = len(rows) - 1 - i
         b, g = r["baseline"], r["gated"]
         ax.plot([b["rate"], g["rate"]], [y, y], color=INK, lw=1.2, zorder=1)
-        ax.errorbar(b["rate"], y, xerr=[[b["rate"] - b["ci_lo"]], [b["ci_hi"] - b["rate"]]],
+        # xerr must be non-negative; spec_is_honest already guarantees the CI
+        # brackets its point, but clamp defensively so a headless analyze never
+        # hard-crashes on a boundary CI it was handed.
+        ax.errorbar(b["rate"], y, xerr=[[max(0.0, b["rate"] - b["ci_lo"])], [max(0.0, b["ci_hi"] - b["rate"])]],
                     fmt="o", color=GRED, ms=7, capsize=2, lw=1.2, zorder=3)
-        ax.errorbar(g["rate"], y, xerr=[[g["rate"] - g["ci_lo"]], [g["ci_hi"] - g["rate"]]],
+        ax.errorbar(g["rate"], y, xerr=[[max(0.0, g["rate"] - g["ci_lo"])], [max(0.0, g["ci_hi"] - g["rate"])]],
                     fmt="o", color=GBLUE, ms=7, capsize=2, lw=1.2, zorder=3)
         ax.annotate(f"Δ {r['delta'] * 100:.1f} pts", ((b["rate"] + g["rate"]) / 2, y),
                     textcoords="offset points", xytext=(0, 9), ha="center", fontsize=8)

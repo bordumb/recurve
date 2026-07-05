@@ -173,8 +173,8 @@
   evidence:
   - eval/evallib/analyze.py
   - eval/evallib/render.py
-  observed: 'GREEN at baseline 2026-07-05: render OK ⏎ figure_specs is deterministic + honest;
-    matplotlib render is byte-stable'
+  observed: 'GREEN at close 2026-07-05: render OK ⏎ figure_specs is deterministic + honest
+    (brackets its CIs); matplotlib render is byte-stable'
   smallest_fix: figure_specs computes the hero dumbbell + decomposition as a deterministic,
     order-invariant pure function (roles inferred from gate_outcome, not arm names); spec_is_honest
     guards the full 0-100% axis + synthetic watermark; render.py draws them byte-stably and
