@@ -244,16 +244,24 @@ reusable here, not reinvented:
   **non-repudiable** in a way "the API said a different model served
   this" is not — strictly stronger than R2's metadata-based identity
   check.
-- **The gap, stated honestly**: there is no biometric/hardware-gated key
-  in `auths-curve` today — its "fingerprint" is a Material Design icon in
-  the docs, not a feature. A human identity's key should be gated by
-  platform biometric authentication (Touch ID / Secure Enclave on macOS,
-  WebAuthn's platform authenticator as a cross-platform fallback) rather
-  than the passphrase-derived KDF the agent path uses — this is new
-  integration work. The broader auths ecosystem reportedly has a
-  `SecureEnclaveBridge.swift` (unverified this session, in a different
-  repo) — check whether it's reachable before building a biometric gate
-  from scratch.
+- **Correction (verified against source, not assumed): the biometric gate
+  already exists, in production, one directory over — reuse it, don't
+  build it.** `auths-curve`'s own identity path (`mint_agent`) is
+  deliberately headless/passphrase-derived, because it signs *automated*
+  recurve verdicts with no human present — that part has no biometric
+  gate, correctly. But the sibling `auths` repo's real CLI already does
+  exactly what AI6 needs: `crates/auths-core/src/storage/secure_enclave.rs`
+  ("Signing triggers Touch ID / Face ID," handling
+  `"biometric authentication failed or cancelled"` as a real error case),
+  plus `macos_keychain.rs`/`ios_keychain.rs`/`android_keystore.rs` and the
+  `auths-cli/src/bin/sign.rs` entrypoint — this is the exact mechanism
+  behind `auths sign`/`auths init`'s daily, real, Touch-ID-gated commit
+  signing. `mint_human`'s key must be stored via **this** backend (SE on
+  macOS, StrongBox/Titan on Android/iOS via the same storage crate), never
+  `auths-curve`'s passphrase-derived KDF — the human/agent distinction is
+  then not just a different capability attestation but a different key
+  *storage backend*, matching how these identities actually differ in
+  practice today.
 
 ## 6 · Requirements
 
@@ -373,10 +381,11 @@ and it must be signed by a **human-attested identity**
   default — the floor holds regardless of the ambient config.
 
 **Bounds.** Reuses `auths-curve`'s `sign_verdict`/`verify_verdict`
-directly rather than inventing new cryptography (§5a). The physical
-biometric gate on the human key is tracked as its own integration
-task — verify whether the auths ecosystem's Secure Enclave bridge is
-reachable from this context before building a fresh one.
+directly rather than inventing new cryptography (§5a), and reuses
+`auths-core`'s existing, shipped, Touch-ID/Secure-Enclave-gated key
+storage (`storage/secure_enclave.rs`, `macos_keychain.rs`) for the human
+identity's key — the same mechanism already backing `auths sign` for
+real daily commit signing. No new biometric integration work.
 
 ### AI7 — Uniform provenance: every port, not just adversary/governor; two tiers of strength
 
@@ -521,9 +530,16 @@ rather than per-feature bespoke code, and so the *next* ablation switch
 reference generator, whatever `eval-full.md`'s program surfaces next) is
 a new adapter file, not a new architecture.
 
-It also borrows rather than reinvents: `auths-curve`'s already-shipped
-signer/witness seam (§5a) supplies the cryptographic backbone for AI6's
-human sign-off and AI7's provenance upgrade — the same mechanism that
-signs recurve's own gate verdicts today, repointed at governor approvals.
-The one genuinely new piece is the biometric/hardware gate on a human
-identity's key, which does not exist anywhere in this workspace yet.
+It also borrows rather than reinvents, more completely than first
+scoped: `auths-curve`'s already-shipped signer/witness seam (§5a)
+supplies the cryptographic backbone for AI6's human sign-off and AI7's
+provenance upgrade — the same mechanism that signs recurve's own gate
+verdicts today, repointed at governor approvals — and the sibling
+`auths` repo's `auths-core` storage backends
+(`secure_enclave.rs`/`macos_keychain.rs`/`ios_keychain.rs`/
+`android_keystore.rs`) already provide the Touch-ID/Secure-Enclave-gated
+key storage AI6 needs for `mint_human`, verified directly against source
+rather than assumed. There is no genuinely new piece here — this PRD's
+job is wiring three already-shipped mechanisms (agent/witness signing,
+biometric key storage, and the recurve gate) together, not building any
+of them from scratch.
