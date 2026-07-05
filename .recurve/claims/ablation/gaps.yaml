@@ -101,3 +101,22 @@
   probe: probes/ab-5.sh
   unlocks: R2''s cross-model check and R5''s governor identity check share one, non-repudiable
     verification primitive instead of two bespoke ones
+
+- id: AB-6
+  title: the adversary registry + off/same_model/cross_model adapters
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-6
+  evidence:
+  - recurvelib/adapters/adversary/
+  observed: 'GREEN at baseline 2026-07-05: the adversary registry resolves off/same_model/cross_model;
+    identity is verified from the reviewer''s actual served_model (never a requested flag),
+    and cross_model refuses a same-identity pair — the O6 bug class'
+  smallest_fix: recurvelib.adapters.adversary.ADVERSARY_ADAPTERS resolves off/same_model/
+    cross_model; cross_model refuses when its verified served_model does not verifiably differ
+    from the actor's, checked from the reviewer's actual reported identity.
+  probe: probes/ab-6.sh
+  unlocks: R2''s cross-model decorrelation is a real, invokable adapter, not prose in runtime.py

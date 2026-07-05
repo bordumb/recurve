@@ -87,3 +87,22 @@ envelope fails (or raises during) verification must demote to `unverified`
 with the reason recorded, never silently accepted. Two provenances sharing
 the same identity — the same-model-adversary / actor-signs-with-its-own-key
 shape — must never count as verified-different.
+
+## AB-6 — the adversary registry + off/same_model/cross_model adapters
+
+`recurvelib.adapters.adversary.ADVERSARY_ADAPTERS` resolves `off`
+(no-op, always `no_objection`), `same_model` (isolated review, no identity
+requirement), and `cross_model` (isolated review + identity check) — this
+satisfies R2's automated tiers. The reviewer is a BYO command (same shape as
+`CommandActor`): it runs in the isolated snapshot and prints one JSON
+verdict naming its own `served_model`. `cross_model` refuses — raising
+`CrossModelIdentityViolation` — when its verified served identity does not
+verifiably differ from the actor's, checked from the reviewer's own reported
+identity, never a caller-supplied "requested" model string.
+
+Negative space: an adapter that skips the identity check entirely, or that
+verifies against a requested/self-reported model instead of the actually
+served one (the config-drift shape — the flag says one thing, the server did
+another), must turn the probe RED. A malformed adapter (no `.review`) must
+be refused at registration, not first invocation. The isolated reviewer must
+never see the acting agent's live working directory.

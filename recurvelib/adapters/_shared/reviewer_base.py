@@ -49,6 +49,27 @@ def _resolve_provenance(provenance: Provenance | None, identity: str | None) -> 
     return metadata_verified(identity) if identity else unverified()
 
 
+def run_isolated_review(
+    snapshot, argv, *,
+    isolation_strategy: str = "subprocess_tempdir",
+    image: str | None = None,
+    timeout: int = 300,
+    identity: str | None = None,
+    provenance: Provenance | None = None,
+) -> ReviewInvocation:
+    """Run `argv` against an ALREADY-BUILT `ClaimSnapshot`/`CycleSnapshot` —
+    the shape `Adversary.review(claim: ClaimSnapshot)`/`Governor.audit(cycle:
+    CycleSnapshot)` actually receive (`ablation-infra.md` §2): the caller
+    already built the snapshot; this is the isolation + provenance half,
+    shared by every adapter. `run_claim_reviewer`/`run_cycle_reviewer` below
+    are the one-shot convenience wrapper (build + invoke) for callers that
+    don't already hold a snapshot."""
+    result = _invoke(snapshot, argv, isolation_strategy, image, timeout)
+    return ReviewInvocation(
+        returncode=result.returncode, stdout=result.stdout, stderr=result.stderr,
+        snapshot_commit=snapshot.commit, provenance=_resolve_provenance(provenance, identity))
+
+
 def run_claim_reviewer(
     repo, ref, claim_id, argv, *,
     isolation_strategy: str = "subprocess_tempdir",
@@ -60,17 +81,15 @@ def run_claim_reviewer(
     provenance: Provenance | None = None,
 ) -> ReviewInvocation:
     """Build a `ClaimSnapshot` and run `argv` against it under the named
-    isolation strategy — the one code path every adversary adapter composes
-    from, so isolation/snapshot/provenance wiring is never per-adapter.
+    isolation strategy — a one-shot convenience wrapper around
+    `run_isolated_review` for a caller that doesn't already hold a snapshot.
     Pass `identity` for a cheap `metadata_verified` stamp, or a pre-built
     `provenance` (e.g. `cryptographically_attested`) for a stronger one."""
     snap = build_claim_snapshot(
         Path(repo), ref, claim_id, include_existing_traps=include_existing_traps,
         trap_relpaths=trap_relpaths)
-    result = _invoke(snap, argv, isolation_strategy, image, timeout)
-    return ReviewInvocation(
-        returncode=result.returncode, stdout=result.stdout, stderr=result.stderr,
-        snapshot_commit=snap.commit, provenance=_resolve_provenance(provenance, identity))
+    return run_isolated_review(snap, argv, isolation_strategy=isolation_strategy, image=image,
+                              timeout=timeout, identity=identity, provenance=provenance)
 
 
 def run_cycle_reviewer(
@@ -83,15 +102,15 @@ def run_cycle_reviewer(
     identity: str | None = None,
     provenance: Provenance | None = None,
 ) -> ReviewInvocation:
-    """Build a `CycleSnapshot` and run `argv` against it — the one code path
-    every governor adapter composes from."""
+    """Build a `CycleSnapshot` and run `argv` against it — the one-shot
+    convenience wrapper every governor adapter may use, or compose
+    `build_cycle_snapshot` + `run_isolated_review` directly when it already
+    holds a `CycleSnapshot` (the `Governor.audit(cycle)` shape)."""
     snap = build_cycle_snapshot(
         Path(repo), ref, claim_ids, include_existing_traps=include_existing_traps,
         trap_relpaths=trap_relpaths)
-    result = _invoke(snap, argv, isolation_strategy, image, timeout)
-    return ReviewInvocation(
-        returncode=result.returncode, stdout=result.stdout, stderr=result.stderr,
-        snapshot_commit=snap.commit, provenance=_resolve_provenance(provenance, identity))
+    return run_isolated_review(snap, argv, isolation_strategy=isolation_strategy, image=image,
+                              timeout=timeout, identity=identity, provenance=provenance)
 
 
 # --- AI11's lint-shaped check: adapters compose from this module, never their
