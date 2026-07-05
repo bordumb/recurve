@@ -332,14 +332,72 @@ an opaque governor opinion — a regression in auditability, not a fix.
   veto/reopen/veto looks identical to any other stalled claim from the
   controller's point of view — before building new bounding machinery.
 
-**Bounds.** Mechanical tier: default-on candidate (cost is re-execution
-of existing work, no new agent calls). Review tier: off by default,
-same house rule as R2 (a parameter, not a policy), but documented as the
+**Bounds.** A suite/run config knob, same shape as R2's:
+`[gate] governor = "off" | "mechanical" | "mechanical_review"`.
+`mechanical`: default-on candidate (cost is re-execution of existing
+work, no new agent calls). `mechanical_review`: off by default, same
+house rule as R2 (a parameter, not a policy), but documented as the
 recommended setting for endless/unattended burndown mode specifically —
 the mode with no human watching individual closes, which is the mode the
 incident happened in. R5 does not replace R4: R5 is preventive (before
 the run reports done), R4 is the backstop for whatever R5 still misses
 (after).
+
+## 3a · Ablatability: independent switches, recorded configs, a ladder not a factorial
+
+Every mechanism in this PRD must compose freely with the switches that
+already exist (`[gate] traps`, `drill --fuzz/--iso/--diff`) and with each
+other, so an arm is always just "which switches were on," never a
+special case. Three properties make that true:
+
+- **R2 (adversary) and R5 (governor) are orthogonal knobs, not a bundled
+  feature.** `[gate] adversary = off|same_model|cross_model` and
+  `[gate] governor = off|mechanical|mechanical_review` are independent —
+  either can be on with the other off, so a run can isolate "what does
+  per-claim adversary review add" from "what does the run-level governor
+  add" instead of only ever measuring them together. Colloquially
+  "governor/adversary" is one *concept* (decorrelation) but two separate
+  *switches*, deliberately, because marginal detection per layer (the
+  same metric §7's E1 interception experiment already uses) requires
+  turning each on alone before turning both on together.
+- **The resolved config is recorded verbatim, not just an arm label.**
+  Every claim/run row carries the actual `[gate]` values in effect
+  (traps, adversary, governor, plus the existing fuzz/iso/diff knobs) —
+  the same discipline the eval's `oracle_env_hash` already applies to the
+  oracle environment. An arm name like "A7" is a convenience label; the
+  row must be re-derivable from its own recorded config alone.
+- **Extend the ladder, don't build a factorial.** `traps × fuzz × iso ×
+  diff × adversary(3) × governor(3) × boundary × controller` is already
+  8+ dimensions; a full cross product is hundreds of arms — unaffordable
+  and mostly uninformative (most cells differ from their neighbor by one
+  switch no one asked about). `eval-full.md`'s existing arm matrix is
+  already a **ladder** (cumulative: A0 → A2 → A3 → A4) plus a small set
+  of **leave-one-out** arms subtracted from the ladder's strongest rung
+  (A5 boundary-off, A6 controller-off) — the standard, affordable
+  ablation-study shape. This PRD's switches extend the same ladder rather
+  than starting a new design:
+
+```
+A0  no-recurve                      (existing — the control)
+A2  claims + probes, traps off      (existing — "recurve, minimally")
+A3  claims + probes + traps         (existing — default discipline)
+A4  A3 + fuzz/iso/diff              (existing — hardened probes)
+A7  A3 + adversary=cross_model      (new — per-claim decorrelation alone)
+A8  A3 + governor=mechanical        (new — free run-level check alone)
+A9  A3 + governor=mechanical_review (new — run-level decorrelation alone)
+A10 A3 + adversary=cross_model
+       + governor=mechanical_review (new — full stack)
+A5  A3, boundary off                (existing — leave-one-out)
+A6  A3, controller off              (existing — leave-one-out)
+```
+
+This maps directly onto the user-facing shorthand: "0% recurve" = A0,
+"claims only" = A2, "claims + traps" = A3, "claims + traps +
+governor/adversary" = A10 — with A7–A9 as the intermediate rungs that
+make the combination's marginal contribution measurable rather than
+assumed. `eval-full.md` §4's arm matrix and table gain A7–A10
+accordingly; the POC (`eval-poc.md`) keeps its existing {A0, A3} scope
+unchanged — these are E4/ablation-phase arms, not POC arms.
 
 ## 4 · Sequencing
 
