@@ -20,3 +20,22 @@
     surface it.
   probe: probes/dc-1.sh
   unlocks: a GREEN's ledger entry says what kind of evidence backed it, not just that it passed
+
+- id: DC-2
+  title: surface the weak-oracle question during authoring, not after
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - DC-2
+  evidence:
+  - recurvelib/analysis/oracle_tier.py
+  observed: 'GREEN at baseline 2026-07-05: the weak-oracle question surfaces at authoring/ledger
+    time — advisory only, never blocking GREEN — and resists reference-field-without-a-real-pass
+    gaming'
+  smallest_fix: recurvelib.analysis.oracle_tier.needs_oracle_advisory flags a closed claim
+    resting on self_probe/trap_hardened alone (no reference, no adversary evidence, no oracle_waiver);
+    recurve ledger renders it as a visible, non-blocking footer.
+  probe: probes/dc-2.sh
+  unlocks: a claim closing on a weak oracle is visible at ledger time, not discovered later
