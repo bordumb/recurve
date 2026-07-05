@@ -1,0 +1,8 @@
+{
+  "_about": "Pre-registered exclusion table for BigCodeBench-Hard, frozen before the pilot (2026-07-05). Every non-pass canonical solution must appear here with a reason a hostile reviewer would accept; an unexplained canonical failure refuses calibration (EV-16). Exclusions are task-level, hence symmetric across all A0/A3 x model cells. Reasons are keyed conceptually to the oracle env: the numerical exclusion, for instance, is expected to lift on a native-amd64 oracle. 177/655 (nltk corpora) were NOT excluded — they were an environment gap, fixed in the derived oracle image (Dockerfile.nltk).",
+  "BigCodeBench/101": "requires live network during test execution (fetches a remote image over HTTP); irreducibly non-hermetic",
+  "BigCodeBench/1012": "requires live network during test execution (downloads a ZIP over HTTPS); irreducibly non-hermetic",
+  "BigCodeBench/590": "upstream resource defunct: the wikibooks page the test fetches has changed/gone; task unpassable in any environment (fails even with network)",
+  "BigCodeBench/1006": "upstream resource defunct: the Google-Drive ZIP the test downloads is gone; task unpassable in any environment (fails even with network)",
+  "BigCodeBench/917": "environment-specific numerical instability: numpy.linalg LU-decomposition error in statsmodels under emulated x86 BLAS (amd64-under-Rosetta); expected to lift on a native-amd64 oracle env"
+}

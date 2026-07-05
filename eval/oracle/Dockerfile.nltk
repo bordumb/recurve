@@ -1,0 +1,11 @@
+# Derived oracle image: the pinned BigCodeBench evaluate image + the nltk corpora
+# two BCB-Hard tasks need (177 word_tokenize->punkt, 655 stopwords). Downloaded at
+# BUILD time (network allowed here) into a world-readable searched path and pinned
+# via NLTK_DATA, so grading stays hermetic (--network=none) and nltk.download(...)
+# becomes a no-op that finds the data already present. Fixing an environment gap,
+# not excluding the tasks.
+FROM bigcodebench/bigcodebench-evaluate@sha256:a3cd34ec3840a49d6b7afb240f4bdd47c350bc5991043fd0a91773830f7cd405
+USER root
+RUN python -m nltk.downloader -d /usr/share/nltk_data punkt punkt_tab stopwords words
+ENV NLTK_DATA=/usr/share/nltk_data
+USER bigcodebenchuser

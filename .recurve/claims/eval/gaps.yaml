@@ -319,13 +319,15 @@
   - EV-16
   evidence:
   - eval/evallib/calibration.py
-  observed: 'GREEN at close 2026-07-05: calibration: derived timeout+exclusions, refuses a broken
-    harness, admits spend only for the matching env/dataset with untouched exclusions'
-  smallest_fix: derive_calibration refuses to produce a calibration when the canonical non-pass
-    fraction exceeds a cap (no laundering a harness bug into exclusions), derives the timeout from
-    the canonical p99 and the exclusions with a content hash; calibration_admits_spend refuses no
-    calibration / stale oracle-env key / different dataset / edited exclusions / low pass rate,
-    keyed by (oracle_env_hash, dataset_hash)
+  observed: 'GREEN at close 2026-07-05: calibration: registered exclusions with reasons,
+    unexplained failure refused, broken harness refused, admits only the matching env/dataset
+    with untouched table'
+  smallest_fix: derive_calibration refuses unless every non-pass canonical is a registered
+    exclusion with a reason (an unexplained failure is a harness bug or undocumented exclusion —
+    refuse), refuses when non-pass exceeds a cap even with reasons, records the reasons + a content
+    hash of the registered table, and derives the timeout from the canonical p99;
+    calibration_admits_spend refuses no calibration / stale oracle-env key / different dataset /
+    edited table / low pass rate, keyed by (oracle_env_hash, dataset_hash)
   probe: probes/ev-16.sh
   unlocks: the structural defense that only passes when the harness is actually sound — every
     bias-toward-headline bug, found or latent, drops the canonical pass rate and blocks the spend

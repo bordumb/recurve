@@ -34,18 +34,23 @@ def host_fingerprint() -> str:
 
 
 def local_image_digest(image: str, digest: str):  # pragma: no cover - needs docker
-    """`digest` if the pinned image@digest is present locally, else None — so a
-    missing or mismatched image resolves to drift and is refused."""
-    r = subprocess.run(["docker", "image", "inspect", f"{image}@{digest}"],
-                       capture_output=True)
-    return digest if r.returncode == 0 else None
+    """`digest` if the pinned image is present locally, else None (drift/absent →
+    refused). Resolves a locally-built image by its content Id (`sha256:…`) and a
+    pulled image by its `image@repodigest`; the pin is one immutable digest either
+    way."""
+    for ref in (digest, f"{image}@{digest}"):
+        if subprocess.run(["docker", "image", "inspect", ref],
+                          capture_output=True).returncode == 0:
+            return digest
+    return None
 
 
 def container_python(image: str, digest: str) -> str:  # pragma: no cover - needs docker
-    """The grading interpreter's version string, read from inside the image."""
+    """The grading interpreter's version string, read from inside the pinned
+    image (referenced by its content-addressed digest)."""
     r = subprocess.run(
         ["docker", "run", "--rm", "--platform", "linux/amd64", "--entrypoint",
-         "python", f"{image}@{digest}", "--version"],
+         "python", digest, "--version"],
         capture_output=True, text=True)
     return (r.stdout + r.stderr).strip()
 

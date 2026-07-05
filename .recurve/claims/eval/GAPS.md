@@ -230,19 +230,22 @@ accepted as complete — the untraceable-oracle hole.
 The structural defense against the whole bias-toward-headline class. Grade all
 148 canonical solutions through the finished oracle path; since a canonical
 solution cannot be wrong, any bug that turns correct solutions into errors drops
-the pass rate — so no paid cell runs while calibration is RED. Two teeth:
-`derive_calibration` REFUSES to produce a calibration when the non-pass fraction
-exceeds a cap (a broken harness must not "pass" by excluding everything — the
-residual genuinely-flaky tasks become registered, content-hashed exclusions, and
-the per-task timeout is derived from the canonical p99 under the real runtime,
-not guessed); `calibration_admits_spend` refuses at every boundary — no
-calibration, a calibration for a different oracle env (stale key), a different
-dataset, an edited exclusion list (hash mismatch), or a pass rate below the bar.
-Keyed by (oracle_env_hash, dataset_hash), so a changed oracle or dataset
-auto-invalidates a stale calibration instead of being silently reused. Negative
-space (a trap each): a stale-key calibration admits spend; an edited exclusion
-list admits spend; a harness that fails most canonicals still calibrates by
-excluding them.
+the pass rate — so no paid cell runs while calibration is RED. The teeth:
+`derive_calibration` refuses unless every non-pass canonical is a REGISTERED
+exclusion carrying a reason (the pre-authored, frozen table) — an UNEXPLAINED
+failure refuses calibration outright, the strongest tooth: a harness bug or an
+undocumented exclusion cannot slip through. It also refuses when the non-pass
+fraction exceeds a cap even with reasons (a broken harness must not pass by
+pre-registering everything), records the exclusion reasons, content-hashes the
+registered table (editing a task or a reason later is detectable), and derives
+the per-task timeout from the canonical p99 under the real runtime, not guessed.
+`calibration_admits_spend` refuses at every boundary — no calibration, a
+different oracle env (stale key), a different dataset, an edited exclusion table,
+or a pass rate below the bar. Keyed by (oracle_env_hash, dataset_hash), so a
+changed oracle or dataset auto-invalidates a stale calibration. Negative space (a
+trap each): a stale-key calibration admits spend; an edited table admits spend; a
+harness that fails most canonicals calibrates by registering them all; an
+unexplained canonical failure calibrates.
 
 ## EV-17 — The spend gate is wired into the paid path
 

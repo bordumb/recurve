@@ -70,11 +70,24 @@ def _calibration_path(repo: Path, oracle_env_hash: str) -> Path:
     return repo / "eval" / "calibrations" / (oracle_env_hash.replace(":", "-") + ".json")
 
 
+def load_exclusions(manifest: dict, repo: Path) -> dict:
+    """The pre-registered {task_id: reason} exclusion table the manifest names
+    (`_`-prefixed keys are documentation, not tasks). The empty map if none."""
+    ref = manifest.get("tasks", {}).get("exclusions")
+    if not ref:
+        return {}
+    p = repo / "eval" / ref
+    if not p.exists():
+        return {}
+    return {k: v for k, v in json.loads(p.read_text()).items() if not k.startswith("_")}
+
+
 def assert_spend_admitted(run_dir: Path, repo: Path) -> dict:
     """The spend gate with teeth: return the admitting calibration, or raise
     CalibrationError. No paid cell runs unless a calibration measured THIS oracle
-    env (by the lock's hash) against THIS dataset, with untouched exclusions and a
-    pass rate over the bar. Called first thing by `cmd_run`, before any agent."""
+    env (by the lock's hash) against THIS dataset, with the pre-registered
+    exclusion table UNTOUCHED and a pass rate over the bar. Called first thing by
+    `cmd_run`, before any agent."""
     from evallib.calibration import calibration_admits_spend
     lock = json.loads((run_dir / "oracle.lock.json").read_text())
     manifest = _load_manifest(run_dir / "manifest.toml")
@@ -84,7 +97,7 @@ def assert_spend_admitted(run_dir: Path, repo: Path) -> dict:
     cal = json.loads(cal_path.read_text()) if cal_path.exists() else None
     return calibration_admits_spend(
         cal, oracle_env_hash=oeh, dataset_hash=dataset_hash,
-        exclusions_content=(cal or {}).get("exclusions", []))
+        exclusions_content=load_exclusions(manifest, repo))
 
 
 def _git_head(repo: Path) -> str:
@@ -122,7 +135,7 @@ def cmd_run(args) -> int:
     if lock.get("mode") == "docker":
         from evallib.oracle_docker import wrapper_path
         os.environ["RECURVE_ORACLE_PYTHON"] = str(wrapper_path())
-        os.environ["RECURVE_ORACLE_IMAGE"] = f"{lock['image']}@{lock['digest']}"
+        os.environ["RECURVE_ORACLE_IMAGE"] = lock["digest"]   # run by content-addressed digest/Id
         os.environ.setdefault("RECURVE_ORACLE_TMP", "/private/tmp/recurve-oracle-work")
         os.makedirs(os.environ["RECURVE_ORACLE_TMP"], exist_ok=True)
     oracle_timeout = int(cal["resolved_timeout"])

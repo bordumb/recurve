@@ -3,14 +3,14 @@
 # the enforcement — `cmd_run` calls `assert_spend_admitted` FIRST, before it
 # resolves a task or spawns an agent, so a run whose oracle env has no passing
 # calibration costs exactly nothing. assert_spend_admitted reads the run dir's
-# oracle.lock.json, finds the calibration keyed by its oracle_env_hash, and
-# refuses (no calibration / different dataset / edited exclusions) or returns the
+# oracle.lock.json, loads the pre-registered exclusion table the manifest names,
+# finds the calibration keyed by the lock's oracle_env_hash, and refuses (no
+# calibration / different dataset / edited exclusion table) or returns the
 # admitting calibration with its resolved timeout. Hermetic: no docker, no agent —
 # the refusal happens before either could be reached.
 #
-# RED until cmd_run gates on calibration. Trap: a run admitted (or reaching the
-# work queue) with no calibration for its oracle env — a paid run on an
-# uncalibrated, possibly-broken oracle.
+# RED until cmd_run gates on calibration. Trap: a run admitted with no calibration
+# for its oracle env — a paid run on an uncalibrated, possibly-broken oracle.
 set -u
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$DIR/../../../.." && pwd)"
@@ -21,29 +21,34 @@ HELP='
 import os, sys, json, tempfile, pathlib, inspect
 sys.path.insert(0, os.environ["EVAL"])
 from evallib.calibration import exclusion_content_hash
+EXCL = {"BigCodeBench/917":"numerical-instability"}    # a small pre-registered table
+EREF = "exclusions/ev17.json"
 
 def make_run(oeh="oeh:ev17", dataset_hash="dh:ev17"):
     d = pathlib.Path(tempfile.mkdtemp())
     (d/"manifest.toml").write_text(
         "[matrix]\nmodels=[\"m\"]\narms=[\"A0\"]\nbudgets=[1]\nseeds=[0]\n"
         "[tasks]\nlocal=\"/nonexistent.jsonl\"\nhash=\""+dataset_hash+"\"\ncount=1\n"
-        "[oracle.env]\nmode=\"local\"\n")
+        "exclusions=\""+EREF+"\"\n[oracle.env]\nmode=\"local\"\n")
     (d/"oracle.lock.json").write_text(json.dumps({"mode":"local","oracle_env_hash":oeh,
         "resolved_timeout":None}))
     (d/"matrix.jsonl").write_text(json.dumps({"cell_id":"c","model":"m","arm":"A0",
         "budget":1,"seed":0,"task_id":"t"})+"\n")
     return d
 
-def fake_repo(cal=None, oeh="oeh:ev17"):
+def fake_repo(cal=None, oeh="oeh:ev17", excl=EXCL):
     r = pathlib.Path(tempfile.mkdtemp())
-    caldir = r/"eval"/"calibrations"; caldir.mkdir(parents=True)
+    (r/"eval"/"calibrations").mkdir(parents=True)
+    (r/"eval"/"exclusions").mkdir(parents=True)
+    (r/"eval"/EREF).write_text(json.dumps(excl))
     if cal is not None:
-        (caldir/(oeh.replace(":","-")+".json")).write_text(json.dumps(cal))
+        (r/"eval"/"calibrations"/(oeh.replace(":","-")+".json")).write_text(json.dumps(cal))
     return r
 
-def good_cal(oeh="oeh:ev17", dataset_hash="dh:ev17"):
+def good_cal(oeh="oeh:ev17", dataset_hash="dh:ev17", excl=EXCL):
     return {"oracle_env_hash":oeh,"dataset_hash":dataset_hash,"raw_pass_rate":1.0,
-            "exclusions":[],"exclusion_hash":exclusion_content_hash([]),"resolved_timeout":42}
+            "exclusions":sorted(excl),"exclusion_reasons":excl,
+            "exclusion_hash":exclusion_content_hash(excl),"resolved_timeout":42}
 '
 
 if [ -n "${TRAP_FIXTURE:-}" ]; then
@@ -66,7 +71,7 @@ fi
 out="$(EVAL="$EVAL" python3 -c "
 $HELP
 try:
-    from evallib.cli import assert_spend_admitted, cmd_run, main
+    from evallib.cli import assert_spend_admitted, cmd_run, main, load_exclusions
     from evallib.calibration import CalibrationError
 except Exception as e:
     print('MISSING', e); raise SystemExit(0)
@@ -81,16 +86,12 @@ def refuses(run_dir, repo):
 
 assert refuses(make_run(), fake_repo(cal=None)), 'no calibration admitted'
 assert refuses(make_run(oeh='oeh:other'), fake_repo(cal=good_cal(), oeh='oeh:ev17')), 'stale oracle-env key admitted'
-# edited exclusions: the calibration on disk claims exclusions the lock check will not match
-bad=good_cal(); bad['exclusions']=['sneak']       # hash no longer matches the empty-list content the loader reads? here loader reads cal's own list
-# (loader passes cal['exclusions'] as content; so tamper the recorded hash instead)
-bad2=good_cal(); bad2['exclusion_hash']='exh:tampered'
-assert refuses(make_run(), fake_repo(cal=bad2)), 'exclusion-hash mismatch admitted'
+# edited exclusion table: the file on disk no longer matches the calibration's exclusion_hash
+assert refuses(make_run(), fake_repo(cal=good_cal(), excl={'BigCodeBench/sneak':'x'})), 'edited exclusion table admitted'
 
 # WIRED: cmd_run consults the gate before doing anything else
 src=inspect.getsource(cmd_run)
 assert 'assert_spend_admitted' in src, 'cmd_run does not call the spend gate'
-# and the gate CALL precedes the adapter CALL (compare call sites, not the import line)
 assert src.index('assert_spend_admitted(run_dir') < src.index('adapter = make_pipeline_adapter'), 'gate is not before the adapter'
 
 # BEHAVIORAL: a real cmd_run over a run dir with no calibration returns nonzero and seals NOTHING

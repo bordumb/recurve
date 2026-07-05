@@ -41,9 +41,13 @@ class CalibrationError(RuntimeError):
 
 
 def exclusion_content_hash(exclusions) -> str:
-    """Order-invariant content hash of the registered exclusion list, so editing
-    it after calibration is detectable."""
-    canon = json.dumps(sorted(exclusions), separators=(",", ":"))
+    """Order-invariant content hash of the registered exclusion table, so editing
+    a task id OR a reason after calibration is detectable. Accepts the table as a
+    {task_id: reason} mapping (canonical) or a bare list of ids."""
+    if isinstance(exclusions, dict):
+        canon = json.dumps(sorted(exclusions.items()), separators=(",", ":"))
+    else:
+        canon = json.dumps(sorted(exclusions), separators=(",", ":"))
     return "exh:" + hashlib.sha256(canon.encode()).hexdigest()[:16]
 
 
@@ -55,36 +59,47 @@ def _p99(values) -> float:
     return s[idx]
 
 
-def derive_calibration(oracle_env_hash: str, dataset_hash: str, results: dict, *,
+def derive_calibration(oracle_env_hash: str, dataset_hash: str, results: dict,
+                       registered_exclusions: dict, *,
                        timeout_k: float = DEFAULT_TIMEOUT_K,
                        max_exclusion_frac: float = DEFAULT_MAX_EXCLUSION_FRAC) -> dict:
     """Derive a calibration from canonical-solution grading results.
 
     `results`: {task_id: {"verdict": pass|fail|error|timeout, "seconds": float}}.
-    A canonical solution that does not pass is either genuinely environment-flaky
-    (a registered exclusion) or evidence of a harness bug. If the non-pass
-    fraction exceeds `max_exclusion_frac`, refuse — a broken harness must not pass
-    by excluding everything. The timeout is the canonical p99 × k (ceil)."""
+    `registered_exclusions`: {task_id: reason} — the PRE-AUTHORED table (frozen as
+    pre-registration). Every non-pass canonical MUST be registered with a reason;
+    an unexplained failure refuses calibration outright (a harness bug or an
+    undocumented exclusion cannot slip through). If the non-pass fraction exceeds
+    `max_exclusion_frac`, refuse even when all are registered (a broken harness
+    must not pass by pre-registering everything). The timeout is the canonical
+    p99 × k (ceil)."""
     tids = sorted(results)
     n = len(tids)
     if n == 0:
         raise CalibrationError("no calibration results — nothing to calibrate")
+    registered = dict(registered_exclusions or {})
     passing = [t for t in tids if results[t].get("verdict") == "pass"]
-    exclusions = [t for t in tids if results[t].get("verdict") != "pass"]
-    if len(exclusions) / n > max_exclusion_frac:
+    non_pass = [t for t in tids if results[t].get("verdict") != "pass"]
+    unexplained = [t for t in non_pass if t not in registered]
+    if unexplained:
         raise CalibrationError(
-            f"{len(exclusions)}/{n} canonical solutions did not pass "
-            f"(> {max_exclusion_frac:.0%}) — canonical solutions cannot be wrong, "
-            f"so this is a harness bug, not a set of exclusions; refusing to "
-            f"calibrate (fix the oracle, do not launder it into exclusions)")
+            f"{len(unexplained)} canonical solution(s) failed with NO registered "
+            f"exclusion reason: {unexplained[:5]} — canonical solutions cannot be "
+            f"wrong, so this is a harness bug or an undocumented exclusion; refusing "
+            f"(fix the oracle or register the reason, do not launder it)")
+    if len(non_pass) / n > max_exclusion_frac:
+        raise CalibrationError(
+            f"{len(non_pass)}/{n} canonical solutions did not pass "
+            f"(> {max_exclusion_frac:.0%}) — too many even with reasons; refusing")
     timeout = int(math.ceil(_p99([results[t]["seconds"] for t in passing]) * timeout_k))
     return {
         "oracle_env_hash": oracle_env_hash,
         "dataset_hash": dataset_hash,
         "n_tasks": n,
         "raw_pass_rate": len(passing) / n,
-        "exclusions": sorted(exclusions),
-        "exclusion_hash": exclusion_content_hash(exclusions),
+        "exclusions": sorted(non_pass),
+        "exclusion_reasons": {t: registered[t] for t in sorted(non_pass)},
+        "exclusion_hash": exclusion_content_hash(registered),
         "resolved_timeout": max(1, timeout),
         "verdicts": {t: results[t].get("verdict") for t in tids},
     }
