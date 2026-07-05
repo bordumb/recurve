@@ -93,3 +93,7 @@ nav:
       - The verification layer: developer_guide/verification-layer.md
       - Evidence & receipts: developer_guide/evidence.md
       - Architecture: developer_guide/architecture.md
+  - Evaluation:
+      - Why, how, methodology: evals/index.md
+      - Running the evals: evals/running.md
+      - Results: evals/results.md
