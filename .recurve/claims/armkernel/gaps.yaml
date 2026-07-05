@@ -93,3 +93,28 @@
   unlocks: A1's mechanism gap is closed whenever a benchmark supplies its own grading command
     (a config string); the design question of what that command means for a repo-less task
     is separate and still open.
+
+- id: AK-5
+  title: AuditPort can only add columns, never change the outcome
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AK-5
+  evidence:
+  - eval/evallib/audit.py
+  - eval/evallib/orchestrate.py
+  observed: 'GREEN at baseline 2026-07-05: AuditPort is additive-only: AuditResult is structurally
+    incapable of carrying declared_done/oracle_verdict; drill_hardened invokes the real drill
+    CLI and parses its own real summary lines (a genuine planted disagreement measured as
+    1); A4''s row carries a namespaced ''audit'' column while declared_done/oracle_verdict
+    stay exactly what the done-signal and oracle already decided'
+  smallest_fix: AuditResult (frozen dataclass) has no declared_done/oracle_verdict fields
+    — has_forbidden_field is a structural, reusable guard; drill_hardened_audit invokes the
+    real drill --fuzz --iso --diff CLI and parses its own summary lines; orchestrate.py nests
+    the result under row["audit"], never flattens it.
+  probe: probes/ak-5.sh
+  unlocks: A4 (A3 + fuzz/iso/diff) measures how much harder auditing would have caught, without
+    becoming a second gate — the outcome fields are computed independently and cannot be touched
+    by construction.

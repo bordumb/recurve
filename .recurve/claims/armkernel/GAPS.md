@@ -91,3 +91,21 @@ Negative space: an `external_ci` that "helpfully" also requires a non-empty
 `solution.py` regardless of what the configured command itself checks — a
 second, undeclared authority smuggled into what must be a pure CLI contract
 — must be caught; the command alone decides, always.
+
+## AK-5 — AuditPort can only add columns, never change the outcome
+
+`AuditResult` is structurally incapable of carrying `declared_done` or
+`oracle_verdict` — the type itself has no such fields, verified by
+`has_forbidden_field` (the same discipline `recurvelib.loop.reviewers`
+already applies to Adversary/Governor verdicts). `drill_hardened` invokes
+the real, already-shipped `recurve drill --fuzz --iso --diff` CLI and parses
+its own real summary lines — proven against a genuinely planted reference
+disagreement, not a fabricated string. A3's row (audit="none", the default)
+carries no `audit` key at all; A4's carries one, namespaced, while
+`declared_done`/`oracle_verdict` stay exactly what the done-signal and
+oracle already decided, independent of whatever the audit found. A4 = A3 +
+this port.
+
+Negative space: a candidate `AuditResult`-like type carrying a
+`declared_done` field directly — a type-level attempt to smuggle the outcome
+— must be flagged by `has_forbidden_field`, not silently accepted.

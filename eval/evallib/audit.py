@@ -58,9 +58,15 @@ def none_audit(workspace) -> AuditResult:
     return AuditResult(audit_ran=False)
 
 
-_FPR_RE = re.compile(r"\bfpr[=:]\s*([0-9.]+)", re.IGNORECASE)
-_FLIP_RE = re.compile(r"\bflip(?:_rate)?[=:]\s*([0-9.]+)", re.IGNORECASE)
-_DISAGREE_RE = re.compile(r"\bDISAGREEMENT\b")
+# These match `recurvelib.cli.commands.drill.cmd_drill`'s own summary lines
+# verbatim (e.g. "fuzz: 3 fuzz-capable probe(s) measured, 1 false
+# positive(s)") — the real, already-shipped CLI output, not a guess at one.
+_FUZZ_RE = re.compile(r"^fuzz:\s*(\d+)\s+fuzz-capable probe\(s\) measured,\s*(\d+)\s+false positive\(s\)",
+                      re.MULTILINE)
+_ISO_RE = re.compile(r"^iso:\s*(\d+)\s+iso-capable probe\(s\) measured,\s*(\d+)\s+flip\(s\)",
+                     re.MULTILINE)
+_DIFF_RE = re.compile(r"^diff:\s*(\d+)\s+reference-bearing claim\(s\) checked,\s*(\d+)\s+disagreement\(s\)",
+                     re.MULTILINE)
 
 
 def drill_hardened_audit(workspace) -> AuditResult:
@@ -72,14 +78,29 @@ def drill_hardened_audit(workspace) -> AuditResult:
     r = subprocess.run(["recurve", "drill", "--fuzz", "--iso", "--diff"],
                        cwd=str(workspace), capture_output=True, text=True)
     out = r.stdout + r.stderr
-    fpr_m = _FPR_RE.search(out)
-    flip_m = _FLIP_RE.search(out)
-    disagreements = len(_DISAGREE_RE.findall(out))
+
+    fuzz_fpr = None
+    m = _FUZZ_RE.search(out)
+    if m:
+        probes, fps = int(m.group(1)), int(m.group(2))
+        fuzz_fpr = (fps / probes) if probes else None
+
+    iso_flip_rate = None
+    m = _ISO_RE.search(out)
+    if m:
+        probes, flips = int(m.group(1)), int(m.group(2))
+        iso_flip_rate = (flips / probes) if probes else None
+
+    diff_disagreements = None
+    m = _DIFF_RE.search(out)
+    if m:
+        diff_disagreements = int(m.group(2))
+
     return AuditResult(
         audit_ran=True,
-        fuzz_fpr=float(fpr_m.group(1)) if fpr_m else None,
-        iso_flip_rate=float(flip_m.group(1)) if flip_m else None,
-        diff_disagreements=disagreements,
+        fuzz_fpr=fuzz_fpr,
+        iso_flip_rate=iso_flip_rate,
+        diff_disagreements=diff_disagreements,
         raw_output=out,
     )
 

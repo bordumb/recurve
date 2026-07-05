@@ -94,6 +94,10 @@ _ARMS: dict[str, ArmSpec] = {
     # off-by-default engine capability; used here to MEASURE what the write
     # boundary is worth, never a default for any other arm.
     "A5": replace(_A3, boundary="open", label="A3, boundary off"),
+    # A3, plus a post-hoc hardening pass (fuzz/iso/diff) that can only ADD
+    # columns to the row, never change declared_done/oracle_verdict.
+    # Measures how much harder auditing would have caught.
+    "A4": replace(_A3, audit="drill_hardened", label="A3 + fuzz/iso/diff"),
     # A7-A10: ablation-phase arms (not POC arms — the POC keeps {A0, A3}
     # unchanged). Each extends A3 by one or two switches: marginal detection
     # per layer before measuring the combination.
