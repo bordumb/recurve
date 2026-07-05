@@ -457,13 +457,13 @@
   - eval/evallib/grade_policy.py
   - eval/evallib/oracle_env.py
   - eval/evallib/cli.py
-  observed: 'GREEN at close 2026-07-05: grading concurrency: matches the lock, a timeout gets one
-    serial retry (contention != error), a failure is never retried'
-  smallest_fix: grade_policy.serial_retry_on_timeout retries a TIMED-OUT grading once serially
-    (contention gets a contention-free attempt, not a false error) but never retries a genuine
-    failure; assert_concurrency_matches refuses a run whose concurrency differs from the lock's
-    grade_concurrency; cmd_run enforces the match and wraps the warm grader; the lock records
-    grade_concurrency outside the identity (concurrency changes timing, not verdicts)
+  observed: 'GREEN at close 2026-07-05: grading concurrency: matches the lock; a timeout gets ONE
+    genuinely-exclusive serial retry (rc==124 only); a failure is never retried'
+  smallest_fix: grade_policy.RWLock gives the timeout retry a genuinely contention-free window
+    (normal grades take read, the retry takes write and drains in-flight work), so the retry is
+    verdict-independent and grade_concurrency can sit in the lock outside the identity; the retry
+    fires on rc==124 only (a failure mentioning "timeout" is not retried); assert_concurrency_matches
+    refuses a run whose concurrency differs from the lock; cmd_run enforces the match + wraps the grader
   probe: probes/ev-22.sh
   unlocks: the paid run can parallelize grading for wall-clock without a contention-induced
     timeout ever becoming a false oracle error — speed never corrupts a verdict

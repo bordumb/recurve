@@ -142,7 +142,8 @@ def cmd_run(args) -> int:
 
     # Grading concurrency must match what the lock recorded (O4) — never grade
     # under a condition the calibration did not account for.
-    from evallib.grade_policy import assert_concurrency_matches, serial_retry_on_timeout, ConcurrencyMismatch
+    from evallib.grade_policy import (assert_concurrency_matches, serial_retry_on_timeout,
+                                       ConcurrencyMismatch, RWLock)
     try:
         assert_concurrency_matches(args.workers, lock.get("grade_concurrency", 1))
     except ConcurrencyMismatch as e:
@@ -154,7 +155,6 @@ def cmd_run(args) -> int:
     # timeout gets one serial retry so contention never becomes a false error (O4).
     warm = None
     if lock.get("mode") == "docker":
-        import threading
         from evallib.warm_oracle import WarmOracle
         from evallib import quarantine
         os.environ.setdefault("RECURVE_ORACLE_TMP", "/private/tmp/recurve-oracle-work")
@@ -162,7 +162,7 @@ def cmd_run(args) -> int:
         warm = WarmOracle(lock["digest"], os.environ["RECURVE_ORACLE_TMP"],
                           platform=lock.get("platform", "linux/amd64"))
         warm.start()
-        quarantine.set_grader(serial_retry_on_timeout(warm.grade, threading.Lock()))
+        quarantine.set_grader(serial_retry_on_timeout(warm.grade, RWLock()))
 
     cells = [json.loads(l) for l in (run_dir / "matrix.jsonl").read_text().splitlines() if l.strip()]
     # Re-resolve the pinned tasks (WITH their hidden `test`) from the frozen
