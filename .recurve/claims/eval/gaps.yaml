@@ -269,3 +269,24 @@
   probe: probes/ev-13.sh
   unlocks: the oracle that grades every solution is declared and pinned like the dataset — the
     intent half of making two runs' oracles provably identical or provably different
+
+- id: EV-14
+  title: Oracle env resolved and locked; refuse-on-drift (resolution)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-14
+  evidence:
+  - eval/evallib/oracle_env.py
+  observed: 'GREEN at close 2026-07-05: oracle env resolved to a lock; digest drift refused;
+    oracle_env_hash is identity-sensitive and calibration-independent'
+  smallest_fix: resolve_oracle_lock resolves the spec against the machine (local image digest,
+    platform, container python, wrapper hash, host) and raises OracleDriftError when the
+    locally-present digest disagrees with the manifest or is absent; oracle_env_hash digests the
+    verdict-affecting identity subset only, excluding the calibration-derived timeout/exclusions
+    it keys, so an env change invalidates a stale calibration automatically
+  probe: probes/ev-14.sh
+  unlocks: two runs' oracles are provably the same or provably different by one hash, and drift
+    is refused at plan time — the resolution half of naturalizing the oracle

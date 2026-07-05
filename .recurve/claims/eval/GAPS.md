@@ -195,3 +195,21 @@ nothing to show it. A tag or digest smuggled into the `image` field is refused
 too, so the `digest` field is the single source of truth; a `local` mode (the
 current interpreter) stays available for hermetic tests. Negative space (the
 trap): a digest-less bare-tag docker oracle accepted — the mutable-oracle hole.
+
+## EV-14 — Oracle env resolved and locked; refuse-on-drift (resolution)
+
+The resolution half. `resolve_oracle_lock` resolves the validated spec against
+the machine into an `oracle.lock.json`: the image digest ACTUALLY present locally
+(refused if it disagrees with the manifest, or is absent — the same refusal the
+dataset hash gives, so retagging the image and re-running is caught), the
+platform + emulation flag, the container's Python version, the grading-wrapper
+hash, and a host fingerprint. `oracle_env_hash` digests the verdict-affecting
+identity subset ONLY — image digest, platform, network, container Python, wrapper
+hash, host — and deliberately excludes the calibration-derived timeout and
+exclusion hash, which are keyed BY this hash (including them would be circular).
+So any identity change (image, platform, wrapper, python, host — host because
+emulation timing lives there) changes the hash and invalidates a stale
+calibration automatically, while calibration can still hang its outputs off a
+stable key. Negative space (a trap each): a locally-present digest that disagrees
+with the manifest accepted (drift not refused); the identity hash ignoring the
+grading wrapper (a changed grader reading as the same oracle).

@@ -18,14 +18,29 @@ present, writing `oracle.lock.json`, refusing drift) lives in the plan path.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+# The VERDICT-AFFECTING identity of an oracle. `oracle_env_hash` digests exactly
+# these — deliberately NOT the calibration-derived timeout/exclusions, which are
+# keyed BY this hash (including them would be circular). `host` is here because
+# under emulation a different machine changes timing, and timing changes timeout
+# verdicts, so a new host must re-calibrate.
+_IDENTITY_KEYS = ("mode", "image", "digest", "platform", "network",
+                  "container_python", "wrapper_sha", "host")
 
 
 class OracleSpecError(ValueError):
     """The declared `[oracle.env]` is unpinnable or malformed — refused before a
     run, never graded against silently."""
+
+
+class OracleDriftError(RuntimeError):
+    """The oracle image actually present locally does not match the manifest's
+    pinned digest — refused, exactly as a dataset hash mismatch is."""
 
 
 def parse_oracle_env(manifest: dict) -> dict:
@@ -68,3 +83,48 @@ def parse_oracle_env(manifest: dict) -> dict:
     raise OracleSpecError(
         f"unknown oracle mode {mode!r}; expected 'docker' (pinned image) or "
         f"'local' (the current interpreter, for hermetic tests)")
+
+
+def oracle_env_hash(lock: dict) -> str:
+    """Digest the verdict-affecting identity of a lock — stable across the
+    calibration-derived fields it keys, so calibration can hang off it without a
+    circular dependency."""
+    canon = json.dumps({k: lock.get(k) for k in _IDENTITY_KEYS},
+                       sort_keys=True, separators=(",", ":"))
+    return "oeh:" + hashlib.sha256(canon.encode()).hexdigest()[:32]
+
+
+def resolve_oracle_lock(spec: dict, *, digest_probe=None, python_probe=None,
+                        wrapper_sha: str = "", host: str = "") -> dict:
+    """Resolve a validated spec against the machine into an oracle lock.
+
+    `digest_probe(image)` returns the image digest actually present locally (None
+    if absent); a docker oracle whose local digest disagrees with the manifest —
+    or is absent — raises OracleDriftError, the same refusal the dataset hash
+    gives. `python_probe(...)` returns the grading interpreter's version string.
+    The lock carries the identity fields plus empty slots for the timeout and
+    exclusion hash that calibration fills in; `oracle_env_hash` covers the
+    identity only."""
+    mode = spec["mode"]
+    if mode == "docker":
+        present = digest_probe(spec["image"]) if digest_probe else None
+        if present != spec["digest"]:
+            raise OracleDriftError(
+                f"oracle image {spec['image']} present locally as {present!r}, "
+                f"manifest pins {spec['digest']!r} — refusing to grade against a "
+                f"different (or absent) image")
+        container_python = python_probe(spec["image"], spec["digest"]) if python_probe else ""
+        lock = {"mode": "docker", "image": spec["image"], "digest": spec["digest"],
+                "platform": spec["platform"], "network": spec["network"],
+                "container_python": container_python, "wrapper_sha": wrapper_sha,
+                "host": host}
+    else:
+        container_python = python_probe() if python_probe else ""
+        lock = {"mode": "local", "image": "", "digest": "", "platform": "",
+                "network": "none", "container_python": container_python,
+                "wrapper_sha": wrapper_sha, "host": host}
+    lock["timeout_policy"] = spec.get("timeout", "calibrated")
+    lock["resolved_timeout"] = None   # filled by the calibration run
+    lock["exclusion_hash"] = None     # filled by the calibration run
+    lock["oracle_env_hash"] = oracle_env_hash(lock)
+    return lock
