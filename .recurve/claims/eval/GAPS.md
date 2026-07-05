@@ -366,3 +366,18 @@ per-cell DOLLAR cap and stops between cycles, bounded by cap + one cycle's cost
 (the old int accounting truncated $0.12 to $0 and never hit the cap). Negative
 space (a trap each): a paid run recorded as $0 (silent free); a dollar cap that
 never binds because fractional spend is truncated to zero.
+
+## EV-24 — Hard-kill watchdog: the harness bounds spend, trusting nothing
+
+`--max-budget-usd` is the agent's self-limit, but a self-limit you cannot observe
+mid-session is not a bound. So every agent invocation runs under a harness-side
+HARD-KILL watchdog: `run_agent_capped` starts the session in its own process
+group and, on a wall-clock overrun, SIGKILLs the WHOLE group — the agent and any
+children it spawned — so a runaway session is stopped dead, its pending work
+never completing, rather than left to bill unbounded. Proven by a backgrounded
+child whose delayed side-effect never lands once the group is killed (killing
+only the parent would let it survive). A well-behaved session returns untouched
+with its output captured and its stdin delivered. This is the layer that does not
+trust the agent (or the flag) to police spend. Negative space (a trap each): a
+runaway session (with a child) run to completion instead of hard-killed; a fast,
+well-behaved session wrongly killed by an over-eager watchdog.

@@ -489,3 +489,23 @@
   unlocks: arms can be matched on dollars, the only unit that actually bounds a claude -p session —
     and the price of trust is recorded from the real bill, not a cache-blind token estimate
 
+- id: EV-24
+  title: 'Hard-kill watchdog: the harness bounds spend, trusting nothing'
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - EV-24
+  evidence:
+  - eval/evallib/watchdog.py
+  observed: 'GREEN at close 2026-07-05: watchdog: hard-kills a runaway session and its children
+    near the wall_timeout, spares a well-behaved one, delivers stdin'
+  smallest_fix: watchdog.run_agent_capped runs each agent invocation in its own process group and
+    SIGKILLs the WHOLE group on a wall-clock overrun (the agent and any children), so a runaway
+    session cannot bill unbounded even if --max-budget-usd is ignored; a well-behaved session
+    returns untouched with output + stdin delivered
+  probe: probes/ev-24.sh
+  unlocks: budget-matching that does not trust the agent to police its own spend — the harness
+    enforces the bound with a hard kill, the layer beneath the self-limit and the between-cycle check
+
