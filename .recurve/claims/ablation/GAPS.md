@@ -70,3 +70,20 @@ invocation instead of importing this module.
 
 Negative space: an adapter file that reimplements subprocess plumbing
 directly, with no import of `_shared.reviewer_base`, must be flagged.
+
+## AB-5 — uniform provenance: every port, two tiers of strength
+
+`recurvelib.adapters._shared.provenance.Provenance` closes the asymmetry
+where R2/R5 verify the adversary/governor's identity against the actor's
+but never held the actor's own identity to the same standard —
+`metadata_verified` (cheap, the served-model field) and
+`cryptographically_attested` (an auths-signed envelope) are both available
+to any port. `verified_different_identity` is R2/R5's identity check in one
+place: true only when both sides are actually verified AND their identities
+differ.
+
+Negative space: a claimed `cryptographically_attested` provenance whose
+envelope fails (or raises during) verification must demote to `unverified`
+with the reason recorded, never silently accepted. Two provenances sharing
+the same identity — the same-model-adversary / actor-signs-with-its-own-key
+shape — must never count as verified-different.

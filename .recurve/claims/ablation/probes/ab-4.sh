@@ -69,8 +69,7 @@ inv = run_claim_reviewer(d, "HEAD", "X-1", ["cat", "committed.txt"])
 check("reviewer invocation reads the snapshot's committed content",
       inv.returncode == 0 and inv.stdout.strip() == "hello from the snapshot")
 check("reviewer invocation pins a real snapshot commit", len(inv.snapshot_commit) == 40)
-check("reviewer invocation carries a provenance envelope", isinstance(inv.provenance, dict)
-      and "strength" in inv.provenance)
+check("reviewer invocation carries a provenance envelope", hasattr(inv.provenance, "strength"))
 
 # 2. the lint-shaped check: a clean adapters/ tree (one that imports
 # reviewer_base) is not flagged.

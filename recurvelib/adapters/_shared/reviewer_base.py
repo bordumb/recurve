@@ -6,10 +6,12 @@ adapters compose from `run_claim_reviewer`/`run_cycle_reviewer` rather than
 each reimplementing their own copy of "build a snapshot, run it isolated,
 stamp a provenance envelope."
 
-`provenance` here is a minimal, honestly-`unverified` placeholder — AI7
-upgrades every caller to the real two-tier `Provenance` envelope
-(`metadata_verified`/`cryptographically_attested`) without changing this
-module's call shape, per the PRD's own build order (AI11 before AI7).
+`provenance` (AI7) is a `Provenance` envelope — `metadata_verified` by
+default when the caller supplies an identity, `unverified` when it doesn't.
+A caller wanting `cryptographically_attested` builds that `Provenance`
+itself (`_shared.provenance.cryptographically_attested`) and passes it in;
+this module never invents a strength stronger than what the caller actually
+established.
 """
 from __future__ import annotations
 
@@ -18,6 +20,7 @@ from pathlib import Path
 
 from recurvelib.adapters.isolation import resolve as resolve_isolation
 from recurvelib.adapters.snapshot import build_claim_snapshot, build_cycle_snapshot
+from recurvelib.adapters._shared.provenance import Provenance, metadata_verified, unverified
 
 
 @dataclasses.dataclass(frozen=True)
@@ -30,7 +33,7 @@ class ReviewInvocation:
     stdout: str
     stderr: str
     snapshot_commit: str
-    provenance: dict
+    provenance: Provenance
 
 
 def _invoke(snap, argv, isolation_strategy: str, image: str | None, timeout: int):
@@ -40,6 +43,12 @@ def _invoke(snap, argv, isolation_strategy: str, image: str | None, timeout: int
     return strat.run_isolated(snap.root, argv, timeout=timeout)
 
 
+def _resolve_provenance(provenance: Provenance | None, identity: str | None) -> Provenance:
+    if provenance is not None:
+        return provenance
+    return metadata_verified(identity) if identity else unverified()
+
+
 def run_claim_reviewer(
     repo, ref, claim_id, argv, *,
     isolation_strategy: str = "subprocess_tempdir",
@@ -47,17 +56,21 @@ def run_claim_reviewer(
     trap_relpaths: tuple = (),
     image: str | None = None,
     timeout: int = 300,
+    identity: str | None = None,
+    provenance: Provenance | None = None,
 ) -> ReviewInvocation:
     """Build a `ClaimSnapshot` and run `argv` against it under the named
     isolation strategy — the one code path every adversary adapter composes
-    from, so isolation/snapshot/provenance wiring is never per-adapter."""
+    from, so isolation/snapshot/provenance wiring is never per-adapter.
+    Pass `identity` for a cheap `metadata_verified` stamp, or a pre-built
+    `provenance` (e.g. `cryptographically_attested`) for a stronger one."""
     snap = build_claim_snapshot(
         Path(repo), ref, claim_id, include_existing_traps=include_existing_traps,
         trap_relpaths=trap_relpaths)
     result = _invoke(snap, argv, isolation_strategy, image, timeout)
     return ReviewInvocation(
         returncode=result.returncode, stdout=result.stdout, stderr=result.stderr,
-        snapshot_commit=snap.commit, provenance={"strength": "unverified", "identity": None})
+        snapshot_commit=snap.commit, provenance=_resolve_provenance(provenance, identity))
 
 
 def run_cycle_reviewer(
@@ -67,6 +80,8 @@ def run_cycle_reviewer(
     trap_relpaths: tuple = (),
     image: str | None = None,
     timeout: int = 300,
+    identity: str | None = None,
+    provenance: Provenance | None = None,
 ) -> ReviewInvocation:
     """Build a `CycleSnapshot` and run `argv` against it — the one code path
     every governor adapter composes from."""
@@ -76,7 +91,7 @@ def run_cycle_reviewer(
     result = _invoke(snap, argv, isolation_strategy, image, timeout)
     return ReviewInvocation(
         returncode=result.returncode, stdout=result.stdout, stderr=result.stderr,
-        snapshot_commit=snap.commit, provenance={"strength": "unverified", "identity": None})
+        snapshot_commit=snap.commit, provenance=_resolve_provenance(provenance, identity))
 
 
 # --- AI11's lint-shaped check: adapters compose from this module, never their

@@ -81,3 +81,23 @@
   probe: probes/ab-4.sh
   unlocks: adding adapter N+1 reuses one implementation instead of copy-pasting subprocess/
     snapshot wiring
+
+- id: AB-5
+  title: 'uniform provenance: every port, two tiers of strength'
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-5
+  evidence:
+  - recurvelib/adapters/_shared/provenance.py
+  observed: 'GREEN at baseline 2026-07-05: provenance is uniform across ports, two strengths,
+    and a failed/forged cryptographic claim demotes rather than silently accepting — the R2/R5
+    identity check (verified_different_identity) refuses a same-identity or unverified pair'
+  smallest_fix: recurvelib.adapters._shared.provenance.Provenance carries metadata_verified/
+    cryptographically_attested strength; a failed verification demotes to unverified; verified_different_identity
+    is the shared R2/R5 identity check.
+  probe: probes/ab-5.sh
+  unlocks: R2''s cross-model check and R5''s governor identity check share one, non-repudiable
+    verification primitive instead of two bespoke ones
