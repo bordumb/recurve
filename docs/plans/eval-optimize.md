@@ -102,6 +102,45 @@ and host facts (arch, OS, docker version). Every results row carries
 stays ≤ a screen. Full environment detail lives in the lock; the row
 carries only the hash.
 
+### O2b — Environment reproducibility: refuse-with-remediation, never silent rebuild
+
+**Assertion.** The oracle environment is derivable by anyone, from the
+repository, with one command — and never provisioned silently at runtime.
+Concretely:
+
+- The derived-image source (`eval/oracle/Dockerfile.nltk`: `FROM` the
+  pinned base digest + nltk corpora at build time + `NLTK_DATA`) is
+  **committed**, as is `eval/calibrations/` — exclusion lists and
+  calibration artifacts are registrations, and a registration that lives
+  on one machine is not registered.
+- An `eval oracle build` verb (or `oracle/build.sh`) builds from the
+  committed Dockerfile, prints the resulting digest, and **compares it to
+  the manifest pin**: match → proceed; mismatch → state explicitly that
+  the manifest must be updated, the lock rebuilt, and calibration re-run
+  (a different image is a different oracle; its calibration is stale by
+  definition).
+- `eval plan`'s refusal on a missing image **names the remediation** in
+  its error ("run `eval oracle build`") — automated to one command,
+  impossible to forget, never silent.
+
+Silent auto-provisioning is prohibited by design: a Docker rebuild is not
+bit-reproducible (build-time downloads), so a silently rebuilt image would
+quietly become the oracle and bypass the pin → lock → calibration chain.
+
+**Counterexamples (traps).**
+- Delete the local image → `plan` must refuse AND the remediation command
+  it names must rebuild to a working, digest-matching state end to end.
+- A build whose digest diverges from the manifest pin must surface as a
+  re-lock/recalibrate event — a runner that silently adopts the new image
+  is the trap's failure mode.
+- A fresh-clone fixture (no image, no calibration cache) must reach
+  "ready to plan" using only committed files + the documented commands.
+
+**Bounds.** The build verb needs network (build time only — grade time
+stays `--network=none`); it never runs implicitly as part of `plan`,
+`run`, or grading. Base-image pull is allowed within the verb (the base
+is digest-pinned, so the pull is deterministic).
+
 ### O3 — Calibration as the hard pre-spend gate
 
 **Assertion.** Grading all 148 canonical solutions through the *finished*
@@ -182,11 +221,13 @@ no full run (148) until O1–O6 are GREEN.
 
 ## 4 · Sequencing
 
-O2 (lock) → O1 (warm wrapper; its hash lands in the lock) → O5 (real-task
-smoke against the finished path) → O3 (calibration gate; produces timeout
-+ exclusions) → O4 (concurrency policy into the lock) → O6 (live $1
-smoke) → *then* the `eval-poc.md` §6 order of operations resumes: pilot
-n=50 → full 148.
+O2 (lock) → O2b (committed Dockerfile + `oracle build` verb + tracked
+calibrations; the environment becomes derivable-from-repo before anything
+depends on it) → O1 (warm wrapper; its hash lands in the lock) → O5
+(real-task smoke against the finished path) → O3 (calibration gate;
+produces timeout + exclusions) → O4 (concurrency policy into the lock) →
+O6 (live $1 smoke) → *then* the `eval-poc.md` §6 order of operations
+resumes: pilot n=50 → full 148.
 
 ## 5 · Acceptance for the wave
 
@@ -198,4 +239,7 @@ n=50 → full 148.
   oracle environment from `oracle_env_hash` alone.
 - Calibration artifact exists, keyed to the current lock, with 100%
   canonical pass over the non-excluded set and every exclusion reasoned.
+- A fresh clone with no local image reaches "ready to plan" using only
+  committed files and the commands the pipeline's own errors name
+  (O2b's fresh-clone trap, exercised).
 - Total spend during the wave ≤ $2.
