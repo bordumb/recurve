@@ -354,3 +354,27 @@
   unlocks: the calibration gate has teeth in the actual paid path — a run on an uncalibrated,
     possibly-broken oracle costs nothing, refused before the first cell
 
+- id: EV-18
+  title: The oracle image is derivable-from-repo, reconciled to the pin
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-18
+  evidence:
+  - eval/evallib/oracle_build.py
+  - eval/oracle/Dockerfile.nltk
+  - eval/evallib/cli.py
+  observed: 'GREEN at close 2026-07-05: oracle image is derivable-from-repo: reconcile refuses a
+    divergent rebuild, plan names the build-verb remediation'
+  smallest_fix: oracle_build.reconcile_digest returns match or refuses a divergent rebuild with a
+    remediation naming the re-pin + recalibrate steps; missing_image_remediation names `eval oracle
+    build`; the cmd_oracle_build verb builds deterministically (buildx attestations off) from the
+    committed Dockerfile.nltk and reconciles; plan's missing-image error names the remediation
+  probe: probes/ev-18.sh
+  unlocks: a fresh clone derives the exact oracle image from committed files with one command, and
+    a rebuilt image can never silently become a different, uncalibrated oracle
+  oracle_waiver: the actual docker build + grade need docker (build-time network); the reconcile +
+    remediation logic is tested hermetically and the verb runs full-strength where docker is present
+

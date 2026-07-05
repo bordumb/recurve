@@ -261,3 +261,20 @@ docker run points `RECURVE_ORACLE_PYTHON` at the pinned-image wrapper via the
 EV-11 seam. Negative space (the trap): a run admitted, or reaching the work
 queue, with no calibration for its oracle env — a paid run on a possibly-broken
 oracle.
+
+## EV-18 — The oracle image is derivable-from-repo, reconciled to the pin
+
+A docker rebuild is not bit-reproducible (build-time downloads), so a silently
+rebuilt image would quietly become the oracle and bypass the pin → lock →
+calibration chain. `eval oracle build` makes the rebuild EXPLICIT: it builds the
+derived image from the committed `Dockerfile.nltk` (base BCB image + the nltk
+corpora 177/655 need — an environment gap FIXED, not excluded, so those tasks
+grade hermetically), with buildx attestations disabled so the Id is
+deterministic, then RECONCILES the built Id against the manifest pin —
+`reconcile_digest` returns match, or refuses with a remediation that names the
+re-pin + recalibrate steps (a different image is a different oracle, its
+calibration stale by definition). `plan`'s refusal on an absent image names the
+one-command remediation (`eval oracle build`), so a fresh clone reaches
+ready-to-plan from committed files alone. Negative space (a trap each): a
+divergent rebuild silently adopted; a missing-image refusal that fails to name
+the remediation.

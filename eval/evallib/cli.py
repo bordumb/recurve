@@ -48,10 +48,18 @@ def cmd_plan(args) -> int:
     # Resolve + lock the oracle environment — the other half of the experiment,
     # pinned like the dataset. Refuses (drift/unpinnable) rather than guessing.
     from evallib.oracle_docker import build_lock
-    from evallib.oracle_env import OracleSpecError, OracleDriftError
+    from evallib.oracle_env import OracleSpecError, OracleDriftError, parse_oracle_env
+    from evallib.oracle_build import missing_image_remediation
     try:
         lock = build_lock(manifest)
-    except (OracleSpecError, OracleDriftError) as e:
+    except OracleDriftError as e:
+        # A missing/mismatched image: name the one-command remediation so a fresh
+        # clone reaches ready-to-plan from committed files alone.
+        spec = parse_oracle_env(manifest)
+        rem = missing_image_remediation(spec.get("image", ""), spec.get("digest", ""))
+        print(f"plan refused: {e}\n{rem}", file=sys.stderr)
+        return 1
+    except OracleSpecError as e:
         print(f"plan refused: oracle env not resolvable — {e}", file=sys.stderr)
         return 1
     (run_dir / "oracle.lock.json").write_text(
@@ -169,6 +177,26 @@ def cmd_run(args) -> int:
     return 0
 
 
+def cmd_oracle_build(args) -> int:
+    """Derive the oracle image from the committed Dockerfile and reconcile its
+    digest against the manifest pin — never silently adopt a rebuilt image."""
+    from evallib.oracle_build import build_image, reconcile_digest, OracleImageMismatch
+    from evallib.oracle_env import parse_oracle_env
+    manifest = _load_manifest(Path(args.manifest))
+    spec = parse_oracle_env(manifest)
+    repo = Path(__file__).resolve().parents[2]
+    dockerfile = repo / "eval" / "oracle" / "Dockerfile.nltk"
+    built = build_image(dockerfile, "recurve-bcb-oracle:built", repo / "eval" / "oracle")
+    print(f"built oracle image → {built}")
+    try:
+        reconcile_digest(built, spec["digest"])
+    except OracleImageMismatch as e:
+        print(f"\n{e}", file=sys.stderr)
+        return 1
+    print(f"reconciled: matches the manifest pin {spec['digest']}")
+    return 0
+
+
 def cmd_analyze(args) -> int:
     from evallib.analyze import analyze_and_emit  # tables + figures, one pass
     run_dir = Path(args.rundir)
@@ -189,6 +217,10 @@ def main(argv=None) -> int:
     sr.set_defaults(fn=cmd_run)
     sa = sub.add_parser("analyze", help="results.jsonl → deterministic tables")
     sa.add_argument("rundir"); sa.set_defaults(fn=cmd_analyze)
+    so = sub.add_parser("oracle", help="oracle-image operations")
+    so_sub = so.add_subparsers(dest="oracle_cmd", required=True)
+    sob = so_sub.add_parser("build", help="derive the oracle image + reconcile its digest")
+    sob.add_argument("manifest"); sob.set_defaults(fn=cmd_oracle_build)
     args = p.parse_args(argv)
     return args.fn(args)
 

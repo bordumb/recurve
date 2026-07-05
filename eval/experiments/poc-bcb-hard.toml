@@ -36,8 +36,8 @@ verdict = "majority"
 # instead of being excluded. The digest is its local image Id.
 [oracle.env]
 mode     = "docker"
-image    = "recurve-bcb-oracle:nltk-v1"
-digest   = "sha256:697c1348f10fabf8d251603033fc8adb51216c3cf83c5b1a015460cb65a977df"  # derived image Id; rebuild → new Id → drift → re-calibrate
+image    = "recurve-bcb-oracle"   # bare name; the derived image is pinned+run by its content Id below
+digest   = "sha256:0e0d0a9814676fc8ed7da7710d9248ded382ea75ceaec3bfe156316d7af2f713"  # derived image Id; rebuild → new Id → drift → re-calibrate
 platform = "linux/amd64"    # amd64-under-Rosetta on arm64 — recorded because emulation changes timing
 network  = "none"           # grading is hermetic; the container is the sandbox
 timeout  = "calibrated"     # derived from the calibration run's canonical p99, not guessed
