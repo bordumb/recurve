@@ -177,3 +177,23 @@
   probe: probes/st-11.sh
   unlocks: the loop never keeps working an item that is no longer on the frontier (found by
     adversarial review)
+
+- id: ST-12
+  title: the governor supersedes STOP_SUCCESS
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - ST-12
+  evidence:
+  - recurvelib/loop/controller.py
+  observed: 'GREEN at baseline 2026-07-05: decide() supersedes STOP-SUCCESS with the governor''s
+    status: off/cleared proceed unchanged, pending yields PENDING_GOVERNOR, vetoed yields
+    CONTINUE — governor_cleared never defaults to true'
+  smallest_fix: decide() gains governor_status ("off" default, unchanged behavior); pending
+    yields the new PENDING_GOVERNOR verdict, vetoed yields CONTINUE — governor_cleared never
+    defaults to true.
+  probe: probes/st-12.sh
+  unlocks: a run where every claim gated honestly can still be held from reporting itself
+    done by a run-level authority

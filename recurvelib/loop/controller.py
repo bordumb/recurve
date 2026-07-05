@@ -19,6 +19,18 @@ class Verdict(Enum):
     STOP_SUCCESS = "STOP-SUCCESS"
     STOP_REVERT = "STOP-REVERT"
     PIVOT = "PIVOT"
+    # R5 (docs/plans/oracle-strength-and-decorrelation.md): the gate/mechanical
+    # conditions for STOP_SUCCESS hold, but a CONFIGURED governor has not yet
+    # cleared the cycle — a distinct state from both STOP_SUCCESS (not
+    # actually done) and CONTINUE (the gate itself has nothing left to do).
+    PENDING_GOVERNOR = "PENDING-GOVERNOR"
+
+
+# The governor's status for THIS decision, as the calling loop measured it —
+# never decided by decide() itself (decide() never invokes a Governor; a
+# caller that never configured one passes "off", exactly the pre-R5 default,
+# so no existing caller's verdict changes without an explicit opt-in).
+GOVERNOR_STATUSES = ("off", "cleared", "pending", "vetoed")
 
 
 @dataclass(frozen=True)
@@ -40,12 +52,19 @@ class Progress:
     divergent: bool = False
 
 
-def decide(history: list[Progress], k: int = 3) -> Verdict:
+def decide(history: list[Progress], k: int = 3, governor_status: str = "off") -> Verdict:
     """Decide the controller verdict from the measured progress history (most recent last).
 
-    Rules (``stopping-controller.md`` §3):
-      * ``STOP_SUCCESS`` — the latest cycle is fully green: ``open == regressed == broken == uncovered == 0``
-        and not divergent. (threshold-stop)
+    Rules (``stopping-controller.md`` §3, extended by R5):
+      * The gate/mechanical conditions for success are
+        ``open == regressed == broken == uncovered == 0`` and not divergent. When they hold:
+          - ``governor_status == "off"`` or ``"cleared"`` -> ``STOP_SUCCESS`` (unchanged from
+            pre-R5 behavior — a caller that never configured a governor is unaffected).
+          - ``governor_status == "pending"`` -> ``PENDING_GOVERNOR`` (a configured governor has
+            not yet cleared the cycle; not STOP_SUCCESS, not plain CONTINUE).
+          - ``governor_status == "vetoed"`` -> ``CONTINUE`` (the veto becomes a captured trap on
+            the vetoed claim per the capture rule; the cycle keeps working, carrying the veto
+            reason as next-cycle context).
       * ``STOP_REVERT`` — not converging over the last ``k`` cycles: divergence persisted, OR regressions
         every cycle (thrashing), OR no net reduction in ``open + uncovered`` (flat progress). (non-improvement)
       * ``CONTINUE`` — otherwise; progress is being made.
@@ -55,16 +74,30 @@ def decide(history: list[Progress], k: int = 3) -> Verdict:
     Args:
         history: Progress vectors in cycle order, most recent last.
         k: Window length for the non-improvement rules.
+        governor_status: One of ``GOVERNOR_STATUSES`` — the governor's status for this
+            decision, as the calling loop measured it. ``decide()`` never invokes a Governor
+            itself. Defaults to ``"off"`` — the exact pre-R5 behavior, so no existing caller's
+            verdict changes without an explicit opt-in.
 
     Usage:
-        v = decide(history)  # -> Verdict.STOP_SUCCESS / STOP_REVERT / CONTINUE
+        v = decide(history)  # -> Verdict.STOP_SUCCESS / STOP_REVERT / CONTINUE (governor off)
+        v = decide(history, governor_status="pending")  # -> Verdict.PENDING_GOVERNOR when gate-green
     """
+    if governor_status not in GOVERNOR_STATUSES:
+        raise ValueError(f"governor_status must be one of {GOVERNOR_STATUSES}, got {governor_status!r}")
     if not history:
         return Verdict.CONTINUE
 
     cur = history[-1]
-    if cur.open == 0 and cur.regressed == 0 and cur.broken == 0 and cur.uncovered == 0 and not cur.divergent:
-        return Verdict.STOP_SUCCESS
+    gate_green = (cur.open == 0 and cur.regressed == 0 and cur.broken == 0
+                 and cur.uncovered == 0 and not cur.divergent)
+    if gate_green:
+        if governor_status in ("off", "cleared"):
+            return Verdict.STOP_SUCCESS
+        if governor_status == "pending":
+            return Verdict.PENDING_GOVERNOR
+        if governor_status == "vetoed":
+            return Verdict.CONTINUE
 
     if len(history) >= k:
         window = history[-k:]
