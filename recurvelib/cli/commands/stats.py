@@ -52,6 +52,22 @@ def cmd_stats(args):
                          f"(closed claims the drill cannot audit)"))
     except Exception:
         pass
+    # AI8: the unified challenge_event rate — R4's reversal + R5's veto,
+    # combined, sliceable by phase. 0/N on a ledger with no challenges.
+    try:
+        from recurvelib.adapters.challenge_event import ChallengeLog
+        ledger = _load(cfg)
+        total_closed = sum(1 for g in ledger.gaps if g.status is Status.CLOSED)
+        suites = sorted({g.suite for g in ledger.gaps})
+        events = [e for s in suites for e in ChallengeLog(cfg, s).events()]
+        pre = sum(1 for e in events if e.get("phase") == "pre_publication")
+        post = sum(1 for e in events if e.get("phase") == "post_publication")
+        rate = (len(events) / total_closed) if total_closed else 0.0
+        print(render.dim(
+            f"challenge rate: {len(events)}/{total_closed} ({rate:.1%}) — "
+            f"{pre} pre_publication (veto), {post} post_publication (reversal)"))
+    except Exception:
+        pass
     print(render.dim(
         f"\n{len(records)} cycle records · {total_closed} self-grading tasks accumulated "
         f"(snapshot + RED probe + gate-as-oracle) · {regressions} regression(s) caught at the gate"))

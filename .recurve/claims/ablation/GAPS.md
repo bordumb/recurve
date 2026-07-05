@@ -138,3 +138,15 @@ Negative space: a policy resolution that lets a weaker suite-wide default
 (e.g. `off`) suppress a claim's stronger floor must turn the probe RED. An
 unrecognized tier name, as either the suite default or a claim's floor, must
 refuse rather than resolve to something silently wrong.
+
+## AB-9 — one challenge_event schema, not two
+
+`recurvelib.adapters.challenge_event` unifies R4's reversal event and R5's
+veto event into one `challenge_event` type, distinguished only by
+`phase: pre_publication | post_publication`, always carrying the tier held
+at challenge time and a required `reason` (never a bare rejection). `recurve
+stats` reports the combined rate, sliceable by phase.
+
+Negative space: an event authored in the OLD, separate reversal/veto shape
+must be refused outright — there is deliberately no dual-schema
+compatibility path.

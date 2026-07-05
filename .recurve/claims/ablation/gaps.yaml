@@ -161,3 +161,23 @@
   probe: probes/ab-8.sh
   unlocks: a suite ships governor coverage by default, and a high-stakes claim can mandate
     a stronger tier no ambient config can weaken
+
+- id: AB-9
+  title: one challenge_event schema, not two
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - AB-9
+  evidence:
+  - recurvelib/adapters/challenge_event.py
+  observed: 'GREEN at baseline 2026-07-05: challenge_event unifies R4''s reversal and R5''s
+    veto into one schema — phase distinguishes pre/post publication, reason is always required,
+    and the old separate shapes are refused outright'
+  smallest_fix: recurvelib.adapters.challenge_event.make_challenge_event/validate_challenge_event/
+    ChallengeLog unify R4's reversal and R5's veto into one schema; recurve stats reports
+    the combined, phase-sliceable rate.
+  probe: probes/ab-9.sh
+  unlocks: '"what tier of GREEN turned out to be wrong" has one answerable place to look,
+    before AND after publication'

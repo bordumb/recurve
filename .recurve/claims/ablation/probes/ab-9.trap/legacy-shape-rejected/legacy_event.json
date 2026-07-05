@@ -1,0 +1,7 @@
+{
+  "claim_id": "X-1",
+  "event_type": "reversal",
+  "reversal": true,
+  "old_verdict": "GREEN",
+  "detail": "the old, separate reversal-event shape this PRD's AI8 retires"
+}
