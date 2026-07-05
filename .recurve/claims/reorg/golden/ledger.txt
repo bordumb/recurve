@@ -1,6 +1,10 @@
 EXIT:0
-gap         suite                    sev       class             status     probe
-G-1         s                        feature   missing-surface   closed     g-1.sh
-G-2         s                        feature   missing-surface   closed     g-2.sh
+gap         suite                    sev       class             status     oracle_tier            probe
+G-1         s                        feature   missing-surface   closed     trap_hardened           g-1.sh
+G-2         s                        feature   missing-surface   closed     trap_hardened           g-2.sh
 
 2 gaps across 1 suites
+
+weak-oracle advisory (R3) — 2 closed claim(s) rest on self_probe/trap_hardened alone, no reference/adversary pass/oracle_waiver:
+  ⚠ G-1 — toy claim g-1
+  ⚠ G-2 — toy claim g-2
