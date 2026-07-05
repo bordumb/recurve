@@ -5,6 +5,11 @@
 > outside; this PRD changes what recurve itself records and shows, so the
 > property it measured shows up for every user, on every claim, whether or
 > not they ever run a benchmark.
+>
+> The *how* — ports/adapters, isolation strategy, and the context-sharing
+> mechanism for R2's adversary and R5's governor — is specified separately
+> in [ablation-infra.md](ablation-infra.md), so this PRD's requirements
+> stay in R2/R5's terms (assertion/trap/bounds) rather than architecture.
 
 ## 1 · Why now — a real incident, not a hypothetical
 
