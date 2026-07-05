@@ -67,10 +67,12 @@ def build_lock(manifest: dict) -> dict:  # pragma: no cover - needs docker for a
     spec = parse_oracle_env(manifest)
     ws = wrapper_sha()
     host = host_fingerprint()
+    gc = int(manifest.get("oracle", {}).get("grade_concurrency", 1))
     if spec["mode"] == "docker":
         return resolve_oracle_lock(
             spec, digest_probe=lambda image: local_image_digest(image, spec["digest"]),
             python_probe=lambda image, digest: container_python(image, digest),
-            wrapper_sha=ws, host=host)
+            wrapper_sha=ws, host=host, grade_concurrency=gc)
     return resolve_oracle_lock(
-        spec, python_probe=lambda: platform.python_version(), wrapper_sha=ws, host=host)
+        spec, python_probe=lambda: platform.python_version(), wrapper_sha=ws,
+        host=host, grade_concurrency=gc)

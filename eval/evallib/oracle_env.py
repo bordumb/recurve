@@ -95,7 +95,8 @@ def oracle_env_hash(lock: dict) -> str:
 
 
 def resolve_oracle_lock(spec: dict, *, digest_probe=None, python_probe=None,
-                        wrapper_sha: str = "", host: str = "") -> dict:
+                        wrapper_sha: str = "", host: str = "",
+                        grade_concurrency: int = 1) -> dict:
     """Resolve a validated spec against the machine into an oracle lock.
 
     `digest_probe(image)` returns the image digest actually present locally (None
@@ -126,5 +127,9 @@ def resolve_oracle_lock(spec: dict, *, digest_probe=None, python_probe=None,
     lock["timeout_policy"] = spec.get("timeout", "calibrated")
     lock["resolved_timeout"] = None   # filled by the calibration run
     lock["exclusion_hash"] = None     # filled by the calibration run
+    # Recorded, checked against the run's actual concurrency (O4), but NOT part of
+    # the identity — the serial-retry protection means concurrency changes timing,
+    # not verdicts, so it must not invalidate a calibration.
+    lock["grade_concurrency"] = int(grade_concurrency)
     lock["oracle_env_hash"] = oracle_env_hash(lock)
     return lock

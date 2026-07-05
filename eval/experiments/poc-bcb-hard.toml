@@ -27,6 +27,7 @@ exclusions = "exclusions/bcb-hard.json"
 [oracle]
 runs = 3
 verdict = "majority"
+grade_concurrency = 2   # conservative for the pilot; recorded in the lock, checked against the run (O4)
 
 # The oracle environment — the other half of the experiment, pinned like the
 # dataset. A docker oracle REQUIRES an immutable digest (a bare :tag is mutable);

@@ -331,3 +331,20 @@ passes and its calibration is admitted; a deliberately broken canonical also
 fails calibration, proving calibration *can* fail. Negative space (a trap each):
 a derived timeout that ignores the floor; a separate-modules regression that
 calibration fails to catch.
+
+## EV-22 — Grading concurrency that cannot corrupt a verdict
+
+Once the timeout is calibrated, grading timings no longer derive anything, so the
+paid run may grade in parallel — but under a concurrency DECLARED in the lock,
+with two protections so speed never becomes a false verdict. A grading that times
+out is retried once SERIALLY (holding a lock so retries don't pile on each other),
+giving a contention-slowed but valid grade one contention-free attempt instead of
+being misrecorded as an oracle error — and the retry fires on a timeout ONLY,
+never on a genuine test failure, bounded to exactly one retry. And the concurrency
+actually used must equal the lock's `grade_concurrency`, else the run refuses — it
+cannot silently grade under a condition the calibration did not account for.
+`cmd_run` enforces the match and wraps the warm grader with the serial retry;
+`grade_concurrency` is recorded in the lock but excluded from the identity (with
+the retry, concurrency changes timing, not verdicts, so it must not invalidate a
+calibration). Negative space (a trap each): a contention timeout scored as an
+error instead of retried; a concurrency mismatch (used ≠ locked) accepted.
