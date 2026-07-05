@@ -150,3 +150,16 @@ stats` reports the combined rate, sliceable by phase.
 Negative space: an event authored in the OLD, separate reversal/veto shape
 must be refused outright — there is deliberately no dual-schema
 compatibility path.
+
+## AB-10 — one registry, two consumers, no duplication
+
+`eval/evallib/arms.py` imports `ADVERSARY_ADAPTERS`/`GOVERNOR_ADAPTERS` from
+`recurvelib.adapters` rather than reimplementing them, and gains A7-A10
+(`eval-full.md`'s ablation-phase arms: `A3 + adversary=cross_model`,
+`A3 + governor=mechanical`, `A3 + governor=mechanical_review`, and the full
+stack) — the POC's `{A0, A3}` scope is unchanged. `eval/` stays a separate
+uv project (recurvelib is stdlib+PyYAML); the dependency is one-directional.
+
+Negative space: a candidate `arms.py` that defines its own local
+`ADVERSARY_ADAPTERS`/`GOVERNOR_ADAPTERS` mapping instead of importing
+recurvelib's must be flagged — a lint-shaped drift check.

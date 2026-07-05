@@ -181,3 +181,23 @@
   probe: probes/ab-9.sh
   unlocks: '"what tier of GREEN turned out to be wrong" has one answerable place to look,
     before AND after publication'
+
+- id: AB-10
+  title: one registry, two consumers, no duplication
+  class: missing-surface
+  status: closed
+  severity: friction
+  reads: none
+  covers:
+  - AB-10
+  evidence:
+  - eval/evallib/arms.py
+  observed: 'GREEN at baseline 2026-07-05: eval/evallib''s arm composer resolves adversary=/governor=
+    through recurvelib''s own registry (imported, never reimplemented); A7-A10 are real, resolvable
+    arm entries'
+  smallest_fix: eval/evallib/arms.py imports ADVERSARY_ADAPTERS/GOVERNOR_ADAPTERS from recurvelib.adapters
+    instead of reimplementing them; A7-A10 resolve their adversary=/ governor= config through
+    the same registry objects.
+  probe: probes/ab-10.sh
+  unlocks: eval-full.md''s A7-A10 arms exist and resolve through the one implementation /recurve-work''s
+    own gate config also uses
