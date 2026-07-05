@@ -116,6 +116,12 @@ guardrails section.
   work. No cells have been run against them yet.
 - **E1 (interception confusion matrix)**: CPU-only, no API cost, not yet
   built.
+- **A task tier at recurve's actual working scale** — long-running,
+  multi-file, multi-hour planning work, as opposed to BigCodeBench-Hard's
+  single-function tasks — is not yet designed at all. See [index.md's scope
+  and limitations section](index.md#scope-and-limitations-what-these-tasks-can-and-cannot-tell-us)
+  for why, and what would have to be true for it to exist without
+  circularity.
 
 ## Reproducing or extending these numbers
 

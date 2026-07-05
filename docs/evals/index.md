@@ -175,6 +175,67 @@ run: all canonical solutions are graded through the finished oracle path
 first, keyed to the oracle-env hash, and no paid cell runs while that pass
 rate is red.
 
+## Scope and limitations: what these tasks can and cannot tell us
+
+**The current and planned numbers are about short, bounded, single-shot
+coding tasks — not about the long-running, multi-file planning work recurve
+is actually built for.** This is worth stating plainly rather than letting
+a reader over-read an FDR number.
+
+A BigCodeBench-Hard task is one Python function, written against one hidden
+`unittest` file, at a 60,000-token budget (O6's actual cap) — the kind of
+thing a competent model finishes in one shot in a few minutes. That shape
+was chosen for the POC *on purpose*, for reasons already on record before
+this evaluation program existed: HumanEval+/MBPP+ is too easy to leave
+headroom for a delta to show up, and SWE-bench Lite/Verified — "the most
+credible substrate" — was explicitly deferred to a later phase because
+"docker-image-per-task, long trajectories, and a weak model in a large
+repo" make it slow, expensive, and noisy as a *first* run. In other words:
+the current benchmark is a deliberately cheap, fast, low-noise way to
+bootstrap the harness — not a claim that it represents recurve's real
+workload.
+
+Contrast that with the task that actually produced `ablation-infra.md` and
+`oracle-strength-and-decorrelation.md` in the first place: dozens of files
+across a new ports/adapters package, a run-level governor, a unified
+challenge-event log, threaded through one continuous multi-hour session,
+where a mistake made early (forgetting a constraint, quietly breaking a
+claim that was already green while closing a later one) is only visible
+much later, if at all. Almost none of recurve's actual value proposition —
+catching drift, cross-file inconsistency, or a stale claim that silently
+regressed — has room to occur inside a single 60k-token, single-function
+task. A model either gets the one function right or it doesn't; there is
+no "forgot something from three hours ago" failure mode to catch.
+
+That cuts against the eval program in a specific, correctable way: a small
+measured ΔFDR on BigCodeBench-Hard would **not** be evidence that the gate
+doesn't help — it could equally mean the task is too short for the failure
+mode the gate targets to ever occur. The reverse also doesn't transfer
+automatically: a large ΔFDR on short tasks is not proof of the same effect
+size on long-horizon work. Neither direction can be assumed; each is its
+own measurement.
+
+What's already scoped to narrow this gap, and what isn't:
+
+- **Scoped, not yet run** — SWE-bench Verified (`eval-full.md`'s E2): real
+  GitHub issues against real multi-file repos, graded by the repo's own
+  `FAIL_TO_PASS`/`PASS_TO_PASS` tests. Real repo scale, real defects, a
+  trusted oracle — a genuine step up in realism. Still bounded to a single
+  issue's fix, typically well under an hour of agent time — closer to the
+  toy-task end of the spectrum than to a from-scratch, multi-day PRD build.
+- **Not scoped anywhere yet** — a task tier at the actual scale of recurve's
+  own workload: "implement this PRD end-to-end, under the gate vs. not."
+  Recurve's own dogfooding history (this very PRD pair, or any prior one)
+  is the natural source of such instances, but it has a real methodological
+  problem that has to be solved before it can be built, not glossed over:
+  recurve's claims ledger can't grade its own claims-ledger-gated run
+  without circularity. A credible oracle here would need something
+  independent of the mechanism under test — e.g., a held-out subset of a
+  PRD's acceptance criteria never shown to the agent (mirroring
+  BigCodeBench's hidden-test pattern, at PRD scale), or a blind rubric
+  judgment against the PRD's literal text. No such design exists yet; this
+  is an open question, not a built capability.
+
 ## Where to go next
 
 - **[Running the evals](running.md)** — the exact commands, in order, to
