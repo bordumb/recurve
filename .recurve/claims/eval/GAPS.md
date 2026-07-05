@@ -297,3 +297,20 @@ the warm grader's source is folded into the oracle-env identity, so switching to
 it invalidates a stale calibration. Negative space (a trap each): a grader that
 spawns one container per grading; a dead container yielding a silent error instead
 of restart+re-grade; an exec into a mismatched-image container.
+
+## EV-20 — The end-to-end smoke fixture is the substrate, not a hand-authored idealization
+
+The first smoke used `from solution import` fixtures, and that is exactly how the
+namespace-model bug hid — the mock agreed with the harness instead of the
+substrate. So the permanent fixture (`bcb-hard-854.json`) is one REAL pinned
+BigCodeBench-Hard task with its real canonical solution and a committed known-bad
+mutant, and its fidelity is checked, not assumed: `assert_fixture_faithful`
+refuses a fixture whose task id is absent from the pinned dataset, or whose test
+has drifted from the dataset's own test for that id (the two ways a fixture could
+quietly stop representing the substrate). `grade_fixture` runs the exact
+shared-namespace `task_func` convention: the canonical grades PASS, the mutant
+grades FAIL, so the smoke can actually detect a bad solution. The byte-match
+against the full pinned dataset is oracle-waived where the gitignored dataset is
+absent; where present, the fixture's test is verified identical to the substrate's.
+Negative space (a trap each): a fixture task absent from the pinned dataset
+accepted; the known-bad mutant grading anything but FAIL.

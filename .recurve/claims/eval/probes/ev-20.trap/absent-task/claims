@@ -1,0 +1,1 @@
+assert_fixture_faithful accepts a smoke fixture whose task id is not in the pinned dataset — a hand-authored task standing in for the substrate

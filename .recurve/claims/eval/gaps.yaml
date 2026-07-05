@@ -402,3 +402,26 @@
   oracle_waiver: real container start/exec need docker; the start-once / exec-per-grade / restart /
     retag-refuse orchestration is tested hermetically with an injected runner and verified live
 
+- id: EV-20
+  title: The end-to-end smoke fixture is the substrate, not a hand-authored idealization
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-20
+  evidence:
+  - eval/evallib/smoke.py
+  - .recurve/claims/eval/fixtures/bcb-hard-854.json
+  observed: 'GREEN at close 2026-07-05: smoke fixture is a real substrate task (OK full fidelity):
+    canonical passes, known-bad mutant fails, absence/drift refused'
+  smallest_fix: smoke.assert_fixture_faithful refuses a fixture whose task id is absent from the
+    pinned dataset or whose test drifted from the dataset's own test for that id; grade_fixture
+    grades the canonical (pass) and a committed known-bad mutant (fail) via the shared-namespace
+    convention; the fixture is a real pinned BCB-Hard task, byte-verified against the dataset
+  probe: probes/ev-20.sh
+  unlocks: mock-vs-substrate drift is structurally impossible — the smoke that guards the whole
+    pipeline is the benchmark's own task, and it can detect a bad solution
+  oracle_waiver: the byte-match against the full gitignored dataset needs it present; the fidelity
+    logic + canonical/mutant grading are tested hermetically and run full-strength where present
+
