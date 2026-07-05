@@ -99,3 +99,8 @@ rebuild = ""               # pure engine module (recurvelib.adapters); nothing t
 dir = ".recurve/claims/armkernel"
 rebuild = ""               # eval/evallib ports + one recurvelib port (adapters/boundary); nothing to copy
 harness = []
+
+[suites.swebench]
+dir = ".recurve/claims/swebench"
+rebuild = ""               # eval/evallib SWE-bench workspace/oracle/calibration adapters; nothing to copy
+harness = []

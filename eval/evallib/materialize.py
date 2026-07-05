@@ -70,7 +70,23 @@ def recurve_init_workspace(dest: Path, task: dict, *, recurve_cmd: str | None = 
                    capture_output=True, text=True)
 
 
-WORKSPACE_PORTS = {"bare": bare_workspace, "recurve_init": recurve_init_workspace}
+def _swe_bench_repo_workspace(dest: Path, task: dict, *, recurve_cmd: str | None = None) -> None:
+    """WorkspacePort["swe_bench_repo"] — a thin registry adapter over
+    `swebench_workspace.materialize_swe_repo_workspace` (docs/plans/
+    eval-swebench-infra.md SW2): a real, working container checkout, but
+    structurally missing test_patch. Lives in its own module (a different
+    task shape entirely — a repo, not a function) and is wired in here as
+    ONE registry line, exactly the property `eval-arm-kernel.md` requires:
+    adding a WorkspacePort value never touches this dispatcher."""
+    from evallib.swebench_workspace import materialize_swe_repo_workspace
+    materialize_swe_repo_workspace(dest, task, recurve_cmd=recurve_cmd)
+
+
+WORKSPACE_PORTS = {
+    "bare": bare_workspace,
+    "recurve_init": recurve_init_workspace,
+    "swe_bench_repo": _swe_bench_repo_workspace,
+}
 
 
 def resolve_workspace_port(name: str):

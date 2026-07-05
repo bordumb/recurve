@@ -12,6 +12,7 @@ dependencies = []
 run = ["datasets>=2.0"]        # fetch + pin the real benchmark from HuggingFace
 oracle = ["bigcodebench"]      # build the quarantine venv for the hidden suites
 figures = ["matplotlib>=3.6"]  # the deterministic figure renderer
+swebench = ["swebench>=3.0", "docker>=7.0"]  # SWE-bench's own instance-building/grading tooling (SW1-SW3)
 
 [project.scripts]
 eval = "evallib.cli:main"
