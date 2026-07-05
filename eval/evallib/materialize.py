@@ -1,12 +1,12 @@
 """materialize.py — task -> fresh workspace, with the oracle quarantined.
 
-Houses `WorkspacePort` (docs/plans/eval-arm-kernel.md §3): `"bare"` writes
-the task statement + an empty solution.py into a git-init'd tmpdir; the same,
-`"recurve_init"` also runs `recurve init` — this is what A3 (and its
-adversary=/governor=/boundary= extensions) needs but A0/A6's bare or
-recurve-init'd workspace both stay pure materialization, no decision-making.
-`materialize()` is the kernel's WorkspacePort SLOT: it looks the arm's
-`workspace` value up in `WORKSPACE_PORTS`, never branches on the arm's name.
+Houses `WorkspacePort`: `"bare"` writes the task statement + an empty
+solution.py into a git-init'd tmpdir; `"recurve_init"` does the same, then
+also runs `recurve init`. Both stay pure materialization — no
+decision-making — regardless of which done-signal or other axis the arm
+built on top of that workspace uses. `materialize()` looks the arm's
+`workspace` value up in `WORKSPACE_PORTS` and calls it; it never branches on
+the arm's name.
 
 Never references the task's hidden `test` field, and `assert_quarantined` is
 a defense-in-depth guard that refuses any workspace in which the hidden test
@@ -61,8 +61,8 @@ def bare_workspace(dest: Path, task: dict, *, recurve_cmd: str | None = None) ->
 
 def recurve_init_workspace(dest: Path, task: dict, *, recurve_cmd: str | None = None) -> None:
     """WorkspacePort["recurve_init"] — the same materialization, then
-    `recurve init` (A3 and everything built on it, including A6: a real
-    ledger is present, but which DoneSignalPort reads it is a SEPARATE axis)."""
+    `recurve init` (A3 and everything built on it: a real ledger is present,
+    but which done-signal reads it is a separate, independent axis)."""
     _write_task(dest, task)
     cmd = recurve_cmd or "recurve"
     subprocess.run([cmd if cmd == "recurve" else "python3", *([] if cmd == "recurve" else [cmd]),
@@ -83,10 +83,9 @@ def materialize(task: dict, arm: str, dest: str | Path,
                 recurve_cmd: str | None = None) -> Path:
     """Build a fresh workspace for one (task, arm) cell and return its path.
 
-    The kernel's WorkspacePort slot (docs/plans/eval-arm-kernel.md §2): looks
-    `arm`'s `workspace` value up in `WORKSPACE_PORTS` and calls it — never
-    branches on the arm's name or any other property. `assert_quarantined`
-    re-checks the built workspace before returning."""
+    Looks up `arm`'s `workspace` value in `WORKSPACE_PORTS` and calls it —
+    never branches on the arm's name or any other property.
+    `assert_quarantined` re-checks the built workspace before returning."""
     spec = arm_spec(arm)
     dest = Path(dest)
     resolve_workspace_port(spec.workspace)(dest, task, recurve_cmd=recurve_cmd)

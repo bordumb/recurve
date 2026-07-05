@@ -43,21 +43,20 @@ def cell_id(model: str, arm: str, budget: int, seed: int, task_id: str) -> str:
 
 def resolved_gate_config(arm: str) -> dict:
     """The arm's `[gate]`-shaped config, with `adversary=`/`governor=`/
-    `boundary=` validated through recurvelib's registry (AI5, K3) — raises
+    `boundary=` validated through recurvelib's registry (AI5) — raises
     `KeyError` on an unknown arm, and whatever `resolve_adversary_adapter`/
     `resolve_governor_adapter`/`resolve_boundary_adapter` raise on an unknown
     adapter name. Never silently accepted; a typo'd config value fails the
     plan, not the run.
 
-    Only NON-DEFAULT axes appear in the returned dict — exactly the
-    convention this already followed for adversary=/governor= before K3
-    added boundary=: A0/A3/A7-A10 (all boundary="enforced") continue to
-    plan an identical (`{}`- or two-key-shaped) `gate_config`, byte-for-byte
-    (K1's regression fixture). The eval-only axes (`workspace`/`done_signal`/
-    `audit`) are ALSO validated here — even though they're never
-    manifest-supplied, a typo'd port name in a new `_ARMS` entry fails the
-    plan loud, not a mystery deep in a run — but they are not `[gate]`
-    config, so they never appear in this dict.
+    Only NON-DEFAULT axes appear in the returned dict — the same convention
+    this already followed for adversary=/governor= before boundary= joined
+    them: an arm at every default (boundary="enforced") continues to plan
+    an identical (`{}`- or few-key-shaped) `gate_config`, byte-for-byte. The
+    eval-only axes (`workspace`/`done_signal`/`audit`) are ALSO validated
+    here — even though they're never manifest-supplied, a typo'd port name
+    in a new arm entry fails the plan loud, not a mystery deep in a run —
+    but they are not `[gate]` config, so they never appear in this dict.
     """
     spec = arm_spec(arm)
     resolve_workspace_port(spec.workspace)

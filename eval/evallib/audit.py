@@ -1,13 +1,13 @@
 """audit.py — AuditPort: a post-hoc hardening pass that can only ADD columns,
-never change the outcome (docs/plans/eval-arm-kernel.md K5).
+never change the outcome.
 
 `AuditResult` structurally cannot carry `declared_done`/`oracle_verdict` —
 the type itself has no such fields, so there is nothing for a caller to
 mistake for the outcome. `has_forbidden_field` is the same KIND of
 structural guard `recurvelib.loop.reviewers.has_bypass_field` already
-applies to Adversary/Governor verdicts (AB-1), applied here to the
-eval-only Audit port: a type-level impossibility, not a runtime check that a
-future edit could quietly bypass.
+applies to Adversary/Governor verdicts, applied here to the eval-only Audit
+port: a type-level impossibility, not a runtime check that a future edit
+could quietly bypass.
 
 `drill_hardened` wraps the existing `drill --fuzz --iso --diff` CLI (already
 a real contract) against the cell's workspace; A4 = A3 + this port, nothing

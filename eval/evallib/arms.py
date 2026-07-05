@@ -1,17 +1,16 @@
 """arms.py — arm name -> ArmSpec, the tuple of port selections that IS an arm (pure).
 
-`docs/plans/eval-arm-kernel.md` decomposes "what varies between arms" into
-six ports: Workspace, Done-signal, Boundary, Audit, Adversary, Governor. An
-arm is nothing but a selection from each — `ArmSpec` replaces the old flat
-`{"recurve": bool, "config": dict}` shape (which only fit two of the six
-axes) with one field per port. Adding an arm is a new `ArmSpec` literal;
-adding a 7th axis later is a new, DEFAULTED field, never an edit to an
-existing arm's literal (K1).
+An arm varies along six independent axes — Workspace, Done-signal, Boundary,
+Audit, Adversary, Governor — and nothing else. `ArmSpec` (one field per axis)
+replaces the old flat `{"recurve": bool, "config": dict}` shape, which only
+fit two of the six. Adding an arm is a new `ArmSpec` literal; adding a new
+axis later is a new, DEFAULTED field, never an edit to an existing arm's
+literal.
 
 A7-A10 (docs/plans/oracle-strength-and-decorrelation.md §3a) resolve their
 `adversary=`/`governor=` config through recurvelib's OWN adapter registry —
-imported here, never reimplemented (docs/plans/ablation-infra.md AI5). K3
-adds a third recurvelib-owned port, `boundary=` (`enforced` default | the
+imported here, never reimplemented (docs/plans/ablation-infra.md AI5).
+`boundary=` is a third recurvelib-owned axis (`enforced` default | the
 deliberately dangerous `open`), resolved the same way. `eval/` stays a
 separate uv project (recurvelib is stdlib+PyYAML); the dependency is
 one-directional — `eval` imports `recurvelib`, never the reverse.
@@ -37,7 +36,7 @@ from recurvelib.adapters.boundary import BOUNDARY_ADAPTERS  # noqa: E402
 
 @dataclass(frozen=True)
 class ArmSpec:
-    """An arm is a TUPLE OF PORT SELECTIONS — nothing else (§1). Six axes:
+    """An arm is a TUPLE OF PORT SELECTIONS — nothing else. Six axes:
 
       workspace   — WorkspacePort:   "bare" | "recurve_init"
       done_signal — DoneSignalPort:  "gate" | "self_report" | "external_ci"
@@ -47,10 +46,9 @@ class ArmSpec:
       governor    — GovernorPort:    "off" | "mechanical" | "mechanical_review" | "human_required" (recurvelib, existing)
 
     `boundary`/`audit`/`adversary`/`governor` default to the inert value, so
-    an existing arm literal (A0/A3/A7-A10) never has to name axes it doesn't
-    use — the K1 regression fixture depends on this: those six arms are
-    byte-identical to their pre-ArmSpec behavior specifically because they
-    all resolve to the same defaults today.
+    an existing arm literal never has to name axes it doesn't use — arms
+    that only need workspace/done_signal stay byte-identical across every
+    later addition, because they all resolve to the same defaults.
     """
 
     workspace: str
@@ -59,9 +57,9 @@ class ArmSpec:
     audit: str = "none"
     adversary: str = "off"
     governor: str = "off"
-    # K4: the shell command DoneSignalPort["external_ci"] runs; meaningful
-    # only when done_signal == "external_ci" (validated there, not here — an
-    # arm not using that port pays nothing for the field it left blank).
+    # The shell command DoneSignalPort["external_ci"] runs; meaningful only
+    # when done_signal == "external_ci" (validated there, not here — an arm
+    # not using that port pays nothing for the field it left blank).
     external_ci_command: str = ""
     label: str = ""
 
@@ -69,8 +67,7 @@ class ArmSpec:
     def recurve(self) -> bool:
         """True iff the workspace is recurve-init'd. A derived property, not
         an independent field — `workspace` is the one source of truth, so
-        `recurve` can never drift from it (the exact coupling bug ArmSpec
-        exists to make impossible)."""
+        `recurve` can never drift from it independently."""
         return self.workspace == "recurve_init"
 
 
@@ -86,15 +83,14 @@ _ARMS: dict[str, ArmSpec] = {
     # task as a claim with a RED-first probe it authors + at least one trap, then
     # burn down until `recurve matrix --gate` is green. Gate green = declared done.
     "A3": _A3,
-    # A6 (K2, eval-arm-kernel.md): A3's workspace (a real ledger IS present),
-    # but done_signal="self_report" — the SAME port A0 uses, not a bespoke
-    # "ignore the gate" special case. Proves the port lookup is real: sharing
-    # code across A0/A6 was the whole reason to build it (§K2 bounds).
+    # A3's workspace (a real ledger IS present), but done_signal="self_report"
+    # — the SAME port A0 uses, not a bespoke "ignore the gate" special case:
+    # a real ledger existing in the workspace has zero effect on the
+    # declared-done decision under this port.
     "A6": replace(_A3, done_signal="self_report", label="A3, controller off"),
-    # A7-A10: E4/ablation-phase arms (not POC arms — the POC keeps {A0, A3}
-    # unchanged). Each extends A3 by one or two switches, per the PRD's own
-    # ladder-not-factorial design (§3a): marginal detection per layer before
-    # measuring the combination.
+    # A7-A10: ablation-phase arms (not POC arms — the POC keeps {A0, A3}
+    # unchanged). Each extends A3 by one or two switches: marginal detection
+    # per layer before measuring the combination.
     "A7": replace(_A3, adversary="cross_model", label="A3 + adversary=cross_model"),
     "A8": replace(_A3, governor="mechanical", label="A3 + governor=mechanical"),
     "A9": replace(_A3, governor="mechanical_review", label="A3 + governor=mechanical_review"),
@@ -130,8 +126,8 @@ def resolve_governor_adapter(name: str):
 
 
 def resolve_boundary_adapter(name: str):
-    """K3: resolve an arm's `boundary=` value through recurvelib's OWN
-    registry — never a local reimplementation. The one call site this PRD
-    treats as inherently dangerous when `name == "open"`."""
+    """Resolve an arm's `boundary=` value through recurvelib's OWN registry —
+    never a local reimplementation. The one resolution this module treats as
+    inherently dangerous when `name == "open"`."""
     from recurvelib.adapters.registry import resolve_boundary
     return resolve_boundary(name, BOUNDARY_ADAPTERS)

@@ -1,4 +1,4 @@
-"""Boundary: the pluggable write-boundary port (docs/plans/eval-arm-kernel.md K3).
+"""Boundary: the pluggable write-boundary port.
 
 `within_boundary()` in `recurvelib.loop.runtime` is the pure predicate that
 decides whether a diff's paths stay inside the target tree and off the
@@ -10,12 +10,12 @@ nothing here imports or mutates them, and (like Adversary/Governor before it)
 the only production consumer that changes is `recurvelib.loop.adapters.GitWorld`
 (a new, DEFAULTED `boundary=` constructor argument), never the pure predicate.
 
-This is the one port `eval-arm-kernel.md` treats as inherently dangerous:
-`open` disables the check that keeps an autonomous actor off the referee
-surface (claims/probes/traps) — the exact thing `within_boundary` exists to
-prevent. It is off by default (`enforced`), reachable only through the
-literal `[gate] boundary = "open"` key (`recurvelib.core.config`) — no other
-config path produces this value by coincidence — and it is LOUD: `OpenBoundary`
+This is the one port this package treats as inherently dangerous: `open`
+disables the check that keeps an autonomous actor off the referee surface
+(claims/probes/traps) — the exact thing `within_boundary` exists to prevent.
+It is off by default (`enforced`), reachable only through the literal
+`[gate] boundary = "open"` key (`recurvelib.core.config`) — no other config
+path produces this value by coincidence — and it is LOUD: `OpenBoundary`
 prints an unmissable warning on every single check, never silently.
 """
 from __future__ import annotations
@@ -45,7 +45,7 @@ class EnforcedBoundary:
 
 
 class OpenBoundary:
-    """BoundaryPort["open"] — the dangerous bypass (K3). Always permits the
+    """BoundaryPort["open"] — the dangerous bypass. Always permits the
     write, unconditionally, and LOUDLY: every single call prints a fixed,
     grep-able warning to stderr, so this can never be exercised silently."""
 

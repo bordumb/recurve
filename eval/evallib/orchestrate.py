@@ -1,23 +1,22 @@
-"""orchestrate.py — the kernel: agent -> terminal state -> held-out oracle -> one analyze row.
+"""orchestrate.py — agent -> terminal state -> held-out oracle -> one analyze row.
 
-The cell-runner (docs/plans/eval-arm-kernel.md §2): a FIXED pipeline with
-slots, each slot filled by a port lookup keyed on the arm's `ArmSpec` — it
-never branches on which arm is running.
+The cell-runner: a FIXED pipeline with slots, each slot filled by a port
+lookup keyed on the arm's `ArmSpec` — it never branches on which arm is
+running.
 
     agent_result = agent(...)                                    # unchanged
-    boundary     = apply BoundaryPort[spec.boundary]              # K3, loud when open
-    declared     = DoneSignalPort[spec.done_signal](...)          # K2/K4
-    audit_result = AuditPort[spec.audit](...) if spec.audit != "none" else None   # K5
+    boundary     = apply BoundaryPort[spec.boundary]              # loud when open
+    declared     = DoneSignalPort[spec.done_signal](...)
+    audit_result = AuditPort[spec.audit](...) if spec.audit != "none" else None
     oracle_verdict = quarantine(workspace)                        # unchanged
     row = merge(agent_result, declared, audit_result, oracle_verdict, provenance)
 
 Adding a new arm is a new `ArmSpec` tuple (`evallib.arms`); adding a new PORT
 VALUE is one adapter function plus one registry line. Neither ever touches
-this function. For A0/A3/A7-A10 (all default boundary="enforced",
-audit="none") the row is byte-identical to the pre-kernel orchestrator: the
-new `boundary`/`audit` row fields are only added when a port resolves to
-something other than its inert default (K1's regression fixture depends on
-this).
+this function. For an arm at every port's default (boundary="enforced",
+audit="none") the row is byte-identical to the pre-port-lookup orchestrator:
+the `boundary`/`audit` row fields are only added when a port resolves to
+something other than its inert default.
 """
 
 from __future__ import annotations
@@ -62,21 +61,21 @@ def _default_gate(workspace: Path) -> str:
 
 
 def _apply_boundary_port(boundary: str) -> dict:
-    """Apply BoundaryPort[boundary] to this cell (§2's second pipeline line).
+    """Apply BoundaryPort[boundary] to this cell.
 
     Resolves it through recurvelib's OWN registry — never reimplemented —
     so an unknown value fails loud here, before any row is sealed. The
-    default ("enforced") adds NOTHING to the row: every arm that exists
-    today stays byte-identical. When it resolves to the dangerous "open"
-    capability (K3), that fact is recorded LOUDLY: a line to stderr at the
-    moment it is used, plus an explicit, unmissable field in the row's own
-    provenance — never silently.
+    default ("enforced") adds NOTHING to the row: every arm that stays at
+    the default is byte-identical to before this port existed. When it
+    resolves to the dangerous "open" capability, that fact is recorded
+    LOUDLY: a line to stderr at the moment it is used, plus an explicit,
+    unmissable field in the row's own provenance — never silently.
     """
     resolve_boundary_adapter(boundary)  # KeyError on an unknown/unregistered value
     if boundary == "enforced":
         return {}
     print(f"BOUNDARY OPEN for cell: arm boundary={boundary!r} — the write "
-          f"boundary is DISABLED for this cell (K3, deliberately dangerous, "
+          f"boundary is DISABLED for this cell (deliberately dangerous, "
           f"opt-in only).", file=sys.stderr)
     return {"boundary": boundary}
 
@@ -89,7 +88,7 @@ def make_orchestrator(agent, tasks_by_id: dict, pins: dict,
     reports its `stop_reason`. `pins` maps task_id -> the oracle's content-hash
     recorded at fetch time (each task has its own pin), so a tampered oracle
     is refused per task. The orchestrator refuses to quarantine a workspace
-    whose agent has not terminated, then runs the kernel pipeline (module
+    whose agent has not terminated, then runs the pipeline (module
     docstring) and joins everything into one row."""
 
     def orchestrate(cell: dict, workspace) -> dict:
@@ -101,13 +100,13 @@ def make_orchestrator(agent, tasks_by_id: dict, pins: dict,
 
         spec = arm_spec(cell["arm"])
 
-        # BoundaryPort (K3) — a slot, not a branch: resolved by NAME, applies
-        # to every cell identically regardless of which arm it is.
+        # A slot, not a branch: resolved by NAME, applies to every cell
+        # identically regardless of which arm it is.
         boundary_fields = _apply_boundary_port(spec.boundary)
 
-        # DoneSignalPort (K2/K4) — the SAME slot serves "gate", "self_report",
-        # and "external_ci"; the kernel never asks which arm this is, only
-        # which done_signal it names.
+        # The SAME slot serves "gate", "self_report", and "external_ci"; the
+        # orchestrator never asks which arm this is, only which done_signal
+        # it names.
         done_port = resolve_done_signal_port(spec.done_signal)
         done_result = done_port(workspace, agent_row,
                                 gate_fn=gate_fn or _default_gate,
@@ -116,8 +115,8 @@ def make_orchestrator(agent, tasks_by_id: dict, pins: dict,
         gate_outcome = done_result["gate_outcome"]
         terminal_state = done_result["terminal_state"]
 
-        # AuditPort (K5) — additive only; "none" means the slot is skipped
-        # entirely, so an arm that never asked for hardening pays nothing.
+        # Additive only; "none" means the slot is skipped entirely, so an
+        # arm that never asked for hardening pays nothing.
         audit_result = None
         if spec.audit != "none":
             audit_result = resolve_audit_port(spec.audit)(workspace)
@@ -151,7 +150,7 @@ def make_orchestrator(agent, tasks_by_id: dict, pins: dict,
         if audit_result is not None:
             # Namespaced under its own key — structurally cannot collide with
             # declared_done/oracle_verdict regardless of what AuditResult
-            # carries (K5): a nested dict can never overwrite a sibling key.
+            # carries: a nested dict can never overwrite a sibling key.
             row["audit"] = asdict(audit_result)
         return row
     return orchestrate

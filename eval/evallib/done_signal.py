@@ -1,21 +1,20 @@
-"""done_signal.py — DoneSignalPort: what decides a cell is over, and how
-(docs/plans/eval-arm-kernel.md K2/K4).
+"""done_signal.py — DoneSignalPort: what decides a cell is over, and how.
 
 Three named values, each a pure function `(workspace, agent_row, **kw) ->
 dict` returning at minimum `declared_done` (plus `gate_outcome`/
 `terminal_state`, present-but-inert for the ports that don't need them, so
-every port returns the SAME shape and the kernel never has to special-case
+every port returns the SAME shape and the caller never has to special-case
 one).
 
-`self_report` is the K2 insight, built once: A0 (`workspace="bare"`, no
-ledger exists to consult) and A6 (`workspace="recurve_init"`, a real ledger
-IS present) both use it, and it behaves IDENTICALLY for both — it reads
+`self_report` is built once and shared: A0 (`workspace="bare"`, no ledger
+exists to consult) and A6 (`workspace="recurve_init"`, a real ledger IS
+present) both use it, and it behaves IDENTICALLY for both — it reads
 solution.py and nothing else, ever. A6 does not get its own "ignore the
 gate" logic; it gets the SAME function A0 already needed.
 
-`external_ci` (K4) is the CLI contract that closes A1's *mechanism* gap: any
-shell command, exit 0 = done. Grading via "the repo's own tests" becomes a
-config string, not new Python, whenever a benchmark supplies one.
+`external_ci` is a CLI contract: any shell command, exit 0 = done. Grading
+via "the repo's own tests" becomes a config string, not new Python, whenever
+a benchmark supplies one.
 """
 
 from __future__ import annotations
@@ -50,7 +49,7 @@ def self_report_done_signal(workspace: Path, agent_row: dict, **_) -> dict:
     solution.py alone. Used by A0 (bare workspace: no gate exists to
     consult) AND A6 (recurve_init workspace: a real gate exists, but this
     port never reads it — even a RED gate has zero effect on the recorded
-    outcome under this port; that is the K2 assertion, not an oversight)."""
+    outcome under this port)."""
     sol = Path(workspace) / "solution.py"
     declared = sol.exists() and sol.read_text().strip() != ""
     return {"declared_done": declared, "gate_outcome": None, "terminal_state": {}}
@@ -59,9 +58,9 @@ def self_report_done_signal(workspace: Path, agent_row: dict, **_) -> dict:
 def external_ci_done_signal(workspace: Path, agent_row: dict, *,
                             command: str = "", timeout: int = 60, **_) -> dict:
     """DoneSignalPort["external_ci"] — any shell command; exit 0 = done, any
-    other exit = not yet (K4). The command is the ENTIRE mechanism: plugging
-    in a new benchmark's own grading convention ("the repo's own pytest") is
-    a config string, zero new Python."""
+    other exit = not yet. The command is the ENTIRE mechanism: plugging in a
+    new benchmark's own grading convention ("the repo's own pytest") is a
+    config string, zero new Python."""
     if not command:
         raise ValueError("done_signal='external_ci' requires a non-empty command")
     try:

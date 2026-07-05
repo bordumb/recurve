@@ -64,10 +64,10 @@ class GitWorld:
         root: Path to the target repository's working tree (already ``git init``-ed and configured).
         referee_roots: Repo-relative prefixes the actor may never write (e.g. ``["claims/"]``).
         gate_fn: Callable ``root -> Progress`` — the measurement (recurve's gate in production, a fake in tests).
-        boundary: BoundaryPort selection (``docs/plans/eval-arm-kernel.md`` K3) — ``"enforced"`` (default,
-            byte-identical to every prior GitWorld) or ``"open"``, a deliberately dangerous, off-by-default
-            bypass. Resolved through recurvelib's OWN registry (never reimplemented here), so an unknown value
-            fails loud at construction, before the first ``apply()``.
+        boundary: BoundaryPort selection — ``"enforced"`` (default, byte-identical to every prior GitWorld)
+            or ``"open"``, a deliberately dangerous, off-by-default bypass. Resolved through recurvelib's OWN
+            registry (never reimplemented here), so an unknown value fails loud at construction, before the
+            first ``apply()``.
     """
 
     def __init__(self, root, referee_roots, gate_fn, boundary: str = "enforced"):
@@ -86,8 +86,8 @@ class GitWorld:
         All paths are checked first; if any is out of bounds nothing is written (no partial application) and
         ``BoundaryViolation`` is raised. Relative paths are checked against an empty target root and the
         repo-relative ``referee_roots``, so ``claims/…``, ``..``-escapes, and absolute paths are all refused —
-        UNLESS ``boundary="open"`` (K3), which bypasses this check entirely and says so loudly (stderr) on
-        every call.
+        UNLESS ``boundary="open"``, which bypasses this check entirely and says so loudly (stderr) on every
+        call.
         """
         rels = list(patch)
         if not self._boundary_check.check(rels, "", self.referee_roots):

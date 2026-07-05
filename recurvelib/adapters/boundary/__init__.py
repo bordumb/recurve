@@ -1,4 +1,4 @@
-"""The concrete Boundary adapters (docs/plans/eval-arm-kernel.md K3)."""
+"""The concrete Boundary adapters."""
 from __future__ import annotations
 
 from recurvelib.loop.boundary import EnforcedBoundary, OpenBoundary

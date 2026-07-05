@@ -133,12 +133,11 @@ class Config:
     # default: zero cost (re-execution of existing work, no new agent calls),
     # and there is no existing deployment whose behavior this would change.
     gate_governor: str = "mechanical"
-    # [gate] boundary: enforced (default) | open — K3's write-boundary knob
-    # (docs/plans/eval-arm-kernel.md). "open" is a deliberately dangerous,
-    # off-by-default engine capability: reachable ONLY through this exact
-    # key/value, never a coincidence of any other config path (adversary/
-    # governor typos, partial configs, another arm's whole config all leave
-    # this at its default).
+    # [gate] boundary: enforced (default) | open — the write-boundary knob.
+    # "open" is a deliberately dangerous, off-by-default engine capability:
+    # reachable ONLY through this exact key/value, never a coincidence of any
+    # other config path (adversary/governor typos, partial configs, another
+    # arm's whole config all leave this at its default).
     gate_boundary: str = "enforced"
     # [commit] — §11.1/§11.2: explicit, never prompting.
     commit_policy: str = "unsigned-per-cycle"   # none | unsigned-per-cycle | signed
