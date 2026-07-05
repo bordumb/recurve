@@ -71,34 +71,60 @@ terms, honestly checked.
 Each requirement is one or more claims: assertion, counterexample (trap),
 bounds — the same shape the PRD is asking recurve's own gate to record.
 
-### R1 — Oracle tier: recorded, derived, rendered
+### R1 — Oracle tier: recorded, derived, rendered — and honest about what backs it
 
 **Assertion.** Every claim's GREEN carries a recorded **oracle tier**
 reflecting what actually backed it, derived automatically from which
-passes actually ran against it:
+passes actually ran against it. The tier vocabulary is split along the
+axis this PRD's design discussion surfaced: **mechanical checks (no
+model in the loop, no correlated-error risk) are a different kind of
+evidence than LLM-backed checks (risk-reduced, never risk-free), not
+merely a stronger point on the same ladder:**
 
 ```
-self_probe            — RED-first probe only, no trap yet demonstrated
-trap_hardened          — probe has rejected its trap (today's baseline GREEN)
-fuzz_measured           — drill --fuzz has run against it, FPR recorded
-differential_checked    — drill --diff has run against a Gap.reference
-adversary_reviewed      — a second agent pass reviewed/attempted refutation
-adversary_cross_model   — the above, with a DIFFERENT declared model identity
-                          than whichever authored the claim/probe
-kernel_verified         — the oracle bottoms out in a sound proof kernel
+self_probe                — RED-first probe only, no trap yet demonstrated
+trap_hardened               — probe has rejected its trap (today's baseline GREEN)
+fuzz_measured                — drill --fuzz has run against it, FPR recorded
+adversary_reviewed            — a second agent pass reviewed/attempted refutation
+adversary_cross_model          — the above, with a VERIFIED-different model
+                                identity (see R2) than whichever authored
+                                the claim/probe
+differential_checked_llm       — drill --diff ran against a Gap.reference
+                                that is itself LLM-authored — bounded by
+                                the same correlated-error ceiling as the
+                                adversary tiers, not above them
+differential_checked_mechanical — drill --diff ran against a Gap.reference
+                                that is a mechanical ground truth (a real
+                                interpreter/library run, a fixed dataset,
+                                a golden output) — no model in the check,
+                                categorically stronger
+kernel_verified                — the oracle bottoms out in a sound proof kernel
 ```
+
+The dividing line is explicit and load-bearing: **`adversary_cross_model`
+and `differential_checked_llm` reduce correlated error; they do not
+eliminate it, because two LLMs can share training-era blind spots even
+with zero shared context.** `differential_checked_mechanical` and
+`kernel_verified` have no such ceiling — there is no judgment call to
+correlate. A claim's `reference:` field must record which kind of
+reference it points at so the derivation isn't guessing.
 
 Tier is visible in `recurve ledger` / `recurve show <claim>` output, not
 buried in metadata a user has to know to query.
 
 **Counterexamples (traps).**
 - A claim with a `reference:` field present but `drill --diff` never
-  actually run against it must not render `differential_checked` — the
-  field's mere existence is not evidence (ties directly to the *"field
-  present, mechanism never exercised"* pattern that would otherwise let
-  tier be gamed).
+  actually run against it must not render either `differential_checked_*`
+  tier — the field's mere existence is not evidence (ties directly to the
+  *"field present, mechanism never exercised"* pattern that would
+  otherwise let tier be gamed).
+- A `reference:` pointing at an LLM-authored implementation must not
+  render `differential_checked_mechanical` — the mechanical/LLM
+  distinction must be verifiable from what the reference actually is
+  (e.g., is it executable ground truth with no model invocation in its
+  own construction?), not asserted by whoever wrote the claim.
 - A tier of `adversary_cross_model` recorded where the adversary run's
-  logged model identity equals the actor's logged model identity must be
+  *verified* model identity (§R2) equals the actor's must be
   refused/demoted (same-model-adversary fixture) — see R2.
 - Tier must never be hand-set by the authoring agent. A ledger entry
   whose tier was written directly rather than derived from recorded pass
@@ -110,22 +136,55 @@ buried in metadata a user has to know to query.
 ledgers default every claim to `trap_hardened` (today's actual meaning)
 with no migration required.
 
-### R2 — Cross-model adversary: a named, identity-enforced mechanism
+### R2 — Cross-model adversary: isolated by construction, verified not declared
 
 **Assertion.** The adversary/capture-rule pattern gets a concrete surface:
 a claim or suite config knob (e.g. `[gate] adversary = "off" |
-"same_model" | "cross_model"`) that runs a second agent pass — under a
-**declared, recorded model identity** — to either (a) author an
-independent differential probe/reference for `drill --diff`, or (b)
-attempt to refute the existing probe under the capture rule (its
-objection counts only once captured as a re-runnable trap, per existing
-practice). When `cross_model`, the adversary's recorded model identity
-must differ from the actor's.
+"same_model" | "cross_model"`) that runs a second agent pass to either
+(a) author an independent differential probe/reference for `drill
+--diff`, or (b) attempt to refute the existing probe under the capture
+rule (its objection counts only once captured as a re-runnable trap, per
+existing practice). Two properties make this real isolation rather than
+a declared one:
+
+- **Context isolation, mechanical, by construction.** The adversary
+  invocation runs in a **fresh, isolated executor** — the same shape as
+  the oracle's own isolation (`RECURVE_ORACLE_PYTHON`/
+  `RECURVE_ORACLE_IMAGE`): a new subprocess, a **read-only** mount of
+  only the ledger artifacts under review (claim, probe, solution), a
+  scrubbed environment, and *no* access to the acting agent's live
+  session, scratch files, or reasoning trace. This is fully guaranteeable
+  and cheap — it is process hygiene, not a model property — and it holds
+  for `same_model` review too (still worth doing: even the same model
+  reviewing without its own prior reasoning in context is a real,
+  if weaker, check).
+- **Identity verification, not declaration.** "Different model" must be
+  checked against the **actual served model**, not the requested one — the
+  API response/transcript metadata's own model field, verified post hoc —
+  because a self-reported `--model` string can be wrong by config bug
+  without anyone lying. When `cross_model` is configured, the run refuses
+  if the *verified* served identity for the adversary pass matches the
+  *verified* served identity recorded for whichever pass authored the
+  claim/probe.
+
+**What this does NOT claim (see R1):** cross-model review reduces
+correlated error; it does not eliminate it. Two different models can
+share training-era blind spots with zero shared context. This mechanism
+is bounded by that ceiling, honestly, in its tier (`adversary_cross_model`,
+not `kernel_verified`).
 
 **Counterexamples (traps).**
-- An adversary invocation whose recorded model string matches the actor's
-  must be refused when the config demands `cross_model` (the exact bug
-  class that let the O6 incident through unchallenged).
+- An adversary invocation whose *verified* served model matches the
+  actor's *verified* served model must be refused when the config
+  demands `cross_model` — checked from response metadata, not the
+  `--model` flag that was merely requested (the exact bug class that let
+  the O6 incident through unchallenged, plus the config-drift case where
+  the flag says one thing and the server did another).
+- An adversary invocation given filesystem or environment access beyond
+  the read-only artifact mount (e.g., it can see the acting agent's
+  working directory, shell history, or prior conversation) must be
+  refused — isolation-boundary fixture, mirroring the oracle's own
+  workspace-must-not-contain-the-oracle trap.
 - A claim tagged `adversary_reviewed` with no adversary run recorded in
   the run log must fail ledger validation.
 - **The regression fixture, wired to the actual incident**: replay the
@@ -136,8 +195,8 @@ must differ from the actor's.
 
 **Bounds.** Off by default (cost-aware, opt-in per suite/claim — the
 house rule applies directly: fuzzing/adversary review are knobs, not
-policy). No claim about *which* other model to use beyond "recorded and
-different"; provider/model choice is the caller's.
+policy). No claim about *which* other model to use beyond "recorded,
+different, and verified"; provider/model choice is the caller's.
 
 ### R3 — Surface the weak-oracle question during authoring, not after
 
@@ -206,7 +265,23 @@ governor objects. Two tiers, deliberately priced differently:
   per-claim adversary is not — with the power to veto specific claims
   back to RED before the run may report itself done. This is precisely
   the scenario the O6 incident occurred in: an autonomous run, nobody
-  watching claim-by-claim.
+  watching claim-by-claim. It reuses R2's isolation and verification
+  machinery exactly: a fresh, read-only-mounted executor with no access
+  to the burndown loop's live session, and a *verified* (not declared)
+  served-model identity.
+
+**The `/recurve-work` plumbing gap this exposes, concretely.** Endless
+mode currently drives the whole loop with one invocation —
+`recurve run --agent 'claude -p --bare --permission-mode
+bypassPermissions'` — **with no `--model` at all**, so every cycle,
+including any future governor pass, silently inherits whatever the
+operator's CLI default happens to be. There is today no lever to give the
+governor a distinct invocation from the main loop. This PRD requires a
+new, separate **`RECURVE_GOVERNOR_CMD`**, plumbed the same way
+`RECURVE_ORACLE_PYTHON`/`RECURVE_ORACLE_IMAGE` are separate from the
+main agent command — the governor cannot be "whatever the loop happens
+to default to," it must be independently configured or the isolation
+guarantees above have no invocation to attach to.
 
 The controller's formal decision rule changes to reflect this:
 `STOP_SUCCESS ⇔ (open=regressed=broken=uncovered=0 ∧ ¬divergent) ∧
@@ -235,6 +310,14 @@ an opaque governor opinion — a regression in auditability, not a fix.
 - A governor veto recorded with no captured trap on the vetoed claim must
   fail validation — an uncaptured veto is exactly the unaccountable-second-
   authority failure this requirement exists to prevent.
+- A review-tier invocation running under `RECURVE_GOVERNOR_CMD` unset
+  (silently falling back to the main loop's `AGENT_CMD`/CLI default) must
+  be refused, not quietly accepted as "cross-model" — the governor must
+  be demonstrably configured, not assumed distinct.
+- A review-tier pass whose *verified* served model equals the *verified*
+  served model of the cycle's own claim-authoring passes must be refused
+  from clearing `governor_cleared` — same identity-verification
+  requirement as R2, applied at run level.
 - **The regression fixture, wired to the actual incident, at the run
   level this time**: replay the O6 shape as a full cycle — every claim's
   own gate green, all sharing one correlated-authorship defect — through
@@ -261,13 +344,15 @@ the run reports done), R4 is the backstop for whatever R5 still misses
 ## 4 · Sequencing
 
 R1 (tier vocabulary + rendering) is the prerequisite for everything else
-being visible → R2 (cross-model adversary surface) and R3 (authoring-time
-nudge) build in parallel once R1's vocabulary exists → R4 (reversal
-ledger + stats) → R5 (the governor) last, since its mechanical tier
-depends on nothing new but its review tier reuses R2's cross-model
-adversary machinery, and its veto-capture requirement reuses R4's
-reversal-event vocabulary (a veto is a reversal caught before publication
-rather than after).
+being visible → R2 (cross-model adversary surface: isolation executor +
+identity verification) and R3 (authoring-time nudge) build in parallel
+once R1's vocabulary exists → R4 (reversal ledger + stats) → R5 (the
+governor) last, since its mechanical tier depends on nothing new but its
+review tier reuses R2's isolation-executor and identity-verification
+machinery directly (not a reimplementation — the same code path,
+invoked via the new `RECURVE_GOVERNOR_CMD`), and its veto-capture
+requirement reuses R4's reversal-event vocabulary (a veto is a reversal
+caught before publication rather than after).
 
 ## 5 · Acceptance for the wave
 
@@ -275,8 +360,16 @@ rather than after).
   RED-first against its trap.
 - The O6-incident regression fixture (R2) passes: replayed same-model
   agreement is caught by a cross-model adversary pass.
-- `recurve ledger` / `recurve show` render oracle tier for every claim;
-  existing ledgers default cleanly to `trap_hardened` with no migration.
+- The isolation-boundary fixture (R2) passes: an adversary/governor
+  invocation cannot see the acting agent's live session, working
+  directory, or prior reasoning — only the read-only-mounted artifacts.
+- Identity verification is real: a fixture where the requested `--model`
+  differs from the actual served model (simulated config drift) is
+  caught — tier/`governor_cleared` derive from verified, not requested,
+  identity.
+- `recurve ledger` / `recurve show` render oracle tier for every claim,
+  using the mechanical/LLM-split vocabulary (R1); existing ledgers
+  default cleanly to `trap_hardened` with no migration.
 - `recurve stats` reports the R4 reversal rate (0/N on a ledger with no
   reversals; correctly non-zero on a ledger carrying the O6-shaped
   fixture).
