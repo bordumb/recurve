@@ -57,3 +57,23 @@ Negative space: a `reference:` field added after the fact purely to suppress
 the advisory, with `drill --diff` never actually run against it, must still
 show the advisory — the anti-gaming trap is the same one DC-1 exercises,
 applied to the advisory instead of the tier.
+
+## DC-3 — the O6-incident regression fixture, at claim level (R2's acceptance criterion)
+
+Replays the real incident recorded in `eval/runs/o6/results.jsonl`
+(`claude-sonnet-5-A3-...`: `declared_done=true`, `gate_outcome="declared"`,
+`terminal_state.stop_reason="gate_green"`, but `oracle_verdict="fail"`) using
+the REAL `cross_model` adversary adapter (`ablation` suite AB-6) and the
+REAL, untouched `capture()` rule — not stubs. A toy claim shares the actual
+incident's bug class (BigCodeBench/13's FTP task: "return every file
+ATTEMPTED, even failed ones" — the wrong solution silently drops failed
+attempts, and its same-model self-authored probe only exercises the happy
+path, so the two agree). The claim closes GREEN on the self-authored probe
+alone; the `cross_model` adversary — a genuinely different reviewer identity
+— disagrees, and its proposed counterexample passes `capture()`'s
+discrimination test (RED on the wrong solution, GREEN on a correct one),
+proving the mechanism would have caught what actually happened.
+
+Negative space: a reviewer sharing the actor's own served identity (a
+same-model pass masquerading as `cross_model`) must be refused by the
+identity check, not mistaken for a real cross-model pass.

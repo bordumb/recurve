@@ -39,3 +39,25 @@
     recurve ledger renders it as a visible, non-blocking footer.
   probe: probes/dc-2.sh
   unlocks: a claim closing on a weak oracle is visible at ledger time, not discovered later
+
+- id: DC-3
+  title: the O6-incident regression fixture, at claim level
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - DC-3
+  evidence:
+  - eval/runs/o6/results.jsonl
+  - recurvelib/adapters/adversary/cross_model.py
+  observed: 'GREEN at baseline 2026-07-05: the O6 claim-level replay is caught: a same-model
+    self-authored probe alone says GREEN, but the real cross_model adversary disagrees, and
+    its proposed counterexample is validated by the EXISTING capture() rule as genuine evidence
+    — not a silent pass, not noise'
+  smallest_fix: a toy claim replaying the O6 bug class (attempted-vs-succeeded misreading);
+    the real cross_model adversary disagrees with the same-model self-authored probe, and
+    capture() validates its proposed counterexample as genuine.
+  probe: probes/dc-3.sh
+  unlocks: R2''s cross-model adversary is proven against the actual incident it was built
+    to catch, not just a hypothetical
