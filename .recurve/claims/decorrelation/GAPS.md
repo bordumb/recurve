@@ -77,3 +77,22 @@ proving the mechanism would have caught what actually happened.
 Negative space: a reviewer sharing the actor's own served identity (a
 same-model pass masquerading as `cross_model`) must be refused by the
 identity check, not mistaken for a real cross-model pass.
+
+## DC-4 — the O6-incident regression fixture, at run level (R5's acceptance criterion)
+
+The same replay as DC-3, as a full cycle: every claim's own gate is green
+(correlated authorship), using the REAL `mechanical`/`mechanical_review`
+governor adapters (`ablation` suite AB-7) and the REAL `capture()` rule. The
+mechanical tier re-executes the claim's probe+trap in a fresh, isolated
+checkout and correctly does **not** catch the replay — no drift, no state
+leakage, by design (that is a different bug class). The review tier — one
+decorrelated pass over the whole batch — does catch it, vetoing with a
+concrete, re-checkable reason; `capture()` validates that reason as a
+genuine, discriminating counterexample (RED on the wrong solution, GREEN on
+a correct one), proving the veto becomes a real trap on the vetoed claim,
+never a bare rejection.
+
+Negative space: a mechanical-tier variant that over-reaches into
+content-level review (conflating the two tiers R5 deliberately keeps
+separate) must turn the probe RED — the mechanical tier's job is
+re-execution, not correlated-authorship detection.

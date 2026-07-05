@@ -61,3 +61,25 @@
   probe: probes/dc-3.sh
   unlocks: R2''s cross-model adversary is proven against the actual incident it was built
     to catch, not just a hypothetical
+
+- id: DC-4
+  title: the O6-incident regression fixture, at run level
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - DC-4
+  evidence:
+  - eval/runs/o6/results.jsonl
+  - recurvelib/adapters/governor/mechanical_review.py
+  observed: 'GREEN at baseline 2026-07-05: the O6 run-level replay is caught: every claim''s
+    own gate was green (correlated authorship); the mechanical tier correctly does NOT catch
+    it (that''s not its job); the review tier does, vetoing with a reason that capture() validates
+    as a real, re-checkable trap on the vetoed claim — not an opaque second authority'
+  smallest_fix: a toy cycle replaying the O6 bug class as a full run; the real mechanical
+    tier correctly clears it (by design), the real mechanical_review tier vetoes it with a
+    reason capture() validates as genuine.
+  probe: probes/dc-4.sh
+  unlocks: R5''s two automated governor tiers are proven against the actual incident they
+    were built to catch, with their distinct coverage demonstrated, not just asserted
