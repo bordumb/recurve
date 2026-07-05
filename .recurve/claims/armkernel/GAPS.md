@@ -54,3 +54,25 @@ gate if this looks like a recurve workspace" logic — a plausible bug where
 someone "helpfully" makes the port smarter for a recurve-initialized
 workspace — must be caught; A0 and A6 share one function object, not two
 that merely behave alike.
+
+## AK-3 — BoundaryPort["open"] is real, and hard to reach by accident
+
+A config-driven bypass of `within_boundary()` exists in `recurvelib`
+(`recurvelib.loop.boundary`, `recurvelib.adapters.boundary`, and a new,
+defaulted `boundary=` argument on `GitWorld`) — off by default, and reachable
+ONLY through the literal `[gate] boundary = "open"` key. A sweep of
+realistic `recurve.toml` blocks (case/whitespace/suffix typos, a TOML
+boolean instead of a string, the wrong key entirely, another arm's whole
+`[gate]` config, no `[gate]` section at all) shows none of them resolve to
+`open` by coincidence — every one is either the real, strict default
+(`enforced`) or a hard `ConfigError`. When
+`open` genuinely is used, it is LOUD: a fixed warning to stderr on every
+single boundary check (`GitWorld.apply`), plus an explicit `boundary` field
+in the row's own provenance when run through the real orchestrator — never
+silently. A5 = A3 + `boundary="open"`, the one arm that uses it.
+
+Negative space: a `[gate] boundary` resolver that fuzzy-matches anything
+LOOKING like "open" (case-insensitive, trimmed, prefix-matched) instead of
+requiring the exact literal — a plausible "helpful" typo-tolerance bug — must
+be caught; the sweep proves only the exact string ever resolves to the
+dangerous capability.

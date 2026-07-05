@@ -88,6 +88,12 @@ _ARMS: dict[str, ArmSpec] = {
     # a real ledger existing in the workspace has zero effect on the
     # declared-done decision under this port.
     "A6": replace(_A3, done_signal="self_report", label="A3, controller off"),
+    # A3's done_signal (a real gate exists and is consulted normally), but
+    # boundary="open" — the actor may write to the referee surface
+    # (claims/probes/traps) for this arm. A deliberately dangerous,
+    # off-by-default engine capability; used here to MEASURE what the write
+    # boundary is worth, never a default for any other arm.
+    "A5": replace(_A3, boundary="open", label="A3, boundary off"),
     # A7-A10: ablation-phase arms (not POC arms — the POC keeps {A0, A3}
     # unchanged). Each extends A3 by one or two switches: marginal detection
     # per layer before measuring the combination.

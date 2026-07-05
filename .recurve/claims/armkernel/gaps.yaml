@@ -46,3 +46,29 @@
   unlocks: a real recurve ledger present in the workspace (A6) has zero effect on the declared-done
     decision — proven by a zero-call assertion on the gate function, not just a behavioral
     coincidence.
+
+- id: AK-3
+  title: BoundaryPort["open"] is real, and hard to reach by accident
+  class: security-tradeoff
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AK-3
+  evidence:
+  - recurvelib/loop/boundary.py
+  - recurvelib/adapters/boundary/__init__.py
+  - recurvelib/core/config.py
+  - recurvelib/loop/adapters.py
+  observed: 'GREEN at baseline 2026-07-05, sweep strengthened same day (added a TOML-boolean
+    permutation found by adversarial re-review): BoundaryPort[''open''] is a real bypass of
+    within_boundary(), off by default, reachable ONLY through the exact [gate] boundary="open"
+    key (the sweep holds), and loud (stderr + row provenance) every time it is used — never
+    silently'
+  smallest_fix: Boundary protocol + Enforced/OpenBoundary adapters (recurvelib.loop.boundary),
+    resolved through recurvelib's registry; GitWorld gains a defaulted boundary= arg; Config
+    parses/validates [gate] boundary strictly (enforced|open, ConfigError otherwise); eval's
+    orchestrator records boundary= in the row and prints a loud warning only when non-default.
+  probe: probes/ak-3.sh
+  unlocks: A5 (A3, boundary off) is runnable, and the one dangerous port this PRD's scope
+    intentionally narrows cannot be reached except by its own exact, unambiguous key.
