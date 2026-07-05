@@ -10,7 +10,14 @@ seeds   = [0]
 
 [tasks]
 benchmark = "bigcodebench-hard"
-revision  = "<pinned HF revision hash>"   # fill at first fetch; pins the dataset
+# Pinned at first fetch (2026-07-05). The local JSONL is the source of truth for
+# a run — hermetic, no network — and `hash`/`count` pin it: load_pinned refuses
+# any drift. `revision` records the HF dataset commit the local copy came from.
+# The JSONL lives in the gitignored eval/datasets/ (large, reproducible).
+local     = "datasets/bigcodebench-hard@298d2cc7b96612e15e47313c3603ee124cee0c1f.jsonl"
+revision  = "298d2cc7b96612e15e47313c3603ee124cee0c1f"   # bigcode/bigcodebench-hard split v0.1.0_hf
+hash      = "e2f21cd5dc768bcd9a5bbd2fa6225855c431abd1a73f4cfc736799f548a883fd"
+count     = 148
 sample    = { n = 50, seed = 7 }           # pilot; remove for the full 148
 
 [oracle]

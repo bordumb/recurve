@@ -11,6 +11,7 @@ is refused rather than trusted.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -24,6 +25,15 @@ class OracleTamperError(RuntimeError):
     """The oracle's test text does not match the pin recorded at fetch time."""
 
 
+def oracle_python() -> str:
+    """The interpreter that grades a solution. A real run points
+    RECURVE_ORACLE_PYTHON at a dedicated BigCodeBench venv (the heavy third-party
+    deps the hidden tests import live there, isolated from the eval tooling's own
+    deps); absent that, it falls back to the current interpreter — which is all a
+    hermetic, stdlib-only test needs."""
+    return os.environ.get("RECURVE_ORACLE_PYTHON") or sys.executable
+
+
 def _run_once(test_src: str, solution_src: str, timeout: int) -> str:
     """Run the hidden suite once against the solution in an isolated tmpdir.
     Returns 'pass' | 'fail' | 'error'. The solution and test share a dir so the
@@ -33,7 +43,7 @@ def _run_once(test_src: str, solution_src: str, timeout: int) -> str:
     (d / "oracle_test.py").write_text(test_src)
     try:
         proc = subprocess.run(
-            [sys.executable, "-m", "unittest", "oracle_test", "-v"],
+            [oracle_python(), "-m", "unittest", "oracle_test", "-v"],
             cwd=d, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return "error"

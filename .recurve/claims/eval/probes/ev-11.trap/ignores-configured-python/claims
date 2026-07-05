@@ -1,0 +1,1 @@
+the oracle ignores RECURVE_ORACLE_PYTHON and grades under sys.executable (a venv missing BCB deps would mis-grade every solution as error)

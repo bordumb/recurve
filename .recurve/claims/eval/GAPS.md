@@ -145,3 +145,19 @@ adapter version), and drives this adapter — the gated cell's cap read per-cell
 from its own budget. Negative space (a trap each): an agent run in a workspace
 that was never materialized (blind, no TASK.md); a differently-named gated arm
 routed to the bare agent (arm-name coupling).
+
+## EV-11 — The oracle grades in a configurable isolated interpreter
+
+`quarantine.py` promised "a dedicated bigcodebench venv in a real run" but graded
+under `sys.executable` — a doc/code gap that would have every real
+BigCodeBench-Hard solution mis-graded as an *error*, because those hidden tests
+import heavy third-party libraries the eval tooling's own interpreter does not
+carry (and cannot be forced to, without colliding with the tooling's deps).
+`oracle_python()` closes it: the hidden suite runs under the interpreter named by
+`RECURVE_ORACLE_PYTHON` (the operator points it at the BCB venv), falling back to
+`sys.executable` when unset — all a hermetic, stdlib-only test needs. The pin
+check is upstream of the interpreter, so a tampered oracle is refused no matter
+which Python would have graded it. Negative space (guarded by the trap): an
+oracle that silently ignores the configured interpreter and grades under
+`sys.executable` anyway — the one failure that turns a mis-provisioned venv into
+a silent wall of false negatives instead of a loud setup error.

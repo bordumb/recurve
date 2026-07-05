@@ -208,3 +208,24 @@
   probe: probes/ev-10.sh
   unlocks: '`recurve run` actually produces the joined (declared, oracle) rows analyze needs —
     the pipeline is wired end to end, not merely its parts'
+
+- id: EV-11
+  title: The oracle grades in a configurable isolated interpreter
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-11
+  evidence:
+  - eval/evallib/quarantine.py
+  observed: 'GREEN at close 2026-07-05: oracle grades in the configured isolated interpreter
+    (RECURVE_ORACLE_PYTHON), tamper-refused, sys.executable fallback'
+  smallest_fix: quarantine.oracle_python() returns RECURVE_ORACLE_PYTHON or sys.executable and
+    _run_once launches the hidden suite under it, so a real run grades in the dedicated
+    BigCodeBench venv (whose third-party deps the tests need) while hermetic tests keep grading
+    under the current interpreter; the pin check stays upstream so a tampered oracle is refused
+    regardless of interpreter
+  probe: probes/ev-11.sh
+  unlocks: real BigCodeBench-Hard solutions can actually be graded (their tests' heavy deps live
+    in an isolated venv) instead of every one mis-scored as an error under the eval tooling's Python
