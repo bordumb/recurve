@@ -32,6 +32,20 @@ A7 A3+adversary=cross_model · A8 A3+governor=mechanical
 A9 A3+governor=mechanical_review · A10 A3+adversary+governor (full stack)
 ```
 
+**Where this is actually maintained.** `eval-full.md`'s table above is the
+*documented* superset, with the rationale for each arm. The *runnable*
+source of truth is code: `eval/evallib/arms.py`'s `_ARMS` dict — a pure
+name → workspace-spec mapping (`recurve: bool`, `config: dict`, `label:
+str`), resolving `adversary=`/`governor=` through `recurvelib.adapters`'
+own registry rather than reimplementing anything (`ablation-infra.md`
+AI5). Adding an arm is one dict entry there, never new logic.
+
+**As of this writing, only `A0`, `A3`, `A7`, `A8`, `A9`, `A10` exist in
+that dict.** `A1`, `A2`, `A4`, `A5`, `A6` are documented in `eval-full.md`
+but have no `arms.py` entry yet — they aren't runnable until someone adds
+one. That is not a coincidence with the "run first" list below: the
+initial set is exactly the subset already wired to run.
+
 **What to run initially: A0, A3, A7, A8, A9, A10.** These answer the two
 questions we actually have live, unanswered stakes in right now — the
 headline effect (A0 vs A3) and the decorrelation payoff (A7–A10, which is
