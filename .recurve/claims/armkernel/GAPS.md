@@ -76,3 +76,18 @@ LOOKING like "open" (case-insensitive, trimmed, prefix-matched) instead of
 requiring the exact literal — a plausible "helpful" typo-tolerance bug — must
 be caught; the sweep proves only the exact string ever resolves to the
 dangerous capability.
+
+## AK-4 — DoneSignalPort["external_ci"] is genuinely CLI-expressed
+
+Grading via an external command requires zero new Python: `test -f
+solution.py` as the configured command proves the port end to end, and a
+completely different command (a Python syntax check) proves the SAME port
+function serves both — no new adapter code for either. Exit 0 = done, any
+other exit = not yet; a hanging command is bounded by its timeout and mapped
+to a returncode, never left to hang the caller; no configured command fails
+loud (`ValueError`), never a silent False.
+
+Negative space: an `external_ci` that "helpfully" also requires a non-empty
+`solution.py` regardless of what the configured command itself checks — a
+second, undeclared authority smuggled into what must be a pure CLI contract
+— must be caught; the command alone decides, always.

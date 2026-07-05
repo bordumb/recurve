@@ -72,3 +72,24 @@
   probe: probes/ak-3.sh
   unlocks: A5 (A3, boundary off) is runnable, and the one dangerous port this PRD's scope
     intentionally narrows cannot be reached except by its own exact, unambiguous key.
+
+- id: AK-4
+  title: DoneSignalPort["external_ci"] is genuinely CLI-expressed
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - AK-4
+  evidence:
+  - eval/evallib/done_signal.py
+  observed: 'GREEN at baseline 2026-07-05: DoneSignalPort[''external_ci''] is a pure CLI contract:
+    exit 0 = done, any other exit = not yet, bounded by timeout, the command alone decides
+    — a trivial fixture and a completely different command both work with zero new Python'
+  smallest_fix: external_ci_done_signal runs any configured shell command; exit 0 = done,
+    any other exit (or a timeout, mapped to 124) = not yet; an empty command raises ValueError.
+    No benchmark-specific Python needed — the command is the entire mechanism.
+  probe: probes/ak-4.sh
+  unlocks: A1's mechanism gap is closed whenever a benchmark supplies its own grading command
+    (a config string); the design question of what that command means for a repo-less task
+    is separate and still open.
