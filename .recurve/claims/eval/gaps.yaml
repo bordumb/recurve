@@ -229,3 +229,24 @@
   probe: probes/ev-11.sh
   unlocks: real BigCodeBench-Hard solutions can actually be graded (their tests' heavy deps live
     in an isolated venv) instead of every one mis-scored as an error under the eval tooling's Python
+
+- id: EV-12
+  title: The oracle grades the substrate's namespace (concatenation)
+  class: wire-mismatch
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - EV-12
+  evidence:
+  - eval/evallib/quarantine.py
+  - .recurve/claims/eval/fixtures/bcb-hard-854.json
+  observed: 'GREEN at close 2026-07-05: oracle grades the substrate''s namespace: real canonical
+    solution passes, corruption caught, entry point shared not imported'
+  smallest_fix: _run_once concatenates solution + test into one oracle_case module (entry point
+    task_func a shared module global, as all 148 BCB-Hard tests reference it) instead of grading
+    them as separate modules — which turned the canonical solution, which cannot be wrong, into
+    a fail; the permanent fixture is a real pinned BCB-Hard task with its real canonical solution
+  probe: probes/ev-12.sh
+  unlocks: real solutions are graded the way the benchmark grades them — the precondition for any
+    honest number, and the class of harness bug that silently inflates the paper's own headline

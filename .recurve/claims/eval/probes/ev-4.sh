@@ -20,12 +20,14 @@ sys.path.insert(0, EVALPATH)
 from evallib.taskstore import content_hash
 from evallib.quarantine import oracle_verdict, evaluate, OracleTamperError
 
-TEST = ("from solution import add\n"
-        "import unittest\n"
+# Substrate convention (EV-12): the test references the entry point in the
+# SHARED namespace directly — no `from solution import`. The oracle concatenates
+# solution + test into one module, exactly as BigCodeBench does.
+TEST = ("import unittest\n"
         "class T(unittest.TestCase):\n"
-        "    def test_sum(self): self.assertEqual(add(1,2), 3)\n")
-GOOD = "def add(a, b):\n    return a + b\n"
-BAD  = "def add(a, b):\n    return a - b\n"
+        "    def test_sum(self): self.assertEqual(task_func(1,2), 3)\n")
+GOOD = "def task_func(a, b):\n    return a + b\n"
+BAD  = "def task_func(a, b):\n    return a - b\n"
 task = {"task_id": "t/add", "instruct_prompt": "add(a,b)", "test": TEST}
 pin = content_hash([task])
 '
@@ -36,7 +38,7 @@ if [ -n "${TRAP_FIXTURE:-}" ]; then
 EVALPATH='$EVAL'
 $BODY
 # tamper: edit the test the grader will run, but keep the original pin
-tampered = dict(task); tampered['test'] = TEST.replace('add(1,2), 3', 'add(1,2), 999')
+tampered = dict(task); tampered['test'] = TEST.replace('task_func(1,2), 3', 'task_func(1,2), 999')
 try:
     evaluate(tampered, GOOD, pin, runs=3)
 except OracleTamperError:

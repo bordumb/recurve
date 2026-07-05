@@ -161,3 +161,22 @@ which Python would have graded it. Negative space (guarded by the trap): an
 oracle that silently ignores the configured interpreter and grades under
 `sys.executable` anyway — the one failure that turns a mis-provisioned venv into
 a silent wall of false negatives instead of a loud setup error.
+
+## EV-12 — The oracle grades the substrate's namespace (concatenation)
+
+Every harness defect in this design fails in ONE direction: a correct real
+solution graded as an *error*, which reads as an oracle failure, which inflates
+shipped-bad-work — the paper's own headline. `sys.executable` (EV-11),
+oracle-less rows (EV-10), and this claim are all that failure. BigCodeBench
+concatenates the solution and the test into ONE module: the entry point
+(`task_func`) is a module global the test references directly — all 148
+BCB-Hard tests do this (908 `task_func` references, zero `solution`-module
+imports). The oracle graded them as *separate* modules, so the canonical
+solution — which cannot be wrong — came back `fail`. `_run_once` now joins
+solution + test into a single `oracle_case` module, exactly as the benchmark
+intends. The permanent fixture is a REAL pinned BCB-Hard task with its REAL
+canonical solution (`fixtures/bcb-hard-854.json` — pure math, deterministic,
+stdlib-only), not a hand-authored idealization that could quietly agree with the
+harness instead of the substrate; the mock's own `from solution import` fixtures
+are exactly how this bug hid through the first smoke. Negative space (the trap):
+separate-module grading returning the canonical solution non-`pass`.

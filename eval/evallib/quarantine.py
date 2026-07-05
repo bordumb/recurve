@@ -36,14 +36,20 @@ def oracle_python() -> str:
 
 def _run_once(test_src: str, solution_src: str, timeout: int) -> str:
     """Run the hidden suite once against the solution in an isolated tmpdir.
-    Returns 'pass' | 'fail' | 'error'. The solution and test share a dir so the
-    test can `import solution`; nothing is written to the agent workspace."""
+    Returns 'pass' | 'fail' | 'error'.
+
+    Grades the SUBSTRATE'S namespace: BigCodeBench concatenates the solution and
+    the test into ONE module, so the entry point (`task_func`) is a module global
+    the test references directly — never `from solution import`. Grading them as
+    separate modules turns every correct real solution into an error (an error
+    that reads as an oracle failure and inflates shipped-bad-work), so the
+    solution and test are joined into a single `oracle_case` module here, exactly
+    as the benchmark intends. Nothing is written to the agent workspace."""
     d = Path(tempfile.mkdtemp())
-    (d / "solution.py").write_text(solution_src)
-    (d / "oracle_test.py").write_text(test_src)
+    (d / "oracle_case.py").write_text(solution_src + "\n\n" + test_src)
     try:
         proc = subprocess.run(
-            [oracle_python(), "-m", "unittest", "oracle_test", "-v"],
+            [oracle_python(), "-m", "unittest", "oracle_case", "-v"],
             cwd=d, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return "error"

@@ -20,12 +20,12 @@ HELP='
 import sys, tempfile, pathlib; sys.path.insert(0, EVAL)
 from evallib.taskstore import content_hash
 TASK={"task_id":"t/add","instruct_prompt":"add(a,b)",
-      "test":"from solution import add\nimport unittest\n"
-             "class T(unittest.TestCase):\n def test(self): self.assertEqual(add(1,2),3)\n"}
+      "test":"import unittest\n"
+             "class T(unittest.TestCase):\n def test(self): self.assertEqual(task_func(1,2),3)\n"}
 PINS={TASK["task_id"]: content_hash([TASK])}; TASKS={TASK["task_id"]:TASK}
 PROV={"dataset_revision":"rev1","recurve_commit":"c1","adapter_version":"0.1.0"}
-def sol_ok(ws): (pathlib.Path(ws)/"solution.py").write_text("def add(a,b):\n return a+b\n")
-def sol_bad(ws): (pathlib.Path(ws)/"solution.py").write_text("def add(a,b):\n return a-b\n")
+def sol_ok(ws): (pathlib.Path(ws)/"solution.py").write_text("def task_func(a,b):\n return a+b\n")
+def sol_bad(ws): (pathlib.Path(ws)/"solution.py").write_text("def task_func(a,b):\n return a-b\n")
 def gate(ws,v): (pathlib.Path(ws)/".gate").write_text(v)
 def claim(ws):
     p=pathlib.Path(ws,"claims/s/probes"); p.mkdir(parents=True,exist_ok=True)
