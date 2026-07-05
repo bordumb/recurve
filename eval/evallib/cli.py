@@ -219,6 +219,69 @@ def cmd_oracle_build(args) -> int:
     return 0
 
 
+def cmd_calibrate(args) -> int:
+    """Grade all canonical solutions through the FINISHED oracle path (warm
+    container) and write the calibration keyed by oracle_env_hash. Sequential by
+    design — the timeout derives from clean timings. Refuses if a canonical fails
+    without a registered exclusion reason (EV-16/21)."""
+    import os
+    import time
+    from evallib.oracle_docker import build_lock
+    from evallib.warm_oracle import WarmOracle
+    from evallib import quarantine
+    from evallib.calibration import derive_calibration, CalibrationError
+    repo = Path(__file__).resolve().parents[2]
+    manifest = _load_manifest(Path(args.manifest))
+    lock = build_lock(manifest)
+    oeh = lock["oracle_env_hash"]
+    dataset_hash = manifest["tasks"]["hash"]
+    revision = manifest["tasks"]["revision"]
+    registered = load_exclusions(manifest, repo)
+    cal_file = repo / "eval" / "datasets" / f"bcb-hard-calibration@{revision}.jsonl"
+    if not cal_file.exists():
+        print(f"calibration set absent: {cal_file}", file=sys.stderr)
+        return 1
+    tasks = [json.loads(l) for l in cal_file.read_text().splitlines() if l.strip()]
+    tmp = os.environ.setdefault("RECURVE_ORACLE_TMP", "/private/tmp/recurve-oracle-work")
+    os.makedirs(tmp, exist_ok=True)
+    print(f"calibrating {len(tasks)} canonicals on {oeh} ...")
+
+    results, warm = {}, None
+    try:
+        if lock["mode"] == "docker":
+            warm = WarmOracle(lock["digest"], tmp, platform=lock.get("platform", "linux/amd64"))
+            warm.start()
+            quarantine.set_grader(warm.grade)
+        for i, t in enumerate(tasks, 1):
+            t0 = time.time()
+            try:
+                v = quarantine.oracle_verdict(t["test"], t["canonical_program"],
+                                             runs=1, timeout=300)["verdict"]
+            except Exception:
+                v = "error"
+            results[t["task_id"]] = {"verdict": v, "seconds": round(time.time() - t0, 3)}
+    finally:
+        quarantine.set_grader(None)
+        if warm:
+            warm.stop()
+
+    npass = sum(1 for r in results.values() if r["verdict"] == "pass")
+    print(f"canonical pass rate: {npass}/{len(tasks)}")
+    try:
+        cal = derive_calibration(oeh, dataset_hash, results, registered)
+    except CalibrationError as e:
+        non_pass = {t: r["verdict"] for t, r in results.items() if r["verdict"] != "pass"}
+        print(f"calibration REFUSED: {e}\nnon-pass: {json.dumps(non_pass)}", file=sys.stderr)
+        return 1
+    out = _calibration_path(repo, oeh)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(cal, indent=2, sort_keys=True) + "\n")
+    print(f"calibration → {out}")
+    print(f"  pass {cal['raw_pass_rate']:.3f}, {len(cal['exclusions'])} exclusions, "
+          f"timeout {cal['resolved_timeout']}s")
+    return 0
+
+
 def cmd_analyze(args) -> int:
     from evallib.analyze import analyze_and_emit  # tables + figures, one pass
     run_dir = Path(args.rundir)
@@ -239,6 +302,8 @@ def main(argv=None) -> int:
     sr.set_defaults(fn=cmd_run)
     sa = sub.add_parser("analyze", help="results.jsonl → deterministic tables")
     sa.add_argument("rundir"); sa.set_defaults(fn=cmd_analyze)
+    sc = sub.add_parser("calibrate", help="grade the canonical solutions → keyed calibration")
+    sc.add_argument("manifest"); sc.set_defaults(fn=cmd_calibrate)
     so = sub.add_parser("oracle", help="oracle-image operations")
     so_sub = so.add_subparsers(dest="oracle_cmd", required=True)
     sob = so_sub.add_parser("build", help="derive the oracle image + reconcile its digest")
