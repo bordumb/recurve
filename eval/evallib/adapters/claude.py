@@ -14,22 +14,35 @@ from pathlib import Path
 
 
 def agent_argv(model: str, extra: list[str] | None = None) -> list[str]:
-    """The BYO-agent command for a model, per docs/plans/eval-poc.md §3."""
-    return ["claude", "-p", "--bare", "--permission-mode", "bypassPermissions",
+    """The BYO-agent command for a model, per docs/plans/eval-poc.md §3.
+
+    No `--bare`: in this environment `--bare` strips whatever injects the session
+    auth, so a bare `claude -p` reports "Not logged in". `claude -p
+    --permission-mode bypassPermissions` is the working invocation."""
+    return ["claude", "-p", "--permission-mode", "bypassPermissions",
             "--model", model, *(extra or [])]
 
 
 def make_adapter(prompt_for):
-    """A single-shot adapter for a bare (non-gated) arm: run the agent once and
-    report termination. `prompt_for(cell)` builds the stdin prompt. Kept as a
-    factory so the prompt is injectable and testable without spawning an agent."""
+    """A single-shot adapter for a bare (non-gated) arm: run the agent once,
+    capture its token usage, and report termination. `prompt_for(cell)` builds the
+    stdin prompt. Kept as a factory so the prompt is injectable and testable
+    without spawning an agent."""
+    from evallib.adapters.telemetry import parse_usage
+
     def adapter(cell: dict, workspace) -> dict:  # pragma: no cover - paid path
+        import json
         workspace = Path(workspace)
-        argv = agent_argv(cell["model"])
+        argv = agent_argv(cell["model"], ["--output-format", "json"])
         proc = subprocess.run(argv, cwd=workspace, input=prompt_for(cell),
                               capture_output=True, text=True)
+        ti, to = 0, 0
+        try:
+            ti, to = parse_usage(json.loads(proc.stdout))
+        except Exception:
+            pass
         return {"terminated": True, "agent_exit": proc.returncode,
-                "stop_reason": "single_shot"}
+                "stop_reason": "single_shot", "tokens_in": ti, "tokens_out": to}
     return adapter
 
 
@@ -63,7 +76,13 @@ def make_gated_adapter(cycle_prompt_for, cap: int):
             return ti + to
 
         def gate_check() -> bool:
-            return _default_gate_green(workspace)
+            # A fresh recurve workspace has a GREEN gate (no claims to fail), so
+            # green alone would declare the cell done before the agent ever ran.
+            # "Done" therefore also requires the agent to have expressed the task
+            # as a well-formed claim (a probe with a kept trap) — the burndown runs
+            # until the agent authors one AND greens it, or the budget is exhausted.
+            from evallib.classify import has_wellformed_claim
+            return has_wellformed_claim(workspace) and _default_gate_green(workspace)
 
         result = run_gated_burndown(cell_cap, cycle, gate_check)
         return {"terminated": True, "stop_reason": result["stop_reason"],

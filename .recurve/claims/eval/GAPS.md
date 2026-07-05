@@ -352,3 +352,17 @@ excluded from the oracle-env identity — bumping it for the full run needs no
 recalibration. Negative space (a trap each): a retry that runs while a normal
 grading is in flight (not exclusive); a contention timeout scored as an error; a
 concurrency mismatch (used ≠ locked) accepted.
+
+## EV-23 — The budget-matched control is dollars, not tokens
+
+The O6 live smoke proved a single `claude -p` session spends 143k–1.15M tokens —
+2–19× any 60k token "cap" — so a token cap cannot bound spend; the honest,
+matchable unit is dollars. `parse_cost` reads the REAL billed cost
+(`total_cost_usd`, cache-aware) from the agent's own report — not a
+token-times-price estimate, which would misprice a run whose input is dominated
+by cheap cache reads. The budget account is float-safe (dollars are fractional),
+so `run_gated_burndown` accumulates a cell's real per-cycle cost against a
+per-cell DOLLAR cap and stops between cycles, bounded by cap + one cycle's cost
+(the old int accounting truncated $0.12 to $0 and never hit the cap). Negative
+space (a trap each): a paid run recorded as $0 (silent free); a dollar cap that
+never binds because fractional spend is truncated to zero.

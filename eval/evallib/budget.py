@@ -13,14 +13,17 @@ from __future__ import annotations
 
 
 class TokenBudget:
-    """A running token account against a fixed cap."""
+    """A running account against a fixed cap. Unit-agnostic and float-safe: the
+    cap and increments may be tokens (ints) or DOLLARS (fractional) — the account
+    never truncates, so a per-cycle cost of $0.12 actually accumulates instead of
+    rounding to zero and leaving the cap forever un-hit."""
 
-    def __init__(self, cap: int):
+    def __init__(self, cap):
         self.cap = cap
         self.spent = 0
 
-    def add(self, tokens: int) -> None:
-        self.spent += int(tokens)
+    def add(self, amount) -> None:
+        self.spent += amount
 
     def remaining(self) -> int:
         return max(0, self.cap - self.spent)

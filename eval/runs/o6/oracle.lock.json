@@ -1,0 +1,15 @@
+{
+  "container_python": "Python 3.10.16",
+  "digest": "sha256:0e0d0a9814676fc8ed7da7710d9248ded382ea75ceaec3bfe156316d7af2f713",
+  "exclusion_hash": null,
+  "grade_concurrency": 1,
+  "host": "Darwin/arm64/27.0.0",
+  "image": "recurve-bcb-oracle",
+  "mode": "docker",
+  "network": "none",
+  "oracle_env_hash": "oeh:e2903a381e9c00beb71381ab2bc72ea1",
+  "platform": "linux/amd64",
+  "resolved_timeout": null,
+  "timeout_policy": "calibrated",
+  "wrapper_sha": "wsha:6a81ce0093f67351"
+}

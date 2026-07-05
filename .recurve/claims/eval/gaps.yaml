@@ -468,3 +468,24 @@
   unlocks: the paid run can parallelize grading for wall-clock without a contention-induced
     timeout ever becoming a false oracle error — speed never corrupts a verdict
 
+- id: EV-23
+  title: The budget-matched control is dollars, not tokens
+  class: wire-mismatch
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - EV-23
+  evidence:
+  - eval/evallib/adapters/telemetry.py
+  - eval/evallib/budget.py
+  observed: 'GREEN at close 2026-07-05: budget in dollars: parse_cost reads the real billed cost,
+    the burndown is float-safe and stops at the per-cell dollar cap'
+  smallest_fix: telemetry.parse_cost reads the real billed total_cost_usd (cache-aware) from the
+    agent report; TokenBudget is float-safe (no int truncation), so run_gated_burndown accumulates
+    real per-cycle dollars against a per-cell dollar cap and stops bounded by cap + one cycle —
+    the token cap could never bound a claude -p session (143k-1.15M tokens per session, per O6)
+  probe: probes/ev-23.sh
+  unlocks: arms can be matched on dollars, the only unit that actually bounds a claude -p session —
+    and the price of trust is recorded from the real bill, not a cache-blind token estimate
+

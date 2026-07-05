@@ -13,12 +13,26 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 
 
+def parse_cost(report: dict) -> float:
+    """The agent's REAL billed cost for one invocation, read from its own report
+    (`total_cost_usd`). This is cache-aware (cache reads are cheap) in a way a
+    token-times-price estimate is not, so it — not `cost_usd` — is what the
+    dollar budget accounts against. Missing/None reads as 0.0, never guessed."""
+    return float(report.get("total_cost_usd") or 0.0)
+
+
 def parse_usage(report: dict) -> tuple[int, int]:
     """Extract (input_tokens, output_tokens) from an agent's JSON usage report
-    (e.g. `claude -p --output-format json`). Missing counts read as 0, never
-    guessed — an unmeasured run records zero spend, visibly."""
+    (e.g. `claude -p --output-format json`). Input counts ALL input-side tokens
+    the model processed — plain plus cache creation plus cache read — because a
+    coding agent's spend is dominated by cached context, and counting only the
+    tiny uncached `input_tokens` would undercount the real work by orders of
+    magnitude. Missing counts read as 0, never guessed."""
     u = report.get("usage", report)
-    return int(u.get("input_tokens", 0) or 0), int(u.get("output_tokens", 0) or 0)
+    input_total = (int(u.get("input_tokens", 0) or 0)
+                   + int(u.get("cache_creation_input_tokens", 0) or 0)
+                   + int(u.get("cache_read_input_tokens", 0) or 0))
+    return input_total, int(u.get("output_tokens", 0) or 0)
 
 
 @dataclass
