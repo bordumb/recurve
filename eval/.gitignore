@@ -6,3 +6,4 @@ runs/*/**/transcript*
 __pycache__/
 *.pyc
 .venv/
+datasets/

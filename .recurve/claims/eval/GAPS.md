@@ -124,3 +124,24 @@ renderer stamps onto the image. `render.py` draws them deterministically (fixed
 rcParams, no timestamps, the paper's validated palette) to byte-stable SVG+PDF;
 `analyze_and_emit` renders them in the same pass as the tables. Negative space
 (guarded by the trap): a truncated-axis hero accepted as honest.
+
+## EV-10 — Run pipeline: the conductor `recurve run` actually drives
+
+The stages above are only worth their code if the `run` verb drives them as one.
+`run_pipeline.make_pipeline_adapter` is the conductor: it composes the
+materializer (EV-2) and the orchestrator (EV-6) into the single adapter the
+runner turns, so every cell goes task → fresh quarantined workspace → the
+arm-appropriate agent → held-out oracle → one analyze-complete row, with no gap
+where `cmd_run` could hand the runner a declared-only row (no `oracle_verdict`)
+and burn a paid run for nothing. Two invariants the conductor alone owns: the
+agent ALWAYS runs in a materialized workspace (it can read TASK.md before it
+writes a line — materialize happens *before* the agent, never after, so it never
+clobbers the solution), and the bare/gated agent choice keys on the arm's
+`recurve` PROPERTY, not its name — both agents are injectable, so the whole
+wiring is gated with mocks and a fully-mocked run never imports the paid agent.
+`cli.cmd_run` re-resolves the pinned tasks (with their hidden `test`) from the
+frozen manifest, stamps provenance (dataset revision, recurve commit,
+adapter version), and drives this adapter — the gated cell's cap read per-cell
+from its own budget. Negative space (a trap each): an agent run in a workspace
+that was never materialized (blind, no TASK.md); a differently-named gated arm
+routed to the bare agent (arm-name coupling).

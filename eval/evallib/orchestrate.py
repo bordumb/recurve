@@ -43,11 +43,13 @@ def _default_gate(workspace: Path) -> str:
     return {0: "green", 1: "red"}.get(r.returncode, "broken")
 
 
-def make_orchestrator(agent, tasks_by_id: dict, pinned_hash: str,
+def make_orchestrator(agent, tasks_by_id: dict, pins: dict,
                       provenance: dict, gate_fn=None, oracle_runs: int = 3):
     """Return the adapter the runner drives. `agent(cell, workspace)` runs the
     model and returns at least {terminated: bool}; for A0 it also declares via a
-    non-empty solution.py, for A3 it reports its `stop_reason`. The orchestrator
+    non-empty solution.py, for A3 it reports its `stop_reason`. `pins` maps
+    task_id → the oracle's content-hash recorded at fetch time (each task has
+    its own pin), so a tampered oracle is refused per task. The orchestrator
     refuses to quarantine a workspace whose agent has not terminated, then joins
     everything — agent result, terminal state, oracle verdict, outcome class,
     telemetry, provenance — into one row."""
@@ -79,7 +81,7 @@ def make_orchestrator(agent, tasks_by_id: dict, pinned_hash: str,
         sol = workspace / "solution.py"
         solution_src = sol.read_text() if sol.exists() else ""
         try:
-            oracle = evaluate(task, solution_src, pinned_hash, runs=oracle_runs)
+            oracle = evaluate(task, solution_src, pins[cell["task_id"]], runs=oracle_runs)
             verdict, flake = oracle["verdict"], oracle["flake_rate"]
         except OracleTamperError:
             verdict, flake = "tampered", 0.0

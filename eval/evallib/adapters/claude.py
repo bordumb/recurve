@@ -35,7 +35,9 @@ def make_adapter(prompt_for):
 
 def make_gated_adapter(cycle_prompt_for, cap: int):
     """A gated-arm adapter: drive a recurve burndown under the PER-CELL token cap
-    (run_gated_burndown), so many fresh per-cycle agents share one budget. Each
+    (run_gated_burndown), so many fresh per-cycle agents share one budget. The
+    cap is read from the cell's own `budget` (the construction `cap` is only the
+    fallback), so a matrix with several budgets bounds each cell by its own. Each
     cycle runs the agent once and the gate is re-checked between cycles; the
     loop stops on a green gate or budget exhaustion, and the returned
     stop_reason is exactly what EV-6 records and EV-7 classifies from."""
@@ -44,6 +46,7 @@ def make_gated_adapter(cycle_prompt_for, cap: int):
 
     def adapter(cell: dict, workspace) -> dict:  # pragma: no cover - paid path
         workspace = Path(workspace)
+        cell_cap = int(cell.get("budget", cap))
         spend = {"in": 0, "out": 0}
 
         def cycle() -> int:
@@ -62,7 +65,7 @@ def make_gated_adapter(cycle_prompt_for, cap: int):
         def gate_check() -> bool:
             return _default_gate_green(workspace)
 
-        result = run_gated_burndown(cap, cycle, gate_check)
+        result = run_gated_burndown(cell_cap, cycle, gate_check)
         return {"terminated": True, "stop_reason": result["stop_reason"],
                 "cycles": result["cycles"],
                 "tokens_in": spend["in"], "tokens_out": spend["out"]}

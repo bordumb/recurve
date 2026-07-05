@@ -22,7 +22,7 @@ from evallib.taskstore import content_hash
 TASK={"task_id":"t/add","instruct_prompt":"add(a,b)",
       "test":"from solution import add\nimport unittest\n"
              "class T(unittest.TestCase):\n def test(self): self.assertEqual(add(1,2),3)\n"}
-PIN=content_hash([TASK]); TASKS={TASK["task_id"]:TASK}
+PINS={TASK["task_id"]: content_hash([TASK])}; TASKS={TASK["task_id"]:TASK}
 PROV={"dataset_revision":"rev1","recurve_commit":"c1","adapter_version":"0.1.0"}
 def sol_ok(ws): (pathlib.Path(ws)/"solution.py").write_text("def add(a,b):\n return a+b\n")
 def sol_bad(ws): (pathlib.Path(ws)/"solution.py").write_text("def add(a,b):\n return a-b\n")
@@ -55,14 +55,14 @@ if sc=='incomplete_row':
     bad={'cell_id':'c','model':'m','arm':'A0','task_id':'t','declared_done':True,'agent_exit':0}
     print('ACCEPTED' if row_is_complete(bad) else 'REFUSED')
 elif sc=='live_workspace':
-    o=make_orchestrator(mock(sol_ok, terminated=False), TASKS, PIN, PROV, gate_fn=gate_fn)
+    o=make_orchestrator(mock(sol_ok, terminated=False), TASKS, PINS, PROV, gate_fn=gate_fn)
     try:
         o(cell('A0'), tempfile.mkdtemp()); print('QUARANTINED_LIVE')
     except SequencingError: print('REFUSED')
 elif sc=='routes_by_name':
     import evallib.arms as A; A._ARMS['gated_x']={'recurve':True,'config':{},'label':'x'}
     o=make_orchestrator(mock(lambda w:(claim(w),sol_ok(w),gate(w,'green')), stop_reason='gate_green'),
-                        TASKS, PIN, PROV, gate_fn=gate_fn)
+                        TASKS, PINS, PROV, gate_fn=gate_fn)
     r=o(cell('gated_x'), tempfile.mkdtemp())
     print('GATED' if r.get('terminal_state') and r.get('gate_outcome')=='declared' else 'BARE')
 " 2>&1)" || { echo "orchestrate incomplete: $out"; exit 2; }
@@ -84,7 +84,7 @@ except Exception as e:
     print('MISSING', e); raise SystemExit(0)
 
 def run(setup, arm, **kw):
-    o=make_orchestrator(mock(setup, **kw), TASKS, PIN, PROV, gate_fn=gate_fn)
+    o=make_orchestrator(mock(setup, **kw), TASKS, PINS, PROV, gate_fn=gate_fn)
     return o(cell(arm), tempfile.mkdtemp())
 
 # A0 declared: non-empty correct solution -> declared, oracle pass, no gate outcome
@@ -115,7 +115,7 @@ calls={'n':0}
 def counting(cell,ws):
     calls['n']+=1; import pathlib; pathlib.Path(ws).mkdir(parents=True,exist_ok=True); sol_ok(ws)
     return {'terminated':True,'agent_exit':0}
-o=make_orchestrator(counting, TASKS, PIN, PROV, gate_fn=gate_fn)
+o=make_orchestrator(counting, TASKS, PINS, PROV, gate_fn=gate_fn)
 cs=[cell('A0')]; cs[0]['cell_id']='resume-1'
 d=pathlib.Path(tempfile.mkdtemp())
 run_matrix(cs, d/'r.jsonl', o, workspace_root=d/'cells'); first=calls['n']

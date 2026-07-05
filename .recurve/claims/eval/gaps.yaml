@@ -185,3 +185,26 @@
   oracle_waiver: byte-stable rendering needs the optional matplotlib dependency; figure_specs
     + spec_is_honest are tested hermetically, and the render is verified full-strength where
     matplotlib is importable
+
+- id: EV-10
+  title: 'Run pipeline: the conductor `recurve run` actually drives'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-10
+  evidence:
+  - eval/evallib/run_pipeline.py
+  - eval/evallib/cli.py
+  observed: 'GREEN at close 2026-07-05: pipeline: materialize-first, arm-property routing (bare/gated),
+    analyze-complete rows, cmd_run wired'
+  smallest_fix: make_pipeline_adapter composes materialize (EV-2) + orchestrator (EV-6) into
+    one adapter — materialize runs before the agent (it reads TASK.md, is never clobbered),
+    the bare/gated agent is chosen by the arm's recurve property (both injectable, so a mocked
+    run never imports the paid agent), and analyze-complete rows come out; cmd_run re-resolves
+    the pinned tasks with their hidden test from the frozen manifest, stamps provenance, and
+    drives this adapter with the cap read per-cell from each cell's budget
+  probe: probes/ev-10.sh
+  unlocks: '`recurve run` actually produces the joined (declared, oracle) rows analyze needs —
+    the pipeline is wired end to end, not merely its parts'

@@ -50,18 +50,45 @@ def cmd_plan(args) -> int:
     return 0
 
 
+def _git_head(repo: Path) -> str:
+    """The recurve engine commit under test — provenance so a row reproduces its
+    cell. `unknown` if the run dir is not inside a git tree."""
+    import subprocess
+    r = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo,
+                       capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else "unknown"
+
+
 def cmd_run(args) -> int:
-    from evallib.plan import expand  # noqa: F401  (matrix already on disk)
     from evallib.runner import run
-    from evallib.adapters.claude import make_adapter
+    from evallib.run_pipeline import make_pipeline_adapter
+    from evallib.taskstore import content_hash
+    from evallib import __version__ as adapter_version
     run_dir = Path(args.rundir)
     cells = [json.loads(l) for l in (run_dir / "matrix.jsonl").read_text().splitlines() if l.strip()]
 
-    def prompt_for(cell):  # minimal, arm-aware; refined during the pilot
-        return (run_dir / "cells" / cell["cell_id"] / "TASK.md").read_text() \
-            if (run_dir / "cells" / cell["cell_id"] / "TASK.md").exists() else cell["instruct_prompt"]
+    # Re-resolve the pinned tasks (WITH their hidden `test`) from the frozen
+    # manifest — the matrix on disk carries only the statement, never the oracle.
+    manifest = _load_manifest(run_dir / "manifest.toml")
+    tasks = _resolve_tasks(manifest, run_dir / "cache")
+    tasks_by_id = {t["task_id"]: t for t in tasks}
+    pins = {t["task_id"]: content_hash([t]) for t in tasks}   # per-task oracle pin
 
-    n = run(cells, run_dir / "results.jsonl", make_adapter(prompt_for),
+    repo = Path(__file__).resolve().parents[2]
+    provenance = {
+        "dataset_revision": manifest["tasks"].get("revision") or manifest["tasks"].get("hash"),
+        "recurve_commit": _git_head(repo),
+        "adapter_version": adapter_version,
+    }
+    oracle_runs = int(manifest.get("oracle", {}).get("runs", 3))
+    budgets = manifest["matrix"]["budgets"]
+    fallback_budget = int(budgets[0]) if budgets else 0   # per-cell cap wins; this is only the fallback
+
+    adapter = make_pipeline_adapter(
+        tasks_by_id, pins, provenance,
+        budget=fallback_budget, recurve_cmd="recurve", oracle_runs=oracle_runs)
+
+    n = run(cells, run_dir / "results.jsonl", adapter,
             workspace_root=run_dir / "cells", workers=args.workers)
     print(f"ran {n} cell(s); results → {run_dir / 'results.jsonl'}")
     return 0
