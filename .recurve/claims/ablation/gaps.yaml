@@ -201,3 +201,57 @@
   probe: probes/ab-10.sh
   unlocks: eval-full.md''s A7-A10 arms exist and resolve through the one implementation /recurve-work''s
     own gate config also uses
+
+- id: AB-11
+  title: human_required's async state machine
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-11
+  evidence:
+  - recurvelib/adapters/governor/human_required.py
+  observed: 'GREEN at baseline 2026-07-05: human_required''s async state machine is real:
+    pending with no attestation, cleared/vetoed on a verified human signature bound to this
+    exact snapshot, demoted (never accepted) on a forged or tampered one. Mocked ONLY where
+    the key lives (a real Ed25519 keypair standing in for auths-core''s Secure-Enclave-gated
+    one) — the signature/verification machinery, and the identity-type discrimination, are
+    real.'
+  smallest_fix: recurvelib.adapters.governor.human_required implements pending_human_signoff,
+    write_attestation, and verify_attestation (signature, human-attested identity, replay/drift,
+    all fail-closed) — proven with a real Ed25519 keypair standing in for the Secure-Enclave
+    key.
+  probe: probes/ab-11.sh
+  unlocks: R5''s human tier is a real, invokable async state machine, not prose in a PRD
+
+- id: AB-12
+  title: the real Secure-Enclave production seam exists (honest limit)
+  class: missing-surface
+  status: closed
+  severity: friction
+  reads: none
+  covers:
+  - AB-12
+  evidence:
+  - crates/auths-core/src/storage/secure_enclave.rs (sibling auths repo)
+  observed: 'SKIP at authoring 2026-07-05 (never GREEN, by design): the real Secure-Enclave-gated
+    production seam (auths-core/secure_enclave.rs, the auths CLI''s sign/init entrypoints)
+    exists and matches AI6/§5a''s design exactly (verified against source) — a live Touch-ID/Face-ID
+    biometric consent event cannot be exercised by this unattended, autonomous process,
+    and this probe never attempts to trigger one. This entry was NOT promoted through the
+    normal baseline ceremony (which has no promotion path for a permanently-SKIP probe) —
+    constructed by hand, mirroring TK-2''s own precedent (an external oracle legitimately
+    absent from this checkout), and reviewed for honesty rather than measured GREEN.'
+  smallest_fix: 'probes/ab-12.sh verifies the structural markers (Touch-ID documentation,
+    a biometric-cancellation error path, a hardware-availability check, the auths CLI''s
+    sign/init entrypoints) then exits 3 (SKIP) with the reason above; never fabricates a
+    claim that a live biometric prompt was tested.'
+  probe: probes/ab-12.sh
+  unlocks: the human_required governor''s production key-storage backend is verified to exist
+    and match spec, with the one untestable step named honestly instead of laundered past
+  oracle_waiver: a live Touch-ID/Face-ID biometric consent event cannot be exercised by
+    an unattended, autonomous process — this is an interactivity limit on THIS INVOCATION,
+    not a claim that Secure Enclave hardware is absent from the machine; the structural
+    seam is verified for real above, and AB-11 proves everything up to this exact boundary
+    with a mocked human signer

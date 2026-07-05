@@ -163,3 +163,41 @@ uv project (recurvelib is stdlib+PyYAML); the dependency is one-directional.
 Negative space: a candidate `arms.py` that defines its own local
 `ADVERSARY_ADAPTERS`/`GOVERNOR_ADAPTERS` mapping instead of importing
 recurvelib's must be flagged — a lint-shaped drift check.
+
+## AB-11 — human_required's async state machine (AI6)
+
+`recurvelib.adapters.governor.human_required` implements R5's human tier:
+with no attestation yet, `audit()` returns `pending_human_signoff` and the
+loop suspends cleanly (never busy-waits). `write_attestation` (production:
+`recurve governor approve`) signs `{cycle_snapshot_hash, claim_ids,
+decision, rationale}` bound to the exact reviewed snapshot;
+`verify_attestation` fail-closes on three checks in order: the signature
+verifies, the signer is human-attested (`_shared.identity.is_human_identity`
+— a POSITIVE capability, never the mere absence of an agent one), and the
+signed hash matches the CURRENT snapshot (replay/drift). A present-but-
+invalid attestation stays pending — never auto-resolves to cleared or veto.
+
+Proven with a real Ed25519 keypair and real signatures (the `cryptography`
+package) standing in for `auths-core`'s Secure-Enclave-gated key — mocked
+ONLY where the key lives; the signature/verification machinery and the
+identity-type discrimination are genuine, not simulated.
+
+Negative space: an attestation whose signed hash no longer matches the
+current snapshot (replay/drift), or one signed by an agent-attested
+identity, must be refused — stays pending, never clears.
+
+## AB-12 — the real Secure-Enclave production seam exists (honest limit)
+
+Verifies, structurally, that `auths-core`'s real biometric-gated backend
+(`crates/auths-core/src/storage/secure_enclave.rs`: Touch-ID/Face-ID gated
+signing, a biometric-cancellation error path, a hardware-availability
+check) and the real `auths` CLI's `sign`/`init` entrypoints exist and match
+AI6/§5a's design — verified against source, not assumed. Then honestly
+SKIPs: a live biometric consent event cannot be exercised by this
+unattended, autonomous process, and this probe does not attempt to trigger
+a real Touch ID prompt. Declared via `oracle_waiver`, not laundered as
+tested. AB-11 proves everything up to this exact boundary for real.
+
+Negative space: a sabotaged sibling `auths` tree missing the documented
+biometric-gate markers must be rejected by the structural checks before the
+probe ever reaches its SKIP.

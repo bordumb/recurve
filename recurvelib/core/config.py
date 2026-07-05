@@ -159,6 +159,12 @@ class Config:
     # self_sha256 on stdin and its signature as the first argument, and exits 0
     # iff the signature is valid. recurve defines the seam, never the scheme.
     receipts_verifier: str = ""
+    # [gate] human_verifier: AI6's human_required governor tier verifies an
+    # attestation's signature through this command (same seam shape as
+    # [receipts] verifier — recurve defines the seam, never the scheme).
+    # Empty means `recurve governor approve` refuses outright: an
+    # attestation is never accepted without a way to verify it.
+    human_verifier: str = ""
     # [report] — the deterministic run report. narrator: optional command fed
     # the rendered report + the cycle records on stdin; its stdout becomes the
     # Narrative section. recurve defines the report, never the narration.
@@ -350,6 +356,7 @@ def load(path: Path) -> Config:
         drill_iso_flip_max=float(drill.get("iso_flip_max", 0.0)),
         receipts_signer=str(receipts.get("signer", "")),
         receipts_verifier=str(receipts.get("verifier", "")),
+        human_verifier=str(gate.get("human_verifier", "")),
         report_narrator=str(report.get("narrator", "")),
         report_narrator_timeout=int(report.get("narrator_timeout", 120)),
         report_suppression_patterns=suppression,
