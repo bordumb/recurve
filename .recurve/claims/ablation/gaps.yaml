@@ -42,3 +42,22 @@
   probe: probes/ab-2.sh
   unlocks: an isolated reviewer sees exactly the committed artifacts under review, never the
     acting agent's live session
+
+- id: AB-3
+  title: isolation strategy is pluggable and per-adapter, not global
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - AB-3
+  evidence:
+  - recurvelib/adapters/isolation/
+  observed: 'GREEN at baseline 2026-07-05: isolation strategy is pluggable and selected per-adapter:
+    subprocess_tempdir scrubs the environment and pins cwd to the snapshot; docker is available,
+    opt-in, never silently required'
+  smallest_fix: recurvelib.adapters.isolation resolves subprocess_tempdir (default, scrubbed
+    env + pinned cwd) or docker (opt-in, read-only mount) per adapter, never globally.
+  probe: probes/ab-3.sh
+  unlocks: an adapter's isolation choice matches its own runtime needs instead of a one-size-fits-all
+    harness decision

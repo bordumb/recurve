@@ -44,3 +44,16 @@ gap's own trap fixtures from the extracted tree.
 Negative space: a snapshot builder that silently accepts a dirty tree, or
 that leaks existing traps into a snapshot built with
 `include_existing_traps=False`, must turn the probe RED.
+
+## AB-3 — isolation strategy is pluggable and per-adapter, not global
+
+`recurvelib.adapters.isolation` resolves `subprocess_tempdir` (default) or
+`docker` (opt-in) per adapter. `subprocess_tempdir.run_isolated` pins the
+child's cwd to the snapshot root and hands it a scrubbed environment — only
+a narrow allowlist of prefixes (PATH, provider credentials) survives from the
+caller's own process; no acting-agent session variable rides along.
+`docker.run_isolated` mounts the snapshot read-only into a container,
+selected only when an adapter declares a heavy-runtime need.
+
+Negative space: an isolation invocation that hands the child the parent's
+full, unscrubbed environment must turn the probe RED.
