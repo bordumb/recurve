@@ -57,3 +57,16 @@ selected only when an adapter declares a heavy-runtime need.
 
 Negative space: an isolation invocation that hands the child the parent's
 full, unscrubbed environment must turn the probe RED.
+
+## AB-4 — shared reviewer plumbing, written once
+
+`recurvelib.adapters._shared.reviewer_base.run_claim_reviewer`/
+`run_cycle_reviewer` compose snapshot construction, isolated invocation, and
+provenance attachment in one call — the code path every `adversary/*.py`/
+`governor/*.py` adapter uses, rather than each reimplementing its own copy.
+A lint-shaped check (`adapters_not_using_shared`, nice-to-have, not a hard
+release gate) flags an adapter file that rolls its own `subprocess`
+invocation instead of importing this module.
+
+Negative space: an adapter file that reimplements subprocess plumbing
+directly, with no import of `_shared.reviewer_base`, must be flagged.

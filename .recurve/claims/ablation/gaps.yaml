@@ -61,3 +61,23 @@
   probe: probes/ab-3.sh
   unlocks: an adapter's isolation choice matches its own runtime needs instead of a one-size-fits-all
     harness decision
+
+- id: AB-4
+  title: shared reviewer plumbing, written once
+  class: missing-surface
+  status: closed
+  severity: friction
+  reads: none
+  covers:
+  - AB-4
+  evidence:
+  - recurvelib/adapters/_shared/reviewer_base.py
+  observed: 'GREEN at baseline 2026-07-05: isolation-executor invocation, snapshot construction,
+    and provenance attachment are written once in _shared.reviewer_base; a lint-shaped check
+    flags an adapter that reimplements them directly'
+  smallest_fix: recurvelib.adapters._shared.reviewer_base composes snapshot + isolation +
+    provenance once; adapters_not_using_shared lint-flags a file that reimplements the plumbing
+    directly.
+  probe: probes/ab-4.sh
+  unlocks: adding adapter N+1 reuses one implementation instead of copy-pasting subprocess/
+    snapshot wiring
