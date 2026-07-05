@@ -115,6 +115,14 @@ class Config:
     # silences advisory validate warnings to preserve their historical output.
     traps: str = "required"
     quality: str = "pre-launch"   # the constitution preset (or a path)
+    # [gate] mechanical_references: glob patterns (relative to a suite dir)
+    # naming references that are mechanical ground truth (a real interpreter,
+    # a fixed dataset, a golden output — no model invoked in their own
+    # construction). Necessary but not sufficient for
+    # `oracle_tier.is_mechanical_reference` — the reference's own source is
+    # still scanned for an LLM/agent-invocation marker, so a mislabeled entry
+    # here cannot buy `differential_checked_mechanical` on its own.
+    mechanical_references: tuple[str, ...] = ()
     # [commit] — §11.1/§11.2: explicit, never prompting.
     commit_policy: str = "unsigned-per-cycle"   # none | unsigned-per-cycle | signed
     commit_hooks: str = "run"                   # run | gate-supersedes
@@ -255,6 +263,7 @@ def load(path: Path) -> Config:
     traps = str(gate.get("traps", "required"))
     if traps not in ("required", "off"):
         raise ConfigError(f"{path}: [gate] traps must be required|off, got {traps!r}")
+    mechanical_references = tuple(str(p) for p in gate.get("mechanical_references", []))
 
     commit = doc.get("commit", {})
     commit_policy = str(commit.get("policy", "unsigned-per-cycle"))
@@ -308,6 +317,7 @@ def load(path: Path) -> Config:
         forbidden_strings=tuple(str(s) for s in target.get("forbidden_strings", [])),
         schema_pin=str(project.get("schema", "")),
         traps=traps,
+        mechanical_references=mechanical_references,
         quality=str(gate.get("quality", "pre-launch")),
         commit_policy=commit_policy,
         commit_hooks=commit_hooks,

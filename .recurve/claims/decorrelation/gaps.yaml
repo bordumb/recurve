@@ -1,0 +1,22 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: DC-1
+  title: 'oracle tier: recorded, derived, rendered — and honest about what backs it'
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - DC-1
+  evidence:
+  - recurvelib/analysis/oracle_tier.py
+  observed: 'GREEN at baseline 2026-07-05: oracle tier is recorded, derived from real evidence
+    (never hand-set), and rendered in ledger + show; the mechanical/LLM reference split is
+    content-verified'
+  smallest_fix: recurvelib.analysis.oracle_tier derives OracleTier from a gap's trap/reference
+    shape plus a tier-evidence log; Gap.parse refuses a hand-set tier field; render.py/ledger.py/show.py
+    surface it.
+  probe: probes/dc-1.sh
+  unlocks: a GREEN's ledger entry says what kind of evidence backed it, not just that it passed

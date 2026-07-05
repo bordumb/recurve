@@ -75,3 +75,13 @@ harness = []
 dir = ".recurve/claims/eval"
 rebuild = ""               # the eval/ pipeline is stdlib-only at its core; probes drive it directly
 harness = []
+
+[suites.decorrelation]
+dir = ".recurve/claims/decorrelation"
+rebuild = ""               # pure engine module (recurvelib.analysis.oracle_tier); nothing to copy
+harness = []
+
+[suites.ablation]
+dir = ".recurve/claims/ablation"
+rebuild = ""               # pure engine module (recurvelib.adapters); nothing to copy
+harness = []

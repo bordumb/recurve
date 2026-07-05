@@ -120,6 +120,17 @@ class Gap:
         if not isinstance(raw, dict):
             raise GapParseError(f"{source_file}: gap entry is not a mapping: {raw!r}")
 
+        # The oracle tier (recurvelib.analysis.oracle_tier) is ALWAYS derived
+        # from recorded pass evidence — it is never a ledger field. A gap
+        # authoring its own 'tier' is exactly the self-reported-tier gaming
+        # this refusal exists to prevent.
+        if "tier" in raw:
+            raise GapParseError(
+                f"{source_file}: gap {raw.get('id', '?')!r} sets 'tier' directly — "
+                f"oracle tier is derived from recorded evidence, never hand-set "
+                f"(see recurvelib.analysis.oracle_tier)"
+            )
+
         def req(key: str) -> Any:
             if key not in raw or raw[key] in (None, ""):
                 raise GapParseError(f"{source_file}: gap {raw.get('id', '?')!r} missing required '{key}'")
