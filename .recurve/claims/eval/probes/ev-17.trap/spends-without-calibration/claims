@@ -1,0 +1,1 @@
+cmd_run/assert_spend_admitted admits a paid run whose oracle env has no passing calibration — spending on a possibly-broken oracle

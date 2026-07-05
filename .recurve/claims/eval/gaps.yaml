@@ -330,3 +330,25 @@
   unlocks: the structural defense that only passes when the harness is actually sound — every
     bias-toward-headline bug, found or latent, drops the canonical pass rate and blocks the spend
 
+- id: EV-17
+  title: The spend gate is wired into the paid path
+  class: wire-mismatch
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - EV-17
+  evidence:
+  - eval/evallib/cli.py
+  - eval/evallib/oracle_docker.py
+  - eval/oracle/oracle_docker.sh
+  observed: 'GREEN at close 2026-07-05: spend gate wired: cmd_run refuses (before any task or
+    agent, sealing nothing) unless the oracle env is calibrated'
+  smallest_fix: cmd_run calls assert_spend_admitted first (before resolving tasks or building the
+    adapter), which finds the calibration keyed by the lock''s oracle_env_hash and refuses or
+    returns it with the resolved timeout; plan writes oracle.lock.json (refusing an unresolvable
+    oracle) and a docker run points RECURVE_ORACLE_PYTHON at the pinned-image wrapper
+  probe: probes/ev-17.sh
+  unlocks: the calibration gate has teeth in the actual paid path — a run on an uncalibrated,
+    possibly-broken oracle costs nothing, refused before the first cell
+

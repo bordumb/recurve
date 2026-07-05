@@ -45,7 +45,8 @@ def _default_gate(workspace: Path) -> str:
 
 
 def make_orchestrator(agent, tasks_by_id: dict, pins: dict,
-                      provenance: dict, gate_fn=None, oracle_runs: int = 3):
+                      provenance: dict, gate_fn=None, oracle_runs: int = 3,
+                      oracle_timeout: int = 30):
     """Return the adapter the runner drives. `agent(cell, workspace)` runs the
     model and returns at least {terminated: bool}; for A0 it also declares via a
     non-empty solution.py, for A3 it reports its `stop_reason`. `pins` maps
@@ -82,7 +83,8 @@ def make_orchestrator(agent, tasks_by_id: dict, pins: dict,
         sol = workspace / "solution.py"
         solution_src = sol.read_text() if sol.exists() else ""
         try:
-            oracle = evaluate(task, solution_src, pins[cell["task_id"]], runs=oracle_runs)
+            oracle = evaluate(task, solution_src, pins[cell["task_id"]],
+                              runs=oracle_runs, timeout=oracle_timeout)
             verdict, flake = oracle["verdict"], oracle["flake_rate"]
         except OracleTamperError:
             verdict, flake = "tampered", 0.0

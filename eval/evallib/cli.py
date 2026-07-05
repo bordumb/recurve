@@ -44,10 +44,47 @@ def cmd_plan(args) -> int:
         tasks = tasks[: int(sample["n"])]
     cells = expand(manifest, tasks)
     write_matrix(cells, run_dir / "matrix.jsonl")
+
+    # Resolve + lock the oracle environment — the other half of the experiment,
+    # pinned like the dataset. Refuses (drift/unpinnable) rather than guessing.
+    from evallib.oracle_docker import build_lock
+    from evallib.oracle_env import OracleSpecError, OracleDriftError
+    try:
+        lock = build_lock(manifest)
+    except (OracleSpecError, OracleDriftError) as e:
+        print(f"plan refused: oracle env not resolvable — {e}", file=sys.stderr)
+        return 1
+    (run_dir / "oracle.lock.json").write_text(
+        json.dumps(lock, indent=2, sort_keys=True) + "\n")
+
     est = estimate_usd(cells)
     print(f"planned {len(cells)} cells → {run_dir / 'matrix.jsonl'}")
+    print(f"oracle env locked → {run_dir / 'oracle.lock.json'} ({lock['oracle_env_hash']})")
     print(f"cost ceiling (every cell at full budget): ${est:,.2f}")
     return 0
+
+
+def _calibration_path(repo: Path, oracle_env_hash: str) -> Path:
+    """Calibration artifacts are keyed by oracle-env hash, so a changed oracle
+    env dereferences to a different (or missing) calibration automatically."""
+    return repo / "eval" / "calibrations" / (oracle_env_hash.replace(":", "-") + ".json")
+
+
+def assert_spend_admitted(run_dir: Path, repo: Path) -> dict:
+    """The spend gate with teeth: return the admitting calibration, or raise
+    CalibrationError. No paid cell runs unless a calibration measured THIS oracle
+    env (by the lock's hash) against THIS dataset, with untouched exclusions and a
+    pass rate over the bar. Called first thing by `cmd_run`, before any agent."""
+    from evallib.calibration import calibration_admits_spend
+    lock = json.loads((run_dir / "oracle.lock.json").read_text())
+    manifest = _load_manifest(run_dir / "manifest.toml")
+    oeh = lock["oracle_env_hash"]
+    dataset_hash = manifest["tasks"].get("hash") or ""
+    cal_path = _calibration_path(repo, oeh)
+    cal = json.loads(cal_path.read_text()) if cal_path.exists() else None
+    return calibration_admits_spend(
+        cal, oracle_env_hash=oeh, dataset_hash=dataset_hash,
+        exclusions_content=(cal or {}).get("exclusions", []))
 
 
 def _git_head(repo: Path) -> str:
@@ -60,13 +97,37 @@ def _git_head(repo: Path) -> str:
 
 
 def cmd_run(args) -> int:
+    import os
     from evallib.runner import run
     from evallib.run_pipeline import make_pipeline_adapter
     from evallib.taskstore import content_hash
+    from evallib.calibration import CalibrationError
     from evallib import __version__ as adapter_version
     run_dir = Path(args.rundir)
-    cells = [json.loads(l) for l in (run_dir / "matrix.jsonl").read_text().splitlines() if l.strip()]
+    repo = Path(__file__).resolve().parents[2]
 
+    # SPEND GATE (with teeth): refuse to run a single paid cell unless the oracle
+    # env is calibrated on the canonical solutions. This is FIRST, before tasks or
+    # agents — a broken oracle must cost nothing.
+    try:
+        cal = assert_spend_admitted(run_dir, repo)
+    except CalibrationError as e:
+        print(f"refusing to spend — {e}", file=sys.stderr)
+        return 2
+
+    lock = json.loads((run_dir / "oracle.lock.json").read_text())
+    oracle_env_hash = lock["oracle_env_hash"]
+    # Point the oracle at the pinned container (via the EV-11 seam) and the
+    # calibrated per-task timeout.
+    if lock.get("mode") == "docker":
+        from evallib.oracle_docker import wrapper_path
+        os.environ["RECURVE_ORACLE_PYTHON"] = str(wrapper_path())
+        os.environ["RECURVE_ORACLE_IMAGE"] = f"{lock['image']}@{lock['digest']}"
+        os.environ.setdefault("RECURVE_ORACLE_TMP", "/private/tmp/recurve-oracle-work")
+        os.makedirs(os.environ["RECURVE_ORACLE_TMP"], exist_ok=True)
+    oracle_timeout = int(cal["resolved_timeout"])
+
+    cells = [json.loads(l) for l in (run_dir / "matrix.jsonl").read_text().splitlines() if l.strip()]
     # Re-resolve the pinned tasks (WITH their hidden `test`) from the frozen
     # manifest — the matrix on disk carries only the statement, never the oracle.
     manifest = _load_manifest(run_dir / "manifest.toml")
@@ -74,11 +135,11 @@ def cmd_run(args) -> int:
     tasks_by_id = {t["task_id"]: t for t in tasks}
     pins = {t["task_id"]: content_hash([t]) for t in tasks}   # per-task oracle pin
 
-    repo = Path(__file__).resolve().parents[2]
     provenance = {
         "dataset_revision": manifest["tasks"].get("revision") or manifest["tasks"].get("hash"),
         "recurve_commit": _git_head(repo),
         "adapter_version": adapter_version,
+        "oracle_env_hash": oracle_env_hash,   # WHICH oracle graded — dereferences to the lock
     }
     oracle_runs = int(manifest.get("oracle", {}).get("runs", 3))
     budgets = manifest["matrix"]["budgets"]
@@ -86,7 +147,8 @@ def cmd_run(args) -> int:
 
     adapter = make_pipeline_adapter(
         tasks_by_id, pins, provenance,
-        budget=fallback_budget, recurve_cmd="recurve", oracle_runs=oracle_runs)
+        budget=fallback_budget, recurve_cmd="recurve", oracle_runs=oracle_runs,
+        oracle_timeout=oracle_timeout)
 
     n = run(cells, run_dir / "results.jsonl", adapter,
             workspace_root=run_dir / "cells", workers=args.workers)

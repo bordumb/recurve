@@ -45,7 +45,8 @@ def _gated_prompt(cell: dict) -> str:
 
 def make_pipeline_adapter(tasks_by_id: dict, pins: dict, provenance: dict, *,
                           budget: int, recurve_cmd: str, bare_agent=None,
-                          gated_agent=None, gate_fn=None, oracle_runs: int = 3):
+                          gated_agent=None, gate_fn=None, oracle_runs: int = 3,
+                          oracle_timeout: int = 30):
     """Return the adapter `runner.run` drives. Each cell: materialize → the
     arm-appropriate agent → quarantine → sealed row. `bare_agent(cell, ws)` and
     `gated_agent(cell, ws)` are injectable (mocks in the gate, the real Claude
@@ -65,4 +66,5 @@ def make_pipeline_adapter(tasks_by_id: dict, pins: dict, provenance: dict, *,
         return agent(cell, workspace)
 
     return make_orchestrator(routed_agent, tasks_by_id, pins, provenance,
-                             gate_fn=gate_fn, oracle_runs=oracle_runs)
+                             gate_fn=gate_fn, oracle_runs=oracle_runs,
+                             oracle_timeout=oracle_timeout)

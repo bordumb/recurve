@@ -44,8 +44,13 @@ def _run_once(test_src: str, solution_src: str, timeout: int) -> str:
     separate modules turns every correct real solution into an error (an error
     that reads as an oracle failure and inflates shipped-bad-work), so the
     solution and test are joined into a single `oracle_case` module here, exactly
-    as the benchmark intends. Nothing is written to the agent workspace."""
-    d = Path(tempfile.mkdtemp())
+    as the benchmark intends. Nothing is written to the agent workspace.
+
+    The tmpdir base honors RECURVE_ORACLE_TMP: a docker oracle mounts this dir
+    into the container, so it must live under a Docker-shared path (the default
+    system temp is not shared on macOS)."""
+    base = os.environ.get("RECURVE_ORACLE_TMP") or None
+    d = Path(tempfile.mkdtemp(dir=base))
     (d / "oracle_case.py").write_text(solution_src + "\n\n" + test_src)
     try:
         proc = subprocess.run(

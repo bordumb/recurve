@@ -243,3 +243,18 @@ auto-invalidates a stale calibration instead of being silently reused. Negative
 space (a trap each): a stale-key calibration admits spend; an edited exclusion
 list admits spend; a harness that fails most canonicals still calibrates by
 excluding them.
+
+## EV-17 — The spend gate is wired into the paid path
+
+EV-16 is the logic; this is the enforcement. `cmd_run` calls
+`assert_spend_admitted` FIRST — before it resolves a task or spawns an agent — so
+a run whose oracle env has no passing calibration costs exactly nothing.
+`assert_spend_admitted` reads the run dir's `oracle.lock.json`, finds the
+calibration keyed by its `oracle_env_hash`, and either returns the admitting
+calibration (with its resolved timeout, which the run then applies) or refuses; a
+real `cmd_run` over an uncalibrated run dir returns non-zero and seals no rows.
+`plan` writes the lock (refusing an unresolvable/absent-image oracle), and a
+docker run points `RECURVE_ORACLE_PYTHON` at the pinned-image wrapper via the
+EV-11 seam. Negative space (the trap): a run admitted, or reaching the work
+queue, with no calibration for its oracle env — a paid run on a possibly-broken
+oracle.
