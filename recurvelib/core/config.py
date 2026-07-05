@@ -123,6 +123,16 @@ class Config:
     # still scanned for an LLM/agent-invocation marker, so a mislabeled entry
     # here cannot buy `differential_checked_mechanical` on its own.
     mechanical_references: tuple[str, ...] = ()
+    # [gate] adversary: off (default) | same_model | cross_model — R2's
+    # per-claim decorrelation knob (docs/plans/oracle-strength-and-decorrelation.md).
+    # Off by default: opt-in, cost-aware (the house rule — a parameter, not a
+    # policy).
+    gate_adversary: str = "off"
+    # [gate] governor: off | mechanical (default, AI10) | mechanical_review |
+    # human_required — R5's run-level knob. Pre-launch, "mechanical" is the
+    # default: zero cost (re-execution of existing work, no new agent calls),
+    # and there is no existing deployment whose behavior this would change.
+    gate_governor: str = "mechanical"
     # [commit] — §11.1/§11.2: explicit, never prompting.
     commit_policy: str = "unsigned-per-cycle"   # none | unsigned-per-cycle | signed
     commit_hooks: str = "run"                   # run | gate-supersedes
@@ -264,6 +274,14 @@ def load(path: Path) -> Config:
     if traps not in ("required", "off"):
         raise ConfigError(f"{path}: [gate] traps must be required|off, got {traps!r}")
     mechanical_references = tuple(str(p) for p in gate.get("mechanical_references", []))
+    gate_adversary = str(gate.get("adversary", "off"))
+    if gate_adversary not in ("off", "same_model", "cross_model"):
+        raise ConfigError(f"{path}: [gate] adversary must be off|same_model|cross_model, "
+                          f"got {gate_adversary!r}")
+    gate_governor = str(gate.get("governor", "mechanical"))
+    if gate_governor not in ("off", "mechanical", "mechanical_review", "human_required"):
+        raise ConfigError(f"{path}: [gate] governor must be "
+                          f"off|mechanical|mechanical_review|human_required, got {gate_governor!r}")
 
     commit = doc.get("commit", {})
     commit_policy = str(commit.get("policy", "unsigned-per-cycle"))
@@ -318,6 +336,8 @@ def load(path: Path) -> Config:
         schema_pin=str(project.get("schema", "")),
         traps=traps,
         mechanical_references=mechanical_references,
+        gate_adversary=gate_adversary,
+        gate_governor=gate_governor,
         quality=str(gate.get("quality", "pre-launch")),
         commit_policy=commit_policy,
         commit_hooks=commit_hooks,

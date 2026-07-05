@@ -141,3 +141,23 @@
   probe: probes/ab-7.sh
   unlocks: R5''s two automated governor tiers are real, invokable adapters, not prose in a
     PRD
+
+- id: AB-8
+  title: policy floor (AI9) + the mechanical governor default-on (AI10)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - AB-8
+  evidence:
+  - recurvelib/adapters/policy.py
+  observed: 'GREEN at baseline 2026-07-05: the mechanical governor tier is on by default in
+    a fresh suite (AI10); a claim''s min_governor_tier floors the effective tier regardless
+    of a weaker suite-wide default, and never weakens a stronger one (AI9)'
+  smallest_fix: recurve.toml gains [gate] adversary=/[gate] governor= (default mechanical);
+    Gap.min_governor_tier floors recurvelib.adapters.policy.effective_governor_tier at at
+    least that strength.
+  probe: probes/ab-8.sh
+  unlocks: a suite ships governor coverage by default, and a high-stakes claim can mandate
+    a stronger tier no ambient config can weaken

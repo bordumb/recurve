@@ -123,3 +123,18 @@ Negative space: a mechanical governor that clears regardless of what the
 fresh checkout's re-execution actually says (never catching state leakage)
 must turn the probe RED. A review-tier governor that skips the identity
 check, silently clearing a same-identity batch, must turn the probe RED.
+
+## AB-8 — policy floor (AI9) + the mechanical governor default-on (AI10)
+
+`recurve.toml` gains `[gate] adversary = off|same_model|cross_model`
+(default `off`) and `[gate] governor = off|mechanical|mechanical_review|
+human_required` (default `mechanical` — pre-launch, zero cost, no existing
+deployment to preserve). A claim's `min_governor_tier` (`recurvelib.core.model.Gap`,
+validated at parse time) floors `recurvelib.adapters.policy.effective_governor_tier`
+at at least that strength, regardless of a weaker suite-wide default — never
+weakening a stronger one.
+
+Negative space: a policy resolution that lets a weaker suite-wide default
+(e.g. `off`) suppress a claim's stronger floor must turn the probe RED. An
+unrecognized tier name, as either the suite default or a claim's floor, must
+refuse rather than resolve to something silently wrong.
