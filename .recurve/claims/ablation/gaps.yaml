@@ -301,3 +301,24 @@
   probe: probes/ab-14.sh
   unlocks: R4's "a later differential pass shows a GREEN wrong" is a real, recorded event,
     not a printed line nobody remembers
+
+- id: AB-15
+  title: adding an adapter never touches the loop (the grep-based fixture)
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-15
+  evidence:
+  - recurvelib/loop/runtime.py
+  - recurvelib/loop/controller.py
+  observed: 'GREEN at baseline 2026-07-05: adding a deliberately trivial new adapter (a real,
+    registered, working EchoAdversary)  leaves runtime.py and controller.py byte-identical
+    — zero diff, zero content-hash  change — with a genuinely minimal two-file footprint'
+  smallest_fix: add a real, trivial, registered EchoAdversary to a temp clone (one adapter
+    file + one registry-line edit); assert git diff/content-hash against runtime.py and controller.py
+    is empty.
+  probe: probes/ab-15.sh
+  unlocks: AI2''s own named counterexample is a real, gated fixture, not just an architectural
+    claim taken on faith

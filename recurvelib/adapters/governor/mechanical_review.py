@@ -9,6 +9,12 @@ The reviewer is a BYO command, same wire protocol shape as the adversary's:
 it runs inside the isolated `CycleSnapshot` and prints one JSON verdict
 naming its own actual `served_model`, plus `vetoes` — a `{claim_id: reason}`
 mapping (empty means the whole batch clears).
+
+AI7's cryptographic upgrade: when the caller supplies `crypto_verify_fn`, a
+reviewer MAY instead report `{"identity_public_key": "...", "envelope":
+"..."}` — verified as a `cryptographically_attested` provenance instead of
+a trusted `served_model` string, the same upgrade `CrossModelAdversary`
+offers.
 """
 from __future__ import annotations
 
@@ -19,6 +25,7 @@ from recurvelib.loop.reviewers import GovernorVerdict
 from recurvelib.adapters._shared.reviewer_base import run_isolated_review
 from recurvelib.adapters._shared.provenance import (
     Provenance, metadata_verified, unverified, verified_different_identity,
+    cryptographically_attested,
 )
 
 
@@ -48,10 +55,12 @@ class MechanicalReviewGovernor:
     established) — required so this tier has something to verify difference
     against, same as `CrossModelAdversary`."""
 
-    def __init__(self, actor_provenance: Provenance, *, cmd: str | None = None, timeout: int = 300):
+    def __init__(self, actor_provenance: Provenance, *, cmd: str | None = None,
+                timeout: int = 300, crypto_verify_fn=None):
         self.actor_provenance = actor_provenance
         self.cmd = cmd
         self.timeout = timeout
+        self.crypto_verify_fn = crypto_verify_fn
         self.last_provenance: Provenance | None = None
 
     def audit(self, cycle) -> GovernorVerdict:
@@ -62,8 +71,12 @@ class MechanicalReviewGovernor:
             payload = json.loads(inv.stdout.strip() or "{}")
         except json.JSONDecodeError as e:
             raise GovernorReviewerError(f"governor reviewer output was not valid JSON: {e}") from e
-        served = payload.get("served_model")
-        prov = metadata_verified(served) if served else unverified()
+        if self.crypto_verify_fn is not None and payload.get("envelope") and payload.get("identity_public_key"):
+            prov = cryptographically_attested(
+                payload["identity_public_key"], payload["envelope"], self.crypto_verify_fn)
+        else:
+            served = payload.get("served_model")
+            prov = metadata_verified(served) if served else unverified()
         self.last_provenance = prov
         if not verified_different_identity(self.actor_provenance, prov):
             raise GovernorIdentityViolation(

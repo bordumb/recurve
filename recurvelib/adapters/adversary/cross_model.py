@@ -5,6 +5,13 @@ matches the actor's — checked from response metadata, not the requested
 `--model` flag (the exact bug class that let the O6 incident through
 unchallenged, plus the config-drift case where the flag says one thing and
 the server did another).
+
+AI7's cryptographic upgrade (`available as an upgrade... when the
+deployment wants the witness-cosignature-grade guarantee`): pass
+`crypto_verify_fn` to require the reviewer's identity be a verified,
+signed attestation rather than a trusted metadata string — a reviewer
+signing with the ACTOR's own key is refused exactly like a same-served-
+model reviewer is, now enforced by signature instead of API metadata.
 """
 from __future__ import annotations
 
@@ -25,17 +32,20 @@ class CrossModelAdversary:
     """`actor_provenance` is the (already-established) Provenance of
     whichever pass authored the claim/probe under review — required so this
     adapter has something to verify difference AGAINST, per R2's identity
-    check."""
+    check. `crypto_verify_fn`, when supplied, upgrades the check from
+    metadata to a real signature (AI7)."""
 
-    def __init__(self, actor_provenance: Provenance, *, cmd: str | None = None, timeout: int = 300):
+    def __init__(self, actor_provenance: Provenance, *, cmd: str | None = None,
+                timeout: int = 300, crypto_verify_fn=None):
         self.actor_provenance = actor_provenance
         self.cmd = cmd
         self.timeout = timeout
+        self.crypto_verify_fn = crypto_verify_fn
         self.last_provenance: Provenance | None = None
 
     def review(self, claim) -> AdversaryVerdict:
         inv = run_isolated_review(claim, _cmd(self.cmd), timeout=self.timeout)
-        verdict, prov = _parse(inv)
+        verdict, prov = _parse(inv, crypto_verify_fn=self.crypto_verify_fn)
         self.last_provenance = prov
         if not verified_different_identity(self.actor_provenance, prov):
             raise CrossModelIdentityViolation(

@@ -159,10 +159,17 @@ compatibility path.
 `A3 + governor=mechanical`, `A3 + governor=mechanical_review`, and the full
 stack) — the POC's `{A0, A3}` scope is unchanged. `eval/` stays a separate
 uv project (recurvelib is stdlib+PyYAML); the dependency is one-directional.
+`eval plan` itself (`evallib.plan.expand`, what `cmd_plan` actually calls)
+resolves each arm's `adversary=`/`governor=` through the registry AT PLAN
+TIME — the resolved config rides on every planned cell verbatim — refusing
+loud on an unknown arm or an unknown adversary/governor value, before any
+cell is even written.
 
 Negative space: a candidate `arms.py` that defines its own local
 `ADVERSARY_ADAPTERS`/`GOVERNOR_ADAPTERS` mapping instead of importing
-recurvelib's must be flagged — a lint-shaped drift check.
+recurvelib's must be flagged — a lint-shaped drift check. A manifest naming
+an unknown arm, or a known arm whose config names an adversary/governor not
+in the registry, must fail `expand()` loud, not silently plan a bad cell.
 
 ## AB-11 — human_required's async state machine (AI6)
 
@@ -237,3 +244,18 @@ a run-record-derived one).
 Negative space: a `drill --diff` disagreement on a closed claim that leaves
 no trace at all (the one-line recording call removed) must turn the probe
 RED.
+
+## AB-15 — adding an adapter never touches the loop (the grep-based fixture)
+
+AI2's own named counterexample, built for real: a deliberately trivial new
+adapter (`EchoAdversary`, a real, working, registered `Adversary`) is added
+to a temp clone of this repo — one new adapter file plus one registry-file
+edit, nothing else — and `git diff`/content-hash comparison against
+`recurvelib/loop/runtime.py` and `recurvelib/loop/controller.py` is
+confirmed empty. The addition is proven to actually resolve through the
+registry and function, not just exist as an inert file.
+
+Negative space: a "trivial adapter" added the wrong way — by hardcoding a
+bespoke branch directly into `controller.py` instead of composing through
+the existing `Adversary` port and registry — must turn the probe RED; the
+grep-based check must catch it, not wave it through.

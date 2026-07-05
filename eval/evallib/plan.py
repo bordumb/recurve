@@ -5,6 +5,14 @@ task × arm × model × budget × seed — written to matrix.jsonl BEFORE any ag
 runs (the registered-report affordance: the sample is committed before results
 exist). Cell IDs derive deterministically from coordinates, so a run resumes by
 skipping cells whose id is already sealed.
+
+An arm naming `adversary=`/`governor=` (A7-A10,
+docs/plans/ablation-infra.md AI5) has that config resolved through
+recurvelib's OWN adapter registry AT PLAN TIME — an unknown arm, or an
+unknown adversary/governor value inside a known arm, fails the plan loud,
+before any cell is even written, rather than surfacing as a mystery at run
+time. The resolved `[gate]` config rides on every cell verbatim (the same
+discipline `oracle_env_hash` already applies to the oracle side of a cell).
 """
 
 from __future__ import annotations
@@ -13,6 +21,8 @@ import hashlib
 import json
 import re
 from pathlib import Path
+
+from evallib.arms import arm_spec, resolve_adversary_adapter, resolve_governor_adapter
 
 _SANITIZE = re.compile(r"[^A-Za-z0-9]+")
 
@@ -26,13 +36,31 @@ def cell_id(model: str, arm: str, budget: int, seed: int, task_id: str) -> str:
     return f"{slug}-{digest}"
 
 
+def resolved_gate_config(arm: str) -> dict:
+    """The arm's `[gate]`-shaped config, with any `adversary=`/`governor=`
+    value validated through recurvelib's registry (AI5) — raises
+    `KeyError` on an unknown arm, and whatever `resolve_adversary_adapter`/
+    `resolve_governor_adapter` raise on an unknown adapter name. Never
+    silently accepted; a typo'd config value fails the plan, not the run."""
+    spec = arm_spec(arm)
+    config = dict(spec.get("config") or {})
+    if "adversary" in config:
+        resolve_adversary_adapter(config["adversary"])
+    if "governor" in config:
+        resolve_governor_adapter(config["governor"])
+    return config
+
+
 def expand(manifest: dict, tasks: list[dict]) -> list[dict]:
     """The cross product, deterministically ordered. Every cell carries its full
-    coordinates plus the task statement (never the hidden test)."""
+    coordinates plus the task statement (never the hidden test) plus its arm's
+    resolved [gate] config (adversary=/governor=, validated through the
+    registry — recorded verbatim, not just the arm label)."""
     m = manifest["matrix"]
     cells = []
     for model in m["models"]:
         for arm in m["arms"]:
+            gate_config = resolved_gate_config(arm)
             for budget in m["budgets"]:
                 for seed in m["seeds"]:
                     for task in tasks:
@@ -42,6 +70,7 @@ def expand(manifest: dict, tasks: list[dict]) -> list[dict]:
                             "model": model, "arm": arm, "budget": budget,
                             "seed": seed, "task_id": tid,
                             "instruct_prompt": task.get("instruct_prompt", ""),
+                            "gate_config": gate_config,
                         })
     return cells
 
