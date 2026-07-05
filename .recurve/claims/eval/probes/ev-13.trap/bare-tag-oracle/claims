@@ -1,0 +1,1 @@
+parse_oracle_env accepts a docker oracle pinned only to a mutable bare tag (no immutable digest) — two runs could grade against different images under the same name

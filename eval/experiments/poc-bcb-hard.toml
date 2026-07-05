@@ -23,3 +23,14 @@ sample    = { n = 50, seed = 7 }           # pilot; remove for the full 148
 [oracle]
 runs = 3
 verdict = "majority"
+
+# The oracle environment — the other half of the experiment, pinned like the
+# dataset. A docker oracle REQUIRES an immutable digest (a bare :tag is mutable);
+# `eval plan` resolves this intent into oracle.lock.json and refuses on drift.
+[oracle.env]
+mode     = "docker"
+image    = "bigcodebench/bigcodebench-evaluate"
+digest   = "sha256:1327bddf60be9bc241648c59e6060cac4ca50248a0588ab735cd0200b17cc8c2"  # amd64, from manifest-list; :latest is mutable
+platform = "linux/amd64"    # amd64-under-Rosetta on arm64 — recorded because emulation changes timing
+network  = "none"           # grading is hermetic; the container is the sandbox
+timeout  = "calibrated"     # derived from the calibration run's canonical p99, not guessed

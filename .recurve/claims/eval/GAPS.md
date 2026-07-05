@@ -180,3 +180,18 @@ stdlib-only), not a hand-authored idealization that could quietly agree with the
 harness instead of the substrate; the mock's own `from solution import` fixtures
 are exactly how this bug hid through the first smoke. Negative space (the trap):
 separate-module grading returning the canonical solution non-`pass`.
+
+## EV-13 — Oracle environment declared and digest-pinned (intent)
+
+The oracle is the untracked half of the experiment: which image graded a
+solution can change its verdict, so it is declared in the manifest
+(`[oracle.env]`) exactly as the dataset is — and naturalized under the same rule
+(*anything that can change a verdict is pinned and refused-on-drift; anything
+that can change a timing is recorded; the manifest is intent, the lock is
+resolution*). `oracle_env.parse_oracle_env` is the intent half: a docker oracle
+MUST carry an immutable `sha256:<64hex>` digest, because a bare `:tag` is mutable
+— retag it and two runs grade against different images under the same name with
+nothing to show it. A tag or digest smuggled into the `image` field is refused
+too, so the `digest` field is the single source of truth; a `local` mode (the
+current interpreter) stays available for hermetic tests. Negative space (the
+trap): a digest-less bare-tag docker oracle accepted — the mutable-oracle hole.

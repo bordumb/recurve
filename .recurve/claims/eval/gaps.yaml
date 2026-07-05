@@ -250,3 +250,22 @@
   probe: probes/ev-12.sh
   unlocks: real solutions are graded the way the benchmark grades them — the precondition for any
     honest number, and the class of harness bug that silently inflates the paper's own headline
+
+- id: EV-13
+  title: Oracle environment declared and digest-pinned (intent)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-13
+  evidence:
+  - eval/evallib/oracle_env.py
+  observed: 'GREEN at close 2026-07-05: oracle env spec: docker requires an immutable sha256
+    digest, bare tag/tag-smuggling refused, local allowed'
+  smallest_fix: oracle_env.parse_oracle_env validates [oracle.env] and requires a docker oracle
+    to carry an immutable sha256:<64hex> digest (a bare tag is mutable and unpinnable), refusing
+    a tag/digest smuggled into the image name; a local mode stays available for hermetic tests
+  probe: probes/ev-13.sh
+  unlocks: the oracle that grades every solution is declared and pinned like the dataset — the
+    intent half of making two runs' oracles provably identical or provably different
