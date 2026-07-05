@@ -31,9 +31,12 @@ import math
 # A run with more than this fraction of canonical solutions failing is a harness
 # bug, not a set of exclusions — refuse to calibrate rather than launder it.
 DEFAULT_MAX_EXCLUSION_FRAC = 0.10
-# Multiplier on the canonical p99 latency → the per-task oracle timeout. Under
-# emulation a fixed guess turns slow passes into errors; derive it instead.
+# The per-task oracle timeout is max(floor, p99 × k): the p99×k tracks the real
+# canonical latency (under emulation a fixed guess turns slow passes into errors),
+# and the floor keeps a suite of trivially-fast canonicals from yielding a
+# knife-edge timeout that flakes under contention.
 DEFAULT_TIMEOUT_K = 3.0
+DEFAULT_TIMEOUT_FLOOR = 30
 
 
 class CalibrationError(RuntimeError):
@@ -62,6 +65,7 @@ def _p99(values) -> float:
 def derive_calibration(oracle_env_hash: str, dataset_hash: str, results: dict,
                        registered_exclusions: dict, *,
                        timeout_k: float = DEFAULT_TIMEOUT_K,
+                       timeout_floor: int = DEFAULT_TIMEOUT_FLOOR,
                        max_exclusion_frac: float = DEFAULT_MAX_EXCLUSION_FRAC) -> dict:
     """Derive a calibration from canonical-solution grading results.
 
@@ -91,7 +95,8 @@ def derive_calibration(oracle_env_hash: str, dataset_hash: str, results: dict,
         raise CalibrationError(
             f"{len(non_pass)}/{n} canonical solutions did not pass "
             f"(> {max_exclusion_frac:.0%}) — too many even with reasons; refusing")
-    timeout = int(math.ceil(_p99([results[t]["seconds"] for t in passing]) * timeout_k))
+    timeout = max(int(timeout_floor),
+                  int(math.ceil(_p99([results[t]["seconds"] for t in passing]) * timeout_k)))
     return {
         "oracle_env_hash": oracle_env_hash,
         "dataset_hash": dataset_hash,

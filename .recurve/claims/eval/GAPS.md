@@ -314,3 +314,20 @@ against the full pinned dataset is oracle-waived where the gitignored dataset is
 absent; where present, the fixture's test is verified identical to the substrate's.
 Negative space (a trap each): a fixture task absent from the pinned dataset
 accepted; the known-bad mutant grading anything but FAIL.
+
+## EV-21 — Calibration honesty: timeout floor + the regression turns it RED
+
+Two properties that keep calibration from being either brittle or vacuous. The
+per-task timeout is `max(floor, p99 × k)` (floor and k config knobs), not a bare
+`p99 × k` — a suite of trivially-fast canonicals must not yield a knife-edge
+timeout that flakes a genuinely slow cell into an *error* (which, being an error,
+inflates the headline). And calibration must actually go RED on the grading-path
+bug class: the real canonical solution, graded the HISTORICAL wrong way (solution
++ test as separate modules, so the test cannot see `task_func`), comes back
+non-pass, and a calibration built from that grading is refused as an unexplained
+failure — so a wrapper that reintroduced the namespace bug could never pass
+calibration and spend would stay blocked. The correct shared-namespace grading
+passes and its calibration is admitted; a deliberately broken canonical also
+fails calibration, proving calibration *can* fail. Negative space (a trap each):
+a derived timeout that ignores the floor; a separate-modules regression that
+calibration fails to catch.

@@ -425,3 +425,23 @@
   oracle_waiver: the byte-match against the full gitignored dataset needs it present; the fidelity
     logic + canonical/mutant grading are tested hermetically and run full-strength where present
 
+- id: EV-21
+  title: 'Calibration honesty: timeout floor + the regression turns it RED'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-21
+  evidence:
+  - eval/evallib/calibration.py
+  observed: 'GREEN at close 2026-07-05: calibration: timeout is max(floor, p99 x k); a
+    separate-modules regression or a broken canonical turns it RED'
+  smallest_fix: derive_calibration's timeout is max(timeout_floor, ceil(p99 x timeout_k)) with
+    both as config knobs (no knife-edge timeout on a fast suite); and the real canonical graded
+    the historical separate-modules way comes back non-pass, so a calibration built from that
+    grading is refused — a reintroduced namespace bug can never pass calibration
+  probe: probes/ev-21.sh
+  unlocks: calibration is neither brittle (a floor'd timeout) nor vacuous (the grading-path bug
+    class provably turns it RED) — the pre-spend gate stays meaningful
+
