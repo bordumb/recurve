@@ -38,6 +38,18 @@ identity-checked notion of a cross-model adversary — "adversary" today is
 prose in `runtime.py`, not a CLI surface with an enforced actor/reviewer
 identity distinction.
 
+There is a second, distinct gap the incident exposes, worth naming
+separately: the deterministic controller (`decide()`) that decides
+STOP_SUCCESS trusts the gate's verdicts unconditionally —
+`STOP_SUCCESS ⇔ open=regressed=broken=uncovered=0 ∧ ¬divergent`. If every
+claim in a cycle is green because of the *same* shared blind spot, the
+controller correctly reports success by its own rules, and is still
+wrong. R1–R4 harden the check that produces a single claim's GREEN; R5
+below adds a superseding check on the *run's decision to report itself
+done*, so a compromised gate is not the controller's only source of truth
+even in the worst case where every individual claim was, on its own
+terms, honestly checked.
+
 ## 2 · Non-goals
 
 - Not rebuilding the claim/probe/trap/gate core model.
@@ -169,13 +181,93 @@ mechanism — R1–R3 are prevention; R4 exists because prevention will
 sometimes fail anyway. That is the paper's whole point: trust is graded,
 not absolute.
 
+### R5 — The governor: a superseding, run-level check on STOP_SUCCESS itself
+
+**Assertion.** R2 hardens the probe *before* a single claim closes. R5 is
+a different check, at a different point: an authority the controller
+must clear *in addition to* the gate before it may honor STOP_SUCCESS —
+so a run where every individual claim was, on its own terms, honestly
+gated can still be stopped, reopened, or forced to restart if the
+governor objects. Two tiers, deliberately priced differently:
+
+- **Mechanical tier (near-free, no LLM; default candidate).** Before a
+  cycle's STOP_SUCCESS is honored, every probe *and* every trap the
+  cycle closed is re-executed in a fresh, isolated checkout — not the
+  working directory the burndown loop used — and checked for drift (has
+  the claim's proposition text or probe file changed since it was
+  gated?). This catches a different bug class than correlated
+  authorship: state leakage, "works in this working directory,"
+  accidental trap-weakening mid-run. Cost is one re-execution pass over
+  work already done; no new agent calls.
+- **Review tier (costs tokens; opt-in, recommended default for
+  unattended/autonomous runs).** A single decorrelated-model pass reviews
+  the *batch* of newly-green claims from the cycle — one review call per
+  batch, not per claim, which is why it is affordable where R2's
+  per-claim adversary is not — with the power to veto specific claims
+  back to RED before the run may report itself done. This is precisely
+  the scenario the O6 incident occurred in: an autonomous run, nobody
+  watching claim-by-claim.
+
+The controller's formal decision rule changes to reflect this:
+`STOP_SUCCESS ⇔ (open=regressed=broken=uncovered=0 ∧ ¬divergent) ∧
+governor_cleared`. When the mechanical/gate conditions hold but the
+governor has not yet run or has objections, the cycle reports a new
+state — not STOP_SUCCESS, not plain CONTINUE — call it
+`PENDING_GOVERNOR`, which resolves to STOP_SUCCESS on a clean pass or
+reopens the vetoed claims with the veto reason as next-cycle context
+(mirroring a validation-and-retry loop: a rejection carries its reason
+forward, it is not a bare "no"). This is a real change to `decide()`,
+gated by its own claim(s) alongside the existing `ST-1..8` stopping
+suite — call it `ST-9`.
+
+**The constraint that keeps the governor from becoming a second
+unaccountable authority:** a veto must become a **new trap on the vetoed
+claim, per the existing capture rule** — never a bare "redo it." The
+governor is required to articulate a falsifiable, re-checkable reason the
+same way any other adversary objection must be captured before it counts.
+Without this, a compromised self-graded gate would simply be replaced by
+an opaque governor opinion — a regression in auditability, not a fix.
+
+**Counterexamples (traps).**
+- A cycle that reaches STOP_SUCCESS with the governor never having run
+  (mechanical tier skipped, or review tier configured on but not invoked)
+  must be refused — `governor_cleared` cannot default to true.
+- A governor veto recorded with no captured trap on the vetoed claim must
+  fail validation — an uncaptured veto is exactly the unaccountable-second-
+  authority failure this requirement exists to prevent.
+- **The regression fixture, wired to the actual incident, at the run
+  level this time**: replay the O6 shape as a full cycle — every claim's
+  own gate green, all sharing one correlated-authorship defect — through
+  the mechanical tier (must NOT catch it; drift/tamper is not the bug
+  here, correctly) and then the review tier (must catch it and veto,
+  producing a captured trap). This proves the two tiers' distinct
+  coverage, not just that "a governor exists."
+- Repeated vetoes on the same claim without resolution must not loop
+  forever: check first whether the existing `STOP_REVERT` thrashing
+  detection (no net reduction in open+uncovered over the last k=3
+  cycles) already absorbs this for free — a claim stuck in
+  veto/reopen/veto looks identical to any other stalled claim from the
+  controller's point of view — before building new bounding machinery.
+
+**Bounds.** Mechanical tier: default-on candidate (cost is re-execution
+of existing work, no new agent calls). Review tier: off by default,
+same house rule as R2 (a parameter, not a policy), but documented as the
+recommended setting for endless/unattended burndown mode specifically —
+the mode with no human watching individual closes, which is the mode the
+incident happened in. R5 does not replace R4: R5 is preventive (before
+the run reports done), R4 is the backstop for whatever R5 still misses
+(after).
+
 ## 4 · Sequencing
 
 R1 (tier vocabulary + rendering) is the prerequisite for everything else
 being visible → R2 (cross-model adversary surface) and R3 (authoring-time
 nudge) build in parallel once R1's vocabulary exists → R4 (reversal
-ledger + stats) last, since a reversal event is only informative once it
-can report *which tier* was falsified.
+ledger + stats) → R5 (the governor) last, since its mechanical tier
+depends on nothing new but its review tier reuses R2's cross-model
+adversary machinery, and its veto-capture requirement reuses R4's
+reversal-event vocabulary (a veto is a reversal caught before publication
+rather than after).
 
 ## 5 · Acceptance for the wave
 
@@ -188,8 +280,16 @@ can report *which tier* was falsified.
 - `recurve stats` reports the R4 reversal rate (0/N on a ledger with no
   reversals; correctly non-zero on a ledger carrying the O6-shaped
   fixture).
+- The R5 run-level regression fixture passes: the mechanical tier
+  correctly does *not* catch the correlated-authorship replay, the
+  review tier does, and the veto lands as a captured trap, not a bare
+  rejection.
+- `decide()` gains `ST-9` (governor-gated STOP_SUCCESS) without breaking
+  `ST-1..8`; a cycle cannot reach STOP_SUCCESS with `governor_cleared`
+  unset.
 - No existing claim's GREEN/RED verdict changes — this wave is additive
-  metadata and a new opt-in mechanism, not a semantics change.
+  metadata and new opt-in/default-cheap mechanisms, not a semantics
+  change to any already-closed claim.
 
 ## 6 · Relationship to the papers
 
@@ -198,7 +298,13 @@ hardening program) a concrete engine feature to cite — moving from "we
 name this as an open residue" to "here is the mechanism and the ledger
 field that surfaces it." It also gives the economics paper's
 miss-correlation ρ (E5) its natural recording surface: R2's cross-model
-adversary runs and R4's reversal log are exactly the data E5's measurement
-would consume. And it turns the O6 incident from an anecdote the papers
-mention in prose into a fixture the engine's own gate can be shown to
-catch, reproducibly, on demand.
+adversary runs, R4's reversal log, and R5's captured vetoes are exactly
+the data E5's measurement would consume. And it turns the O6 incident
+from an anecdote the papers mention in prose into a fixture the engine's
+own gate — at both the single-claim (R2) and whole-run (R5) level — can
+be shown to catch, reproducibly, on demand.
+
+R5 also gives `eval-full.md`'s ablation arm matrix a natural new arm
+alongside A5 (boundary off) and A6 (controller off): an A7 with the
+governor on vs. off, so the governor's marginal detection is measured by
+the same harness that motivated building it, rather than asserted.
