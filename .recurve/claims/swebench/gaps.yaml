@@ -162,3 +162,33 @@
     SWE-bench data.
 
     '
+
+- id: SW-7
+  title: Grading aggregates 3 independent verification runs into one majority-vote verdict,
+    never a single run
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - SW-7
+  evidence:
+  - eval/evallib/swebench_majority.py
+  - eval/evallib/swebench_pipeline.py
+  observed: 'GREEN at baseline 2026-07-05: grading aggregates 3 independent verification runs
+    via majority vote; the orchestrator''s default grader genuinely votes, not single-shot;
+    split verdicts stay visible as oracle_agreement/oracle_unanimous'
+  smallest_fix: 'grade_with_majority_vote (evallib/swebench_majority.py) runs the underlying
+    grader num_runs times (default 3) and returns whichever verdict a strict majority agree
+    on, with every individual run preserved (never dropped) and the split itself (agreement,
+    unanimous) surfaced. make_swebench_orchestrator''s default grader is repointed at this
+    function instead of a single-shot grader, and the resulting row carries oracle_agreement/oracle_unanimous
+    as additive-only provenance.
+
+    '
+  probe: probes/sw-7.sh
+  unlocks: 'a single flaky test run can no longer be mistaken for a real pass/fail difference
+    between arms in a small-sample smoke — a split vote stays visible in the row instead of
+    being silently smoothed into one boolean.
+
+    '

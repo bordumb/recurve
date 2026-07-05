@@ -160,3 +160,26 @@ evidence without themselves re-executing it every gate run. Negative space
 (guarded by the trap): a smoke driver that seals a row missing required
 provenance, or that keeps running cells past the dollar ceiling instead of
 halting.
+
+## SW-7 — Grading aggregates 3 independent runs into one majority-vote verdict, never a single run
+
+SWE-bench's own test suites are not perfectly deterministic — timing-
+sensitive tests, container-startup jitter, and non-deterministic ordering
+can flip a genuinely-unchanged patch's verdict between runs. A single
+grading pass cannot distinguish "the fix is wrong" from "this run hit a
+flaky test," and with only a handful of instances in the live smoke, one
+flaky read is not a rounding error — it can be half the evidence.
+`grade_with_majority_vote` (`swebench_majority.py`) runs the underlying
+grader 3 times against the SAME diff/instance/environment and returns
+whichever verdict a strict majority agree on; every individual run is
+preserved (`runs`), never discarded, and the split itself (`agreement`,
+`unanimous`) is surfaced rather than smoothed away. `make_swebench_
+orchestrator`'s default grader is repointed at this function (previously a
+single-shot grader), and the resulting row carries `oracle_agreement`/
+`oracle_unanimous` as additive-only provenance — never changing
+`oracle_verdict` itself, only making a split visible.
+
+Negative space (guarded by the trap): a function with the same return
+shape that calls the underlying grader only once and reports that single
+result as an agreed vote — a flaky disagreeing run never gets a chance to
+be outvoted.

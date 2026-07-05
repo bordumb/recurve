@@ -49,7 +49,7 @@ from pathlib import Path
 from evallib.arms import ArmSpec, arm_spec, resolve_boundary_adapter
 from evallib.audit import resolve_audit_port
 from evallib.done_signal import resolve_done_signal_port
-from evallib.swebench_quarantine import grade_fresh
+from evallib.swebench_majority import grade_with_majority_vote
 from evallib.swebench_workspace import materialize_swe_repo_workspace
 
 SWE_A0 = ArmSpec(workspace="swe_bench_repo", done_signal="self_report",
@@ -249,7 +249,8 @@ def make_swebench_orchestrator(agent, instances_by_id: dict, environment_locks: 
     `grade_fresh`'s reuse guard has something real to compare against).
     `environment_locks[task_id]` is SW1's lock (`{digest,
     environment_image_hash, ...}`). `grader` is injectable — defaults to
-    `swebench_quarantine.grade_fresh`, so a fully-mocked call never imports
+    `swebench_majority.grade_with_majority_vote` (3 independent verification
+    runs, majority-vote verdict), so a fully-mocked call never imports
     docker. `gate_fn`, when given, is used for EVERY cell (the hermetic
     probe's path: full control, no real subprocesses). When `gate_fn` is
     None and a cell's arm names a real `governor` (A9), a per-cell governed
@@ -257,7 +258,7 @@ def make_swebench_orchestrator(agent, instances_by_id: dict, environment_locks: 
     cell's own acting model + `governor_cmd_resolver(model)` as the REAL,
     decorrelated reviewer command) — so the SAME orchestrator serves A0 and
     A9 cells without the caller branching on arm identity."""
-    grader = grader or grade_fresh
+    grader = grader or grade_with_majority_vote
     governor_cmd_resolver = governor_cmd_resolver or (
         lambda model: f"python3 {Path(__file__).parent / 'swebench_governor_reviewer.py'} "
                        f"{reviewer_model_for(model)}")
@@ -333,6 +334,12 @@ def make_swebench_orchestrator(agent, instances_by_id: dict, environment_locks: 
             "oracle_env_hash": lock["environment_image_hash"],
             **boundary_fields,
         }
+        if "agreement" in graded:
+            # Additive-only provenance -- a split vote (e.g. "2/3") stays
+            # visible in the row rather than being smoothed into oracle_verdict
+            # alone. Never required (older/injected graders may omit it).
+            row["oracle_agreement"] = graded["agreement"]
+            row["oracle_unanimous"] = graded["unanimous"]
         if audit_result is not None:
             row["audit"] = asdict(audit_result)
         return row
