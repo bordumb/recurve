@@ -18,6 +18,72 @@ itself to recurve's own standard: the `eval/` pipeline is a gated recurve
 suite (`.recurve/claims/eval`, claims `EV-1`–`EV-24`, all closed), not a
 one-off script somebody ran once.
 
+## Architecture
+
+The pipeline is built around one rule: anything that can change a verdict is
+pinned before a single paid cell runs, and every cell's provenance — task,
+model, arm, resolved gate config, budget — travels with its result row. The
+diagram below is the shape that rule produces, from a human-authored
+manifest down to the analysis that reads `results.jsonl`:
+
+```mermaid
+flowchart TD
+    M["manifest.toml<br/>tasks + models + arms + budgets + seeds"]
+    OB["eval oracle build<br/>derive + pin the oracle image digest"]
+    CAL["eval calibrate<br/>grade every canonical solution<br/>write calibration keyed by oracle_env_hash"]
+    PLAN["eval plan<br/>expand task x model x arm x budget x seed"]
+    REG[("recurvelib.adapters registry<br/>ADVERSARY_ADAPTERS / GOVERNOR_ADAPTERS")]
+    MTX[("matrix.jsonl<br/>pinned cells")]
+    LOCK[("oracle.lock.json<br/>digest, platform, timeout")]
+    GATE{"spend gate<br/>calibration passing?"}
+    REFUSE["refused: zero cells run"]
+    RUN["eval run<br/>resumable work queue"]
+    CELL["one cell's workspace<br/>A0 bare, or A3+ recurve-init'd<br/>with the arm's resolved config"]
+    AGENT["AGENT_CMD adapter<br/>e.g. claude -p ..."]
+    DECL{"agent declares done<br/>or budget exhausted"}
+    WARM[["warm oracle container<br/>one per run, not per cell"]]
+    ORACLE["oracle quarantine<br/>held-out tests, isolated container<br/>network: none"]
+    RES[("results.jsonl<br/>one row per cell, full provenance")]
+    AN["eval analyze<br/>FDR, ΔFDR, price of trust<br/>Wilson CIs, McNemar"]
+    SUM["summary.md + figures"]
+
+    M --> OB --> CAL
+    M --> PLAN
+    PLAN -- "A7-A10 resolve adversary=/governor=" --> REG
+    REG -- "resolved config, recorded verbatim" --> PLAN
+    PLAN --> MTX
+    PLAN --> LOCK
+    CAL --> GATE
+    MTX --> GATE
+    LOCK --> GATE
+    GATE -- refuses --> REFUSE
+    GATE -- admits --> RUN
+    RUN --> CELL --> AGENT --> DECL --> ORACLE
+    WARM -. docker exec .-> ORACLE
+    ORACLE --> RES
+    RUN --> RES
+    RES --> AN --> SUM
+```
+
+Three things to notice in that shape:
+
+- **The manifest never talks to the registry directly.** An arm like A7
+  (`adversary=cross_model`) or A10 (`adversary=cross_model` +
+  `governor=mechanical_review`) is just a name until `eval plan` resolves it
+  through the same `recurvelib.adapters` registry that `recurve`'s own
+  `[gate]` config uses — so a plan that names an unknown adapter fails at
+  `plan` time, not mid-run.
+- **The spend gate sits between planning and spending.** `eval calibrate`
+  must already show a passing grade of every canonical solution, keyed to
+  the exact oracle-environment hash the run will use, or `eval run` refuses
+  to start a single paid cell.
+- **The oracle never shares a container with the agent.** The agent process
+  has already exited (declared done, or hit its budget) before the harness
+  hands the solution to the quarantined oracle container, which runs with
+  no network access — so a held-out test can never leak into the agent's
+  turn, and the harness's own defects only ever bias *toward* more reported
+  failures, never fewer (see the reproducibility rule below).
+
 ## Why: the quantities that matter
 
 Let a *task* carry a **held-out oracle** — a test the agent never sees. An
