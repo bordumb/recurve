@@ -279,3 +279,25 @@
   probe: probes/ab-13.sh
   unlocks: a configured governor genuinely supersedes STOP_SUCCESS in a live recurve run,
     not just in an isolated regression fixture
+
+- id: AB-14
+  title: a real drill --diff disagreement records a challenge_event
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - AB-14
+  evidence:
+  - recurvelib/cli/commands/drill.py
+  - recurvelib/adapters/challenge_event.py
+  observed: 'GREEN at baseline 2026-07-05: a real drill --diff disagreement on a CLOSED claim
+    records a challenge_event  (phase: post_publication) with a real derived tier and a concrete
+    reason —  append-only, surfaced in recurve stats''s challenge-rate line, never a printed  line
+    nobody remembers'
+  smallest_fix: _record_diff_challenge in drill.py appends a real challenge_event (phase=post_publication)
+    via ChallengeLog when --diff finds a disagreement on a closed claim; recurve stats reports
+    the rate regardless of run-record presence.
+  probe: probes/ab-14.sh
+  unlocks: R4's "a later differential pass shows a GREEN wrong" is a real, recorded event,
+    not a printed line nobody remembers

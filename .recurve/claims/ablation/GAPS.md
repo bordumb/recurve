@@ -221,3 +221,19 @@ Negative space: `governor=mechanical_review` configured with no
 `RECURVE_GOVERNOR_CMD` wired must never reach `STOP-SUCCESS` — a governor
 that cannot be consulted must resolve to `pending` (`PENDING-GOVERNOR`),
 never silently to `cleared`.
+
+## AB-14 — a real `drill --diff` disagreement records a challenge_event
+
+`drill --diff` finding a disagreement on a CLOSED claim's CURRENT state — a
+genuine finding, not a self-test replay of a known fixture — is exactly R4/
+AI8's named "later differential pass" trigger. `_record_diff_challenge`
+(`recurvelib/cli/commands/drill.py`) records a real `challenge_event`
+(`phase="post_publication"`, a derived tier, a concrete reason) via
+`recurvelib.adapters.challenge_event.ChallengeLog` — append-only, and it
+surfaces in `recurve stats`'s challenge-rate line, which now reports
+regardless of whether any run record exists yet (a ledger-derived rate, not
+a run-record-derived one).
+
+Negative space: a `drill --diff` disagreement on a closed claim that leaves
+no trace at all (the one-line recording call removed) must turn the probe
+RED.

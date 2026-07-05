@@ -225,7 +225,7 @@ def cmd_drill(args):
                         diff_disagreements += 1
                         failures.append(f"{g.id} diff disagreement "
                                         f"probe={probe_r.outcome.value} reference={ref_r.outcome.value}")
-                        _record_diff_challenge(cfg, g, probe_r, ref_r)
+                        pass  # BUG: the challenge_event recording call was removed
             if args.deep and cfg.tree is not None:
                 for name, sc in cfg.suites.items():
                     hook = sc.dir / "harness" / "drill.sh"
