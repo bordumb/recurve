@@ -1,0 +1,1 @@
+reconcile_digest silently adopts a rebuilt image whose digest diverges from the manifest pin — bypassing the pin->lock->calibration chain

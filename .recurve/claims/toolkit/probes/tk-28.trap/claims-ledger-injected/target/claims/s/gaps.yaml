@@ -1,0 +1,12 @@
+- id: B-0
+  title: base suite green by construction
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers: [B-0]
+  evidence: ["x:1"]
+  observed: GREEN by construction
+  smallest_fix: none
+  probe: probes/g-1.sh
+  trap_waiver: fixture

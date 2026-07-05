@@ -1,0 +1,9 @@
+# Per-cell workspaces and transcripts are large and reproducible — tarballed on
+# demand, never committed. The evidence (manifest, matrix.jsonl, results.jsonl,
+# analysis/) IS committed, per the plan's reproducibility rules.
+runs/*/cells/
+runs/*/**/transcript*
+__pycache__/
+*.pyc
+.venv/
+datasets/

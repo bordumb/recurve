@@ -1,0 +1,324 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: AB-1
+  title: the two ports exist; nothing existing changes
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-1
+  evidence:
+  - recurvelib/loop/reviewers.py
+  observed: 'GREEN at baseline 2026-07-05: Adversary/Governor ports exist alongside World/Actor;
+    capture()/within_boundary/guarded_propose are untouched; neither verdict type can certify
+    a claim directly'
+  smallest_fix: recurvelib.loop.reviewers defines Adversary/Governor Protocols plus AdversaryVerdict/GovernorVerdict,
+    structurally unable to certify a claim GREEN directly (has_bypass_field guards against
+    a future bypass field); runtime.py is untouched.
+  probe: probes/ab-1.sh
+  unlocks: a cross-model adversary and a run-level governor have a concrete port to implement
+    against
+
+- id: AB-2
+  title: context snapshots enforce the exclusion boundary mechanically
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-2
+  evidence:
+  - recurvelib/adapters/snapshot.py
+  observed: 'GREEN at baseline 2026-07-05: ClaimSnapshot is built only from git archive of
+    a pinned commit — a dirty tree is refused by default, and never leaks into the archive
+    even when permitted; the include_existing_traps knob controls exactly what §5 says it
+    should'
+  smallest_fix: recurvelib.adapters.snapshot.build_claim_snapshot/build_cycle_snapshot build
+    a ClaimSnapshot/CycleSnapshot only from git archive of a pinned, clean commit; include_existing_traps
+    strips or keeps the gap's own trap fixtures.
+  probe: probes/ab-2.sh
+  unlocks: an isolated reviewer sees exactly the committed artifacts under review, never the
+    acting agent's live session
+
+- id: AB-3
+  title: isolation strategy is pluggable and per-adapter, not global
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - AB-3
+  evidence:
+  - recurvelib/adapters/isolation/
+  observed: 'GREEN at baseline 2026-07-05: isolation strategy is pluggable and selected per-adapter:
+    subprocess_tempdir scrubs the environment and pins cwd to the snapshot; docker is available,
+    opt-in, never silently required'
+  smallest_fix: recurvelib.adapters.isolation resolves subprocess_tempdir (default, scrubbed
+    env + pinned cwd) or docker (opt-in, read-only mount) per adapter, never globally.
+  probe: probes/ab-3.sh
+  unlocks: an adapter's isolation choice matches its own runtime needs instead of a one-size-fits-all
+    harness decision
+
+- id: AB-4
+  title: shared reviewer plumbing, written once
+  class: missing-surface
+  status: closed
+  severity: friction
+  reads: none
+  covers:
+  - AB-4
+  evidence:
+  - recurvelib/adapters/_shared/reviewer_base.py
+  observed: 'GREEN at baseline 2026-07-05: isolation-executor invocation, snapshot construction,
+    and provenance attachment are written once in _shared.reviewer_base; a lint-shaped check
+    flags an adapter that reimplements them directly'
+  smallest_fix: recurvelib.adapters._shared.reviewer_base composes snapshot + isolation +
+    provenance once; adapters_not_using_shared lint-flags a file that reimplements the plumbing
+    directly.
+  probe: probes/ab-4.sh
+  unlocks: adding adapter N+1 reuses one implementation instead of copy-pasting subprocess/
+    snapshot wiring
+
+- id: AB-5
+  title: 'uniform provenance: every port, two tiers of strength'
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-5
+  evidence:
+  - recurvelib/adapters/_shared/provenance.py
+  observed: 'GREEN at baseline 2026-07-05: provenance is uniform across ports, two strengths,
+    and a failed/forged cryptographic claim demotes rather than silently accepting — the R2/R5
+    identity check (verified_different_identity) refuses a same-identity or unverified pair'
+  smallest_fix: recurvelib.adapters._shared.provenance.Provenance carries metadata_verified/
+    cryptographically_attested strength; a failed verification demotes to unverified; verified_different_identity
+    is the shared R2/R5 identity check.
+  probe: probes/ab-5.sh
+  unlocks: R2''s cross-model check and R5''s governor identity check share one, non-repudiable
+    verification primitive instead of two bespoke ones
+
+- id: AB-6
+  title: the adversary registry + off/same_model/cross_model adapters
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-6
+  evidence:
+  - recurvelib/adapters/adversary/
+  observed: 'GREEN at baseline 2026-07-05: the adversary registry resolves off/same_model/cross_model;
+    identity is verified from the reviewer''s actual served_model (never a requested flag),
+    and cross_model refuses a same-identity pair — the O6 bug class'
+  smallest_fix: recurvelib.adapters.adversary.ADVERSARY_ADAPTERS resolves off/same_model/
+    cross_model; cross_model refuses when its verified served_model does not verifiably differ
+    from the actor's, checked from the reviewer's actual reported identity.
+  probe: probes/ab-6.sh
+  unlocks: R2''s cross-model decorrelation is a real, invokable adapter, not prose in runtime.py
+
+- id: AB-7
+  title: the governor registry + off/mechanical/mechanical_review adapters
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-7
+  evidence:
+  - recurvelib/adapters/governor/
+  observed: 'GREEN at baseline 2026-07-05: the governor registry resolves off/mechanical/mechanical_review;
+    mechanical catches state leakage via fresh re-execution (not correlated authorship, by
+    design); mechanical_review catches a same-identity batch review, refusing rather than
+    silently clearing'
+  smallest_fix: recurvelib.adapters.governor.GOVERNOR_ADAPTERS resolves off/mechanical/ mechanical_review;
+    mechanical re-executes the cycle's probes+traps in a fresh isolated checkout, mechanical_review
+    reuses R2's identity machinery over the cycle's batch.
+  probe: probes/ab-7.sh
+  unlocks: R5''s two automated governor tiers are real, invokable adapters, not prose in a
+    PRD
+
+- id: AB-8
+  title: policy floor (AI9) + the mechanical governor default-on (AI10)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - AB-8
+  evidence:
+  - recurvelib/adapters/policy.py
+  observed: 'GREEN at baseline 2026-07-05: the mechanical governor tier is on by default in
+    a fresh suite (AI10); a claim''s min_governor_tier floors the effective tier regardless
+    of a weaker suite-wide default, and never weakens a stronger one (AI9)'
+  smallest_fix: recurve.toml gains [gate] adversary=/[gate] governor= (default mechanical);
+    Gap.min_governor_tier floors recurvelib.adapters.policy.effective_governor_tier at at
+    least that strength.
+  probe: probes/ab-8.sh
+  unlocks: a suite ships governor coverage by default, and a high-stakes claim can mandate
+    a stronger tier no ambient config can weaken
+
+- id: AB-9
+  title: one challenge_event schema, not two
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - AB-9
+  evidence:
+  - recurvelib/adapters/challenge_event.py
+  observed: 'GREEN at baseline 2026-07-05: challenge_event unifies R4''s reversal and R5''s
+    veto into one schema — phase distinguishes pre/post publication, reason is always required,
+    and the old separate shapes are refused outright'
+  smallest_fix: recurvelib.adapters.challenge_event.make_challenge_event/validate_challenge_event/
+    ChallengeLog unify R4's reversal and R5's veto into one schema; recurve stats reports
+    the combined, phase-sliceable rate.
+  probe: probes/ab-9.sh
+  unlocks: '"what tier of GREEN turned out to be wrong" has one answerable place to look,
+    before AND after publication'
+
+- id: AB-10
+  title: one registry, two consumers, no duplication
+  class: missing-surface
+  status: closed
+  severity: friction
+  reads: none
+  covers:
+  - AB-10
+  evidence:
+  - eval/evallib/arms.py
+  observed: 'GREEN at baseline 2026-07-05: eval/evallib''s arm composer resolves adversary=/governor=
+    through recurvelib''s own registry (imported, never reimplemented); A7-A10 are real, resolvable
+    arm entries'
+  smallest_fix: eval/evallib/arms.py imports ADVERSARY_ADAPTERS/GOVERNOR_ADAPTERS from recurvelib.adapters
+    instead of reimplementing them; A7-A10 resolve their adversary=/ governor= config through
+    the same registry objects.
+  probe: probes/ab-10.sh
+  unlocks: eval-full.md''s A7-A10 arms exist and resolve through the one implementation /recurve-work''s
+    own gate config also uses
+
+- id: AB-11
+  title: human_required's async state machine
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-11
+  evidence:
+  - recurvelib/adapters/governor/human_required.py
+  observed: 'GREEN at baseline 2026-07-05: human_required''s async state machine is real:
+    pending with no attestation, cleared/vetoed on a verified human signature bound to this
+    exact snapshot, demoted (never accepted) on a forged or tampered one. Mocked ONLY where
+    the key lives (a real Ed25519 keypair standing in for auths-core''s Secure-Enclave-gated
+    one) — the signature/verification machinery, and the identity-type discrimination, are
+    real.'
+  smallest_fix: recurvelib.adapters.governor.human_required implements pending_human_signoff,
+    write_attestation, and verify_attestation (signature, human-attested identity, replay/drift,
+    all fail-closed) — proven with a real Ed25519 keypair standing in for the Secure-Enclave
+    key.
+  probe: probes/ab-11.sh
+  unlocks: R5''s human tier is a real, invokable async state machine, not prose in a PRD
+
+- id: AB-12
+  title: the real Secure-Enclave production seam exists (honest limit)
+  class: missing-surface
+  status: closed
+  severity: friction
+  reads: none
+  covers:
+  - AB-12
+  evidence:
+  - crates/auths-core/src/storage/secure_enclave.rs (sibling auths repo)
+  observed: 'SKIP at authoring 2026-07-05 (never GREEN, by design): the real Secure-Enclave-gated
+    production seam (auths-core/secure_enclave.rs, the auths CLI''s sign/init entrypoints)
+    exists and matches AI6/§5a''s design exactly (verified against source) — a live Touch-ID/Face-ID
+    biometric consent event cannot be exercised by this unattended, autonomous process,
+    and this probe never attempts to trigger one. This entry was NOT promoted through the
+    normal baseline ceremony (which has no promotion path for a permanently-SKIP probe) —
+    constructed by hand, mirroring TK-2''s own precedent (an external oracle legitimately
+    absent from this checkout), and reviewed for honesty rather than measured GREEN.'
+  smallest_fix: 'probes/ab-12.sh verifies the structural markers (Touch-ID documentation,
+    a biometric-cancellation error path, a hardware-availability check, the auths CLI''s
+    sign/init entrypoints) then exits 3 (SKIP) with the reason above; never fabricates a
+    claim that a live biometric prompt was tested.'
+  probe: probes/ab-12.sh
+  unlocks: the human_required governor''s production key-storage backend is verified to exist
+    and match spec, with the one untestable step named honestly instead of laundered past
+  oracle_waiver: a live Touch-ID/Face-ID biometric consent event cannot be exercised by
+    an unattended, autonomous process — this is an interactivity limit on THIS INVOCATION,
+    not a claim that Secure Enclave hardware is absent from the machine; the structural
+    seam is verified for real above, and AB-11 proves everything up to this exact boundary
+    with a mocked human signer
+
+- id: AB-13
+  title: '[gate] governor= is invokable via config alone (the live wiring)'
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-13
+  evidence:
+  - recurvelib/analysis/decide_cli.py
+  - templates/workflows/burndown.sh
+  observed: 'GREEN at baseline 2026-07-05: [gate] governor= is invokable via config alone:
+    a real ''recurve decide'' subprocess  (the exact call burndown.sh''s stop_verdict() makes,
+    and the REAL sourced stop_verdict()  function itself) resolves mechanical_review through
+    the registry, invokes it, and  STOP-SUCCESS genuinely depends on its verdict — zero changes
+    to the loop'
+  smallest_fix: recurvelib.analysis.decide_cli.verdict_for_configured resolves [gate] governor=
+    through the registry, invokes the real adapter against the ledger's closed claims, and
+    feeds its verdict into decide() — the exact call stop_verdict() already makes, zero changes
+    to the loop.
+  probe: probes/ab-13.sh
+  unlocks: a configured governor genuinely supersedes STOP_SUCCESS in a live recurve run,
+    not just in an isolated regression fixture
+
+- id: AB-14
+  title: a real drill --diff disagreement records a challenge_event
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - AB-14
+  evidence:
+  - recurvelib/cli/commands/drill.py
+  - recurvelib/adapters/challenge_event.py
+  observed: 'GREEN at baseline 2026-07-05: a real drill --diff disagreement on a CLOSED claim
+    records a challenge_event  (phase: post_publication) with a real derived tier and a concrete
+    reason —  append-only, surfaced in recurve stats''s challenge-rate line, never a printed  line
+    nobody remembers'
+  smallest_fix: _record_diff_challenge in drill.py appends a real challenge_event (phase=post_publication)
+    via ChallengeLog when --diff finds a disagreement on a closed claim; recurve stats reports
+    the rate regardless of run-record presence.
+  probe: probes/ab-14.sh
+  unlocks: R4's "a later differential pass shows a GREEN wrong" is a real, recorded event,
+    not a printed line nobody remembers
+
+- id: AB-15
+  title: adding an adapter never touches the loop (the grep-based fixture)
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-15
+  evidence:
+  - recurvelib/loop/runtime.py
+  - recurvelib/loop/controller.py
+  observed: 'GREEN at baseline 2026-07-05: adding a deliberately trivial new adapter (a real,
+    registered, working EchoAdversary)  leaves runtime.py and controller.py byte-identical
+    — zero diff, zero content-hash  change — with a genuinely minimal two-file footprint'
+  smallest_fix: add a real, trivial, registered EchoAdversary to a temp clone (one adapter
+    file + one registry-line edit); assert git diff/content-hash against runtime.py and controller.py
+    is empty.
+  probe: probes/ab-15.sh
+  unlocks: AI2''s own named counterexample is a real, gated fixture, not just an architectural
+    claim taken on faith

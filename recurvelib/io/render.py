@@ -31,19 +31,36 @@ def dim(s: str) -> str:
     return f"{C['dim']}{s}{C['reset']}"
 
 
-def ledger_table(ledger: Ledger, label: str = "suite") -> str:
+def ledger_table(ledger: Ledger, label: str = "suite", cfg=None) -> str:
     rows = sorted(ledger.gaps, key=lambda g: (g.suite, _SEV_RANK.get(g.severity, 9), g.id))
-    out = [f"{C['bold']}gap         {label:<24} sev       class             status     probe{C['reset']}"]
+    tier_col = "oracle_tier            " if cfg is not None else ""
+    out = [f"{C['bold']}gap         {label:<24} sev       class             status     {tier_col}probe{C['reset']}"]
+    advisories = []
     for g in rows:
         probe = "—" if g.probe is None else g.probe.name
         sev_color = C["red"] if g.severity is Severity.HEADLINE else C["dim"]
+        tier_str = ""
+        if cfg is not None:
+            from recurvelib.analysis.oracle_tier import derive_tier, needs_oracle_advisory
+            tier = derive_tier(g, cfg)
+            tier_str = f"{tier.value:<24}"
+            if needs_oracle_advisory(g, cfg):
+                advisories.append(g)
         out.append(
             f"{g.id:<11} {g.suite[:24]:<24} "
             f"{sev_color}{g.severity.value:<9}{C['reset']} "
-            f"{g.gap_class.value:<17} {g.status.value:<10} {dim(probe)}"
+            f"{g.gap_class.value:<17} {g.status.value:<10} {tier_str}{dim(probe)}"
         )
     out.append("")
     out.append(dim(f"{len(rows)} gaps across {len(ledger.suites)} {label}s"))
+    if advisories:
+        out.append("")
+        out.append(dim(
+            f"weak-oracle advisory (R3) — {len(advisories)} closed claim(s) rest on "
+            f"self_probe/trap_hardened alone, no reference/adversary pass/oracle_waiver:"
+        ))
+        for g in advisories:
+            out.append(f"  {C['amber']}⚠{C['reset']} {g.id} — {dim(g.title)}")
     return "\n".join(out)
 
 
@@ -110,7 +127,7 @@ def freshness_table(reports, label: str = "suite") -> str:
     return "\n".join(out)
 
 
-def gap_detail(g: Gap, label: str = "suite") -> str:
+def gap_detail(g: Gap, label: str = "suite", cfg=None) -> str:
     lines = [
         f"{C['bold']}{g.id}{C['reset']}  {g.title}",
         dim(f"{label} {g.suite} · {g.gap_class.value} · {g.severity.value} · {g.status.value}"),
@@ -120,6 +137,15 @@ def gap_detail(g: Gap, label: str = "suite") -> str:
         f"unlocks:      {g.unlocks or '—'}",
         f"probe:        {g.probe or '—'}",
     ]
+    if cfg is not None:
+        from recurvelib.analysis.oracle_tier import derive_tier, needs_oracle_advisory
+        tier = derive_tier(g, cfg)
+        lines.append(f"oracle_tier:  {tier.value}")
+        if needs_oracle_advisory(g, cfg):
+            lines.append(
+                f"{C['amber']}⚠ weak oracle: closed on {tier.value} alone — no reference, "
+                f"no adversary pass, no oracle_waiver.{C['reset']}"
+            )
     if g.evidence:
         lines.append("evidence:")
         lines += [f"  {e}" for e in g.evidence]

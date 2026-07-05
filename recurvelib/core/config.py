@@ -115,6 +115,24 @@ class Config:
     # silences advisory validate warnings to preserve their historical output.
     traps: str = "required"
     quality: str = "pre-launch"   # the constitution preset (or a path)
+    # [gate] mechanical_references: glob patterns (relative to a suite dir)
+    # naming references that are mechanical ground truth (a real interpreter,
+    # a fixed dataset, a golden output — no model invoked in their own
+    # construction). Necessary but not sufficient for
+    # `oracle_tier.is_mechanical_reference` — the reference's own source is
+    # still scanned for an LLM/agent-invocation marker, so a mislabeled entry
+    # here cannot buy `differential_checked_mechanical` on its own.
+    mechanical_references: tuple[str, ...] = ()
+    # [gate] adversary: off (default) | same_model | cross_model — R2's
+    # per-claim decorrelation knob (docs/plans/oracle-strength-and-decorrelation.md).
+    # Off by default: opt-in, cost-aware (the house rule — a parameter, not a
+    # policy).
+    gate_adversary: str = "off"
+    # [gate] governor: off | mechanical (default, AI10) | mechanical_review |
+    # human_required — R5's run-level knob. Pre-launch, "mechanical" is the
+    # default: zero cost (re-execution of existing work, no new agent calls),
+    # and there is no existing deployment whose behavior this would change.
+    gate_governor: str = "mechanical"
     # [commit] — §11.1/§11.2: explicit, never prompting.
     commit_policy: str = "unsigned-per-cycle"   # none | unsigned-per-cycle | signed
     commit_hooks: str = "run"                   # run | gate-supersedes
@@ -141,6 +159,12 @@ class Config:
     # self_sha256 on stdin and its signature as the first argument, and exits 0
     # iff the signature is valid. recurve defines the seam, never the scheme.
     receipts_verifier: str = ""
+    # [gate] human_verifier: AI6's human_required governor tier verifies an
+    # attestation's signature through this command (same seam shape as
+    # [receipts] verifier — recurve defines the seam, never the scheme).
+    # Empty means `recurve governor approve` refuses outright: an
+    # attestation is never accepted without a way to verify it.
+    human_verifier: str = ""
     # [report] — the deterministic run report. narrator: optional command fed
     # the rendered report + the cycle records on stdin; its stdout becomes the
     # Narrative section. recurve defines the report, never the narration.
@@ -255,6 +279,15 @@ def load(path: Path) -> Config:
     traps = str(gate.get("traps", "required"))
     if traps not in ("required", "off"):
         raise ConfigError(f"{path}: [gate] traps must be required|off, got {traps!r}")
+    mechanical_references = tuple(str(p) for p in gate.get("mechanical_references", []))
+    gate_adversary = str(gate.get("adversary", "off"))
+    if gate_adversary not in ("off", "same_model", "cross_model"):
+        raise ConfigError(f"{path}: [gate] adversary must be off|same_model|cross_model, "
+                          f"got {gate_adversary!r}")
+    gate_governor = str(gate.get("governor", "mechanical"))
+    if gate_governor not in ("off", "mechanical", "mechanical_review", "human_required"):
+        raise ConfigError(f"{path}: [gate] governor must be "
+                          f"off|mechanical|mechanical_review|human_required, got {gate_governor!r}")
 
     commit = doc.get("commit", {})
     commit_policy = str(commit.get("policy", "unsigned-per-cycle"))
@@ -308,6 +341,9 @@ def load(path: Path) -> Config:
         forbidden_strings=tuple(str(s) for s in target.get("forbidden_strings", [])),
         schema_pin=str(project.get("schema", "")),
         traps=traps,
+        mechanical_references=mechanical_references,
+        gate_adversary=gate_adversary,
+        gate_governor=gate_governor,
         quality=str(gate.get("quality", "pre-launch")),
         commit_policy=commit_policy,
         commit_hooks=commit_hooks,
@@ -320,6 +356,7 @@ def load(path: Path) -> Config:
         drill_iso_flip_max=float(drill.get("iso_flip_max", 0.0)),
         receipts_signer=str(receipts.get("signer", "")),
         receipts_verifier=str(receipts.get("verifier", "")),
+        human_verifier=str(gate.get("human_verifier", "")),
         report_narrator=str(report.get("narrator", "")),
         report_narrator_timeout=int(report.get("narrator_timeout", 120)),
         report_suppression_patterns=suppression,

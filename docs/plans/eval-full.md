@@ -130,19 +130,31 @@ each ships with a trap.
 
 ```
 arms = {
-  A0  no-recurve          — agent + task, declares done itself   (control)
-  A1  plain-CI            — agent + repo's own test suite as CI gate, no claims/traps
-  A2  recurve, traps off  — claims + probes, RED-first disabled
-  A3  recurve full        — claims + probes + traps (default discipline)
-  A4  A3 + fuzz/iso/diff  — hardened
-  A5  A3, boundary off    — measures what the write boundary is worth
-  A6  A3, controller off  — measures what external stopping is worth
+  A0  no-recurve                       — agent + task, declares done itself (control)
+  A1  plain-CI                         — agent + repo's own test suite as CI gate, no claims/traps
+  A2  recurve, traps off               — claims + probes, RED-first disabled
+  A3  recurve full                     — claims + probes + traps (default discipline)
+  A4  A3 + fuzz/iso/diff               — hardened probes
+  A5  A3, boundary off                 — measures what the write boundary is worth
+  A6  A3, controller off               — measures what external stopping is worth
+  A7  A3 + adversary=cross_model       — per-claim decorrelation alone
+  A8  A3 + governor=mechanical         — free run-level re-execution check alone
+  A9  A3 + governor=mechanical_review  — run-level decorrelated review alone
+  A10 A3 + adversary=cross_model
+        + governor=mechanical_review  — full decorrelation stack (A7 + A9)
 }
 ```
 
 A0→A3 is the effect-size story; A2/A5/A6 vs A3 are the component
-attributions; A4 measures the hardening margin. Not every benchmark runs
-every arm (cost §7). The POC runs {A0, A3} only.
+attributions; A4 measures the hardening margin; A7–A10 (defined in
+`oracle-strength-and-decorrelation.md` §3a) measure the marginal value of
+per-claim adversary review vs. run-level governor review vs. both
+together — a ladder-plus-leave-one-out design, not a full factorial
+(the full cross product of every switch here runs into the hundreds of
+arms and is deliberately not attempted). Every arm's resolved `[gate]`
+config is recorded verbatim in its results rows, not just the arm label.
+Not every benchmark runs every arm (cost §7). The POC runs {A0, A3} only;
+A7–A10 are E4/ablation-phase arms.
 
 ## 5 · Provider-agnostic model matrix — what's actually needed
 
@@ -264,6 +276,11 @@ mid-tier because weak models can't operate the harness?
 **E5 — Decorrelation (the §2.9 residue).** Over E1's defect corpus: actor
 authors a fix, adversary reviews via the capture rule; measure
 miss-correlation ρ for same-model vs cross-model actor/adversary pairs.
+Concretely, this is arms A7/A8/A9/A10 vs A3 (`oracle-strength-and-
+decorrelation.md` §3a): A7 isolates per-claim adversary review, A8/A9
+isolate the run-level governor's mechanical and review tiers, A10 is
+both combined — giving marginal detection per decorrelation mechanism,
+not just "decorrelation helps or it doesn't."
 
 **E6 — Strong-oracle track.** miniF2F subset with Lean-kernel probes (the
 navier-style probe engine generalizes): the same A0-vs-A3 design where the

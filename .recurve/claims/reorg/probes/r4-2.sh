@@ -12,7 +12,15 @@ set -u
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$DIR/../../../.." && pwd)"
 
-MODS='model|probe|conformance|freshness|baseline|config|run|controller|runtime|adapters|lock|cycle|parked|demo|records|receipts|pack|importer|report|render|init|status|adjudicate|triage|frontier|frontier_cli|coverage|completeness|measured|surface|admission|claimify|fidelity|sense_cli|decide_cli'
+# NOTE: 'adapters' deliberately excluded as of docs/plans/ablation-infra.md —
+# the name was retired when recurvelib/adapters.py moved to
+# recurvelib/loop/adapters.py, but ablation-infra.md reincarnated it as a
+# real, live top-level PACKAGE (recurvelib/adapters/{snapshot,isolation,...}).
+# `from recurvelib.adapters import X` is syntactically identical whether X
+# names an attribute of an old flat module or a submodule of a new package —
+# unlike every other still-genuinely-retired name below, "adapters" is no
+# longer retired, so it must not be flagged here.
+MODS='model|probe|conformance|freshness|baseline|config|run|controller|runtime|lock|cycle|parked|demo|records|receipts|pack|importer|report|render|init|status|adjudicate|triage|frontier|frontier_cli|coverage|completeness|measured|surface|admission|claimify|fidelity|sense_cli|decide_cli'
 
 # retired_refs <root> — echo .sh/.py files whose IMPORT statements still name a
 # retired flat recurvelib.<mod> path (a moved module directly under recurvelib,
@@ -22,7 +30,12 @@ retired_refs() {
   local root="$1" f
   while IFS= read -r f; do
     case "$f" in */reorg/probes/r4-2.sh) continue ;; esac
-    grep -qE "(from|import)[[:space:]]+recurvelib\.($MODS)\b" "$f" 2>/dev/null && printf '%s\n' "$f"
+    # The trailing alternation requires a true LEAF reference (whitespace or
+    # end of line right after the module name) — `recurvelib.adapters.snapshot`
+    # (a NEW subpackage, docs/plans/ablation-infra.md) must NOT match just
+    # because it shares a prefix with the OLD retired flat `recurvelib.adapters`
+    # module; only a bare `recurvelib.adapters` (no further `.subpath`) does.
+    grep -qE "(from|import)[[:space:]]+recurvelib\.($MODS)([[:space:]]|\$)" "$f" 2>/dev/null && printf '%s\n' "$f"
   done < <(find "$root" \( -name '*.sh' -o -name '*.py' \) 2>/dev/null)
 }
 

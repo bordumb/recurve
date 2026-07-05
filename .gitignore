@@ -1,6 +1,17 @@
 __pycache__/
 *.pyc
 
+# some contributors' global excludesfile ignores `target/` (a Rust
+# build-artifact convention) — this is a Python project with no such
+# artifact, and recurve's own fixtures legitimately use directories
+# literally named `target/` (a throwaway project a pack installs into, a
+# fresh-checkout governor/adversary snapshot). Un-ignore them explicitly so
+# they don't silently vanish from `git add` the way
+# .recurve/claims/toolkit/probes/tk-28.trap/claims-ledger-injected/target/
+# once did (recovered via `git add -f`).
+!/**/target/
+!/**/target/**
+
 # run state (parked gaps, run records, receipts) — each install accumulates
 # its own; commit it per-project if you want the dataset in history
 .recurve/state/

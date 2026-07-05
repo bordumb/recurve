@@ -1,0 +1,1 @@
+the dollar burndown truncates fractional per-cycle cost to zero (int accounting), so the per-cell dollar cap never binds and the burndown runs unbounded

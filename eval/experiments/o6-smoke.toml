@@ -1,0 +1,35 @@
+# O6 — the live $1 smoke: one real task × four cells (2 models × 2 arms) through
+# the FULL paid pipeline. Same dataset pin + oracle env as the pilot, so the
+# oracle_env_hash matches the calibration and the spend gate admits. Sequential
+# (grade_concurrency=1) for a clean first real run. Spend ceiling: <= $2.
+[experiment]
+name = "o6-smoke"
+question = "Does the full paid path produce analyze-complete rows with real telemetry?"
+
+[matrix]
+models  = ["claude-haiku-4-5", "claude-sonnet-5"]
+arms    = ["A0", "A3"]
+budgets = [0.20]   # DOLLARS per cell (--max-budget-usd); tight so the cap visibly binds
+seeds   = [0]
+
+[tasks]
+benchmark = "bigcodebench-hard"
+local     = "datasets/bigcodebench-hard@298d2cc7b96612e15e47313c3603ee124cee0c1f.jsonl"
+revision  = "298d2cc7b96612e15e47313c3603ee124cee0c1f"
+hash      = "e2f21cd5dc768bcd9a5bbd2fa6225855c431abd1a73f4cfc736799f548a883fd"
+count     = 148
+sample    = { n = 1, seed = 7 }             # one task for the smoke
+exclusions = "exclusions/bcb-hard.json"
+
+[oracle]
+runs = 3
+verdict = "majority"
+grade_concurrency = 1   # sequential smoke
+
+[oracle.env]
+mode     = "docker"
+image    = "recurve-bcb-oracle"
+digest   = "sha256:0e0d0a9814676fc8ed7da7710d9248ded382ea75ceaec3bfe156316d7af2f713"
+platform = "linux/amd64"
+network  = "none"
+timeout  = "calibrated"

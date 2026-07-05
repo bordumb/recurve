@@ -1,0 +1,1 @@
+derive_calibration produces a 'valid' calibration for a harness that fails most canonical solutions, by excluding them all — laundering a harness bug into exclusions

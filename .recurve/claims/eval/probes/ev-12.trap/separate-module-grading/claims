@@ -1,0 +1,1 @@
+the oracle grades solution and test as separate modules, so the canonical solution (which cannot be wrong) errors — a harness bug that inflates shipped-bad-work toward the paper's headline

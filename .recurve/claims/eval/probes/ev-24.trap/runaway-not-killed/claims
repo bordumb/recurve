@@ -1,0 +1,1 @@
+a runaway agent session (and the children it spawned) is left to run to completion instead of being hard-killed at the wall-clock backstop — unbounded spend the harness failed to stop

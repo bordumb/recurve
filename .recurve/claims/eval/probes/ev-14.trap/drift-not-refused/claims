@@ -1,0 +1,1 @@
+resolve_oracle_lock accepts a locally-present image digest that disagrees with the manifest pin — the retag/drift hole the dataset hash already closes

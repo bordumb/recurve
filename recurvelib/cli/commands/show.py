@@ -18,4 +18,4 @@ def cmd_show(args):
     if not g:
         print(f"unknown gap id: {args.gap_id}", file=sys.stderr)
         raise SystemExit(2)
-    print(render.gap_detail(g, cfg.label))
+    print(render.gap_detail(g, cfg.label, cfg=cfg))

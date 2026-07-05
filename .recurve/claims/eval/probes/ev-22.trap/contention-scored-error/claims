@@ -1,0 +1,1 @@
+a grading slowed past its timeout by concurrency contention is scored as an oracle error instead of being retried serially — contention becomes a false failure that inflates the headline

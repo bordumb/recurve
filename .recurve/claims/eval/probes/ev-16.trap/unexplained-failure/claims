@@ -1,0 +1,1 @@
+derive_calibration produces a calibration when a canonical solution fails with NO registered exclusion reason — an unexplained failure (a harness bug or undocumented exclusion) is laundered through

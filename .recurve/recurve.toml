@@ -22,6 +22,16 @@ hooks = "run"
 [gate]
 traps = "required"
 quality = "pre-launch"
+# AI10 (docs/plans/ablation-infra.md) makes "mechanical" the engine's default
+# for a FRESH suite (zero cost, no existing deployment to break). This repo's
+# own dogfooding ledger predates AI10 and already carries 195+ claims across
+# suites whose probes build real temp git repos/subprocesses — a full
+# mechanical re-execution (git-archiving this whole tree, re-parsing the
+# ledger, re-running every closed probe+trap) on every green `recurve decide`
+# call has not been perf/compat-vetted at this scale yet. Explicit opt-out
+# here; AB-8/AB-10's claims prove the engine-level default is still
+# "mechanical" for any project that doesn't override it.
+governor = "off"
 
 [reads.none]
 method = "none"
@@ -69,4 +79,19 @@ harness = []
 [suites.reorg]
 dir = ".recurve/claims/reorg"
 rebuild = ""               # differential vs a pinned baseline engine (git archive); nothing to copy
+harness = []
+
+[suites.eval]
+dir = ".recurve/claims/eval"
+rebuild = ""               # the eval/ pipeline is stdlib-only at its core; probes drive it directly
+harness = []
+
+[suites.decorrelation]
+dir = ".recurve/claims/decorrelation"
+rebuild = ""               # pure engine module (recurvelib.analysis.oracle_tier); nothing to copy
+harness = []
+
+[suites.ablation]
+dir = ".recurve/claims/ablation"
+rebuild = ""               # pure engine module (recurvelib.adapters); nothing to copy
 harness = []

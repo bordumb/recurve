@@ -1,0 +1,511 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: EV-1
+  title: TaskStore pins the benchmark to a content hash
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-1
+  evidence:
+  - eval/evallib/taskstore.py
+  observed: 'GREEN at baseline 2026-07-04: OK ⏎ taskstore pins to a content hash, reports
+    count, and detects tampering (real HF fetch oracle-waived: datasets absent)'
+  smallest_fix: taskstore.load_jsonl/content_hash/verify_pin pin a task set to a deterministic
+    SHA-256 over canonical content and reject a tampered dataset against its pin
+  probe: probes/ev-1.sh
+  unlocks: every downstream number is anchored to an immutable, verifiable benchmark revision
+  oracle_waiver: fetching the real BigCodeBench-Hard revision from HuggingFace needs the optional
+    datasets dependency; the pinning logic is tested hermetically against a fixture, and the
+    real fetch runs full-strength where datasets is importable
+
+- id: EV-2
+  title: Materializer builds A0/A3 workspaces and quarantines the oracle
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-2
+  evidence:
+  - eval/evallib/materialize.py
+  - eval/evallib/arms.py
+  observed: 'GREEN at baseline 2026-07-04: OK ⏎ materializer builds A0/A3 workspaces and quarantines
+    the hidden test'
+  smallest_fix: arm_spec maps A0/A3 to their workspace specs; materialize builds a git-init'd
+    workspace (A0 bare, A3 recurve-init'd) writing only the task statement + empty solution.py;
+    assert_quarantined refuses any workspace containing the hidden test text
+  probe: probes/ev-2.sh
+  unlocks: the held-out oracle can never leak into an agent's workspace — the precondition
+    for every honest FDR number
+
+- id: EV-3
+  title: 'Runner: pinned matrix + crash-resilient resumable queue'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-3
+  evidence:
+  - eval/evallib/plan.py
+  - eval/evallib/runner.py
+  - eval/evallib/adapters
+  observed: 'GREEN at close 2026-07-05: runner: pinned matrix + per-cell durable sealing (crash-resilient,
+    error-isolated, resumable)'
+  smallest_fix: plan.expand writes a deterministic cross-product matrix; runner.run seals each
+    row durably (append+flush+fsync) the moment its cell finishes, isolates a raising cell as
+    status=error, skips sealed ids on resume, and tolerates a truncated final line
+  probe: probes/ev-3.sh
+  unlocks: an interrupted run resumes safely and re-running is always free — the precondition
+    for a long, expensive matrix
+
+- id: EV-4
+  title: 'Quarantine evaluator: isolated oracle, 3x majority, tamper-refused'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-4
+  evidence:
+  - eval/evallib/quarantine.py
+  observed: 'GREEN at baseline 2026-07-04: quarantine runs the hidden suite 3x (majority +
+    flake) and refuses a tampered oracle'
+  smallest_fix: oracle_verdict runs the hidden suite N times in an isolated subprocess and
+    returns a majority verdict + flake rate; evaluate refuses to grade unless the test text
+    matches the checksum pinned at fetch time (OracleTamperError)
+  probe: probes/ev-4.sh
+  unlocks: every FDR number rests on a held-out oracle that is isolated, flake-controlled,
+    and tamper-evident
+
+- id: EV-5
+  title: 'Analysis: deterministic tables from results.jsonl'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-5
+  evidence:
+  - eval/evallib/analyze.py
+  observed: 'GREEN at baseline 2026-07-04: analyze is deterministic + order-invariant; FDR/ΔFDR/shipped-bad
+    computed correctly'
+  smallest_fix: analyze_rows sorts the results and renders the §4 tables (shipped-bad rate,
+    FDR, ΔFDR, oracle pass rate, Wilson intervals, paired McNemar) as a byte-stable, order-invariant
+    pure function — stdlib only
+  probe: probes/ev-5.sh
+  unlocks: the run dir reads like a lab notebook — results.jsonl in, the same tables out,
+    reproducible from the JSONL alone
+
+- id: EV-6
+  title: 'Orchestrator: agent to oracle to one analyze-ready row'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-6
+  evidence:
+  - eval/evallib/orchestrate.py
+  observed: 'GREEN at close 2026-07-05: orchestrator: all endings, terminal-state outcome,
+    sequencing guard, resume, decoupled by arm property'
+  smallest_fix: make_orchestrator runs the agent, refuses to quarantine until it terminated,
+    grades solution.py against the pinned oracle, and seals a row with declared_done +
+    oracle_verdict + terminal_state/gate_outcome (for a recurve-gated arm, routed by the
+    arm's property not its name) + provenance; row_is_complete refuses an incomplete row
+  probe: probes/ev-6.sh
+  unlocks: the run produces the joined (declared, oracle) rows analyze needs — the dependent
+    variable is actually recorded
+
+- id: EV-7
+  title: 'Gated-run outcome classifier: refusal vs process-failure'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-7
+  evidence:
+  - eval/evallib/classify.py
+  observed: 'GREEN at close 2026-07-05: classify_gated_run splits declared / gate_refused /
+    process_failed from (workspace, terminal_state) at every boundary'
+  smallest_fix: classify_gated_run(workspace, terminal_state) returns process_failed on no
+    claim / broken gate / red-but-crashed, declared on a green gate, gate_refused only on a
+    red gate that ended on budget exhaustion — a process failure is never credited to the gate
+  probe: probes/ev-7.sh
+  unlocks: the A3 numbers are interpretable — the gate's refusals are separated from the weak
+    model's failures to operate the harness
+
+- id: EV-8
+  title: Telemetry + token-cap enforcement (budget-matched)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-8
+  evidence:
+  - eval/evallib/adapters/telemetry.py
+  - eval/evallib/budget.py
+  - eval/evallib/adapters/claude.py
+  observed: 'GREEN at close 2026-07-05: telemetry captures the price of trust; run_gated_burndown
+    enforces a per-cell cap (bounded overshoot, stop_reason recorded)'
+  smallest_fix: parse_usage + cost_usd (raises on an unpriced model) + wall_clock capture the
+    price of trust; run_gated_burndown accumulates a cell's spend across cycles against one
+    budget and stops at the cap (per-cell, bounded overshoot), reporting the stop_reason EV-6/7
+    consume; the gated Claude adapter drives the real run through it
+  probe: probes/ev-8.sh
+  unlocks: the price-of-trust metrics have a data source and the key budget-matching control
+    is actually enforced, not assumed
+
+- id: EV-9
+  title: 'Figures as data: deterministic, honest, byte-stable'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-9
+  evidence:
+  - eval/evallib/analyze.py
+  - eval/evallib/render.py
+  observed: 'GREEN at close 2026-07-05: render OK ⏎ figure_specs is deterministic + honest
+    (brackets its CIs); matplotlib render is byte-stable'
+  smallest_fix: figure_specs computes the hero dumbbell + decomposition as a deterministic,
+    order-invariant pure function (roles inferred from gate_outcome, not arm names); spec_is_honest
+    guards the full 0-100% axis + synthetic watermark; render.py draws them byte-stably and
+    analyze_and_emit renders alongside the tables
+  probe: probes/ev-9.sh
+  unlocks: publication-grade figures that regenerate from results.jsonl with one command and
+    cannot drift from the tables — no notebook in the truth path
+  oracle_waiver: byte-stable rendering needs the optional matplotlib dependency; figure_specs
+    + spec_is_honest are tested hermetically, and the render is verified full-strength where
+    matplotlib is importable
+
+- id: EV-10
+  title: 'Run pipeline: the conductor `recurve run` actually drives'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-10
+  evidence:
+  - eval/evallib/run_pipeline.py
+  - eval/evallib/cli.py
+  observed: 'GREEN at close 2026-07-05: pipeline: materialize-first, arm-property routing (bare/gated),
+    analyze-complete rows, cmd_run wired'
+  smallest_fix: make_pipeline_adapter composes materialize (EV-2) + orchestrator (EV-6) into
+    one adapter — materialize runs before the agent (it reads TASK.md, is never clobbered),
+    the bare/gated agent is chosen by the arm's recurve property (both injectable, so a mocked
+    run never imports the paid agent), and analyze-complete rows come out; cmd_run re-resolves
+    the pinned tasks with their hidden test from the frozen manifest, stamps provenance, and
+    drives this adapter with the cap read per-cell from each cell's budget
+  probe: probes/ev-10.sh
+  unlocks: '`recurve run` actually produces the joined (declared, oracle) rows analyze needs —
+    the pipeline is wired end to end, not merely its parts'
+
+- id: EV-11
+  title: The oracle grades in a configurable isolated interpreter
+  class: wire-mismatch
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-11
+  evidence:
+  - eval/evallib/quarantine.py
+  observed: 'GREEN at close 2026-07-05: oracle grades in the configured isolated interpreter
+    (RECURVE_ORACLE_PYTHON), tamper-refused, sys.executable fallback'
+  smallest_fix: quarantine.oracle_python() returns RECURVE_ORACLE_PYTHON or sys.executable and
+    _run_once launches the hidden suite under it, so a real run grades in the dedicated
+    BigCodeBench venv (whose third-party deps the tests need) while hermetic tests keep grading
+    under the current interpreter; the pin check stays upstream so a tampered oracle is refused
+    regardless of interpreter
+  probe: probes/ev-11.sh
+  unlocks: real BigCodeBench-Hard solutions can actually be graded (their tests' heavy deps live
+    in an isolated venv) instead of every one mis-scored as an error under the eval tooling's Python
+
+- id: EV-12
+  title: The oracle grades the substrate's namespace (concatenation)
+  class: wire-mismatch
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - EV-12
+  evidence:
+  - eval/evallib/quarantine.py
+  - .recurve/claims/eval/fixtures/bcb-hard-854.json
+  observed: 'GREEN at close 2026-07-05: oracle grades the substrate''s namespace: real canonical
+    solution passes, corruption caught, entry point shared not imported'
+  smallest_fix: _run_once concatenates solution + test into one oracle_case module (entry point
+    task_func a shared module global, as all 148 BCB-Hard tests reference it) instead of grading
+    them as separate modules — which turned the canonical solution, which cannot be wrong, into
+    a fail; the permanent fixture is a real pinned BCB-Hard task with its real canonical solution
+  probe: probes/ev-12.sh
+  unlocks: real solutions are graded the way the benchmark grades them — the precondition for any
+    honest number, and the class of harness bug that silently inflates the paper's own headline
+
+- id: EV-13
+  title: Oracle environment declared and digest-pinned (intent)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-13
+  evidence:
+  - eval/evallib/oracle_env.py
+  observed: 'GREEN at close 2026-07-05: oracle env spec: docker requires an immutable sha256
+    digest, bare tag/tag-smuggling refused, local allowed'
+  smallest_fix: oracle_env.parse_oracle_env validates [oracle.env] and requires a docker oracle
+    to carry an immutable sha256:<64hex> digest (a bare tag is mutable and unpinnable), refusing
+    a tag/digest smuggled into the image name; a local mode stays available for hermetic tests
+  probe: probes/ev-13.sh
+  unlocks: the oracle that grades every solution is declared and pinned like the dataset — the
+    intent half of making two runs' oracles provably identical or provably different
+
+- id: EV-14
+  title: Oracle env resolved and locked; refuse-on-drift (resolution)
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-14
+  evidence:
+  - eval/evallib/oracle_env.py
+  observed: 'GREEN at close 2026-07-05: oracle env resolved to a lock; digest drift refused;
+    oracle_env_hash is identity-sensitive and calibration-independent'
+  smallest_fix: resolve_oracle_lock resolves the spec against the machine (local image digest,
+    platform, container python, wrapper hash, host) and raises OracleDriftError when the
+    locally-present digest disagrees with the manifest or is absent; oracle_env_hash digests the
+    verdict-affecting identity subset only, excluding the calibration-derived timeout/exclusions
+    it keys, so an env change invalidates a stale calibration automatically
+  probe: probes/ev-14.sh
+  unlocks: two runs' oracles are provably the same or provably different by one hash, and drift
+    is refused at plan time — the resolution half of naturalizing the oracle
+
+- id: EV-15
+  title: Every row records which oracle graded it
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-15
+  evidence:
+  - eval/evallib/orchestrate.py
+  observed: 'GREEN at close 2026-07-05: every row records which oracle graded it (oracle_env_hash),
+    required by row_is_complete'
+  smallest_fix: orchestrate stamps oracle_env_hash from provenance into every row and adds it to
+    REQUIRED_ROW_FIELDS, so row_is_complete refuses a row that cannot say which oracle graded it
+  probe: probes/ev-15.sh
+  unlocks: '"graded by which oracle?" is answerable per row forever — the rows dereference to the
+    lock, so two rows are provably the same or different oracle without carrying the whole env'
+
+- id: EV-16
+  title: 'Calibration: the gate with teeth (canonical solutions can''t be wrong)'
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - EV-16
+  evidence:
+  - eval/evallib/calibration.py
+  observed: 'GREEN at close 2026-07-05: calibration: registered exclusions with reasons,
+    unexplained failure refused, broken harness refused, admits only the matching env/dataset
+    with untouched table'
+  smallest_fix: derive_calibration refuses unless every non-pass canonical is a registered
+    exclusion with a reason (an unexplained failure is a harness bug or undocumented exclusion —
+    refuse), refuses when non-pass exceeds a cap even with reasons, records the reasons + a content
+    hash of the registered table, and derives the timeout from the canonical p99;
+    calibration_admits_spend refuses no calibration / stale oracle-env key / different dataset /
+    edited table / low pass rate, keyed by (oracle_env_hash, dataset_hash)
+  probe: probes/ev-16.sh
+  unlocks: the structural defense that only passes when the harness is actually sound — every
+    bias-toward-headline bug, found or latent, drops the canonical pass rate and blocks the spend
+
+- id: EV-17
+  title: The spend gate is wired into the paid path
+  class: wire-mismatch
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - EV-17
+  evidence:
+  - eval/evallib/cli.py
+  - eval/evallib/oracle_docker.py
+  - eval/oracle/oracle_docker.sh
+  observed: 'GREEN at close 2026-07-05: spend gate wired: cmd_run refuses (before any task or
+    agent, sealing nothing) unless the oracle env is calibrated'
+  smallest_fix: cmd_run calls assert_spend_admitted first (before resolving tasks or building the
+    adapter), which finds the calibration keyed by the lock''s oracle_env_hash and refuses or
+    returns it with the resolved timeout; plan writes oracle.lock.json (refusing an unresolvable
+    oracle) and a docker run points RECURVE_ORACLE_PYTHON at the pinned-image wrapper
+  probe: probes/ev-17.sh
+  unlocks: the calibration gate has teeth in the actual paid path — a run on an uncalibrated,
+    possibly-broken oracle costs nothing, refused before the first cell
+
+- id: EV-18
+  title: The oracle image is derivable-from-repo, reconciled to the pin
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-18
+  evidence:
+  - eval/evallib/oracle_build.py
+  - eval/oracle/Dockerfile.nltk
+  - eval/evallib/cli.py
+  observed: 'GREEN at close 2026-07-05: oracle image is derivable-from-repo: reconcile refuses a
+    divergent rebuild, plan names the build-verb remediation'
+  smallest_fix: oracle_build.reconcile_digest returns match or refuses a divergent rebuild with a
+    remediation naming the re-pin + recalibrate steps; missing_image_remediation names `eval oracle
+    build`; the cmd_oracle_build verb builds deterministically (buildx attestations off) from the
+    committed Dockerfile.nltk and reconciles; plan's missing-image error names the remediation
+  probe: probes/ev-18.sh
+  unlocks: a fresh clone derives the exact oracle image from committed files with one command, and
+    a rebuilt image can never silently become a different, uncalibrated oracle
+  oracle_waiver: the actual docker build + grade need docker (build-time network); the reconcile +
+    remediation logic is tested hermetically and the verb runs full-strength where docker is present
+
+- id: EV-19
+  title: 'Warm oracle container: one start per run, docker exec per grading'
+  class: friction
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-19
+  evidence:
+  - eval/evallib/warm_oracle.py
+  - eval/evallib/quarantine.py
+  - eval/evallib/cli.py
+  observed: 'GREEN at close 2026-07-05: warm oracle: one container start per batch, docker exec
+    per grading, fresh workdir, retag-refused, dead-container restart+re-grade'
+  smallest_fix: WarmOracle starts one container from the pinned digest and execs per grading
+    (starts bounded by workers, not gradings), refuses a mismatched-image container, gives each
+    grading a fresh workdir, and restarts+re-grades on a mid-run death; quarantine grades through
+    a pluggable backend the run installs; the warm grader is folded into the oracle-env identity
+  probe: probes/ev-19.sh
+  unlocks: the ~1,776-grading full run pays the container tax once (per worker), not per grading —
+    ~15-45 min of pure startup removed — without weakening isolation or the digest pin
+  oracle_waiver: real container start/exec need docker; the start-once / exec-per-grade / restart /
+    retag-refuse orchestration is tested hermetically with an injected runner and verified live
+
+- id: EV-20
+  title: The end-to-end smoke fixture is the substrate, not a hand-authored idealization
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-20
+  evidence:
+  - eval/evallib/smoke.py
+  - .recurve/claims/eval/fixtures/bcb-hard-854.json
+  observed: 'GREEN at close 2026-07-05: smoke fixture is a real substrate task (OK full fidelity):
+    canonical passes, known-bad mutant fails, absence/drift refused'
+  smallest_fix: smoke.assert_fixture_faithful refuses a fixture whose task id is absent from the
+    pinned dataset or whose test drifted from the dataset's own test for that id; grade_fixture
+    grades the canonical (pass) and a committed known-bad mutant (fail) via the shared-namespace
+    convention; the fixture is a real pinned BCB-Hard task, byte-verified against the dataset
+  probe: probes/ev-20.sh
+  unlocks: mock-vs-substrate drift is structurally impossible — the smoke that guards the whole
+    pipeline is the benchmark's own task, and it can detect a bad solution
+  oracle_waiver: the byte-match against the full gitignored dataset needs it present; the fidelity
+    logic + canonical/mutant grading are tested hermetically and run full-strength where present
+
+- id: EV-21
+  title: 'Calibration honesty: timeout floor + the regression turns it RED'
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-21
+  evidence:
+  - eval/evallib/calibration.py
+  observed: 'GREEN at close 2026-07-05: calibration: timeout is max(floor, p99 x k); a
+    separate-modules regression or a broken canonical turns it RED'
+  smallest_fix: derive_calibration's timeout is max(timeout_floor, ceil(p99 x timeout_k)) with
+    both as config knobs (no knife-edge timeout on a fast suite); and the real canonical graded
+    the historical separate-modules way comes back non-pass, so a calibration built from that
+    grading is refused — a reintroduced namespace bug can never pass calibration
+  probe: probes/ev-21.sh
+  unlocks: calibration is neither brittle (a floor'd timeout) nor vacuous (the grading-path bug
+    class provably turns it RED) — the pre-spend gate stays meaningful
+
+- id: EV-22
+  title: Grading concurrency that cannot corrupt a verdict
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-22
+  evidence:
+  - eval/evallib/grade_policy.py
+  - eval/evallib/oracle_env.py
+  - eval/evallib/cli.py
+  observed: 'GREEN at close 2026-07-05: grading concurrency: matches the lock; a timeout gets ONE
+    genuinely-exclusive serial retry (rc==124 only); a failure is never retried'
+  smallest_fix: grade_policy.RWLock gives the timeout retry a genuinely contention-free window
+    (normal grades take read, the retry takes write and drains in-flight work), so the retry is
+    verdict-independent and grade_concurrency can sit in the lock outside the identity; the retry
+    fires on rc==124 only (a failure mentioning "timeout" is not retried); assert_concurrency_matches
+    refuses a run whose concurrency differs from the lock; cmd_run enforces the match + wraps the grader
+  probe: probes/ev-22.sh
+  unlocks: the paid run can parallelize grading for wall-clock without a contention-induced
+    timeout ever becoming a false oracle error — speed never corrupts a verdict
+
+- id: EV-23
+  title: The budget-matched control is dollars, not tokens
+  class: wire-mismatch
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - EV-23
+  evidence:
+  - eval/evallib/adapters/telemetry.py
+  - eval/evallib/budget.py
+  observed: 'GREEN at close 2026-07-05: budget in dollars: parse_cost reads the real billed cost,
+    the burndown is float-safe and stops at the per-cell dollar cap'
+  smallest_fix: telemetry.parse_cost reads the real billed total_cost_usd (cache-aware) from the
+    agent report; TokenBudget is float-safe (no int truncation), so run_gated_burndown accumulates
+    real per-cycle dollars against a per-cell dollar cap and stops bounded by cap + one cycle —
+    the token cap could never bound a claude -p session (143k-1.15M tokens per session, per O6)
+  probe: probes/ev-23.sh
+  unlocks: arms can be matched on dollars, the only unit that actually bounds a claude -p session —
+    and the price of trust is recorded from the real bill, not a cache-blind token estimate
+
+- id: EV-24
+  title: 'Hard-kill watchdog: the harness bounds spend, trusting nothing'
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - EV-24
+  evidence:
+  - eval/evallib/watchdog.py
+  observed: 'GREEN at close 2026-07-05: watchdog: hard-kills a runaway session and its children
+    near the wall_timeout, spares a well-behaved one, delivers stdin'
+  smallest_fix: watchdog.run_agent_capped runs each agent invocation in its own process group and
+    SIGKILLs the WHOLE group on a wall-clock overrun (the agent and any children), so a runaway
+    session cannot bill unbounded even if --max-budget-usd is ignored; a well-behaved session
+    returns untouched with output + stdin delivered
+  probe: probes/ev-24.sh
+  unlocks: budget-matching that does not trust the agent to police its own spend — the harness
+    enforces the bound with a hard kill, the layer beneath the self-limit and the between-cycle check
+

@@ -1,0 +1,1 @@
+the timeout retry only serializes retries against each other but runs concurrently with in-flight first-attempt gradings — not genuinely contention-free, so a contention-slowed grade can time out twice and be scored an error at high concurrency

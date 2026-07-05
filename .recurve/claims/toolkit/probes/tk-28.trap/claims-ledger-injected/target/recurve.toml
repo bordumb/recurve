@@ -1,0 +1,19 @@
+[project]
+name = "fixture"
+label = "suite"
+default_reads = "none"
+cycles_dir = "claims/cycles"
+schema = "1"
+
+[target]
+tree = "."
+
+[gate]
+traps = "off"
+quality = "pre-launch"
+
+[reads.none]
+method = "none"
+
+[suites.s]
+dir = "claims/s"

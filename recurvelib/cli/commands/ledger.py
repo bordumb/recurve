@@ -14,4 +14,4 @@ from ..base import (
 def cmd_ledger(args):
     from recurvelib.io import render
     cfg = _config(args)
-    print(render.ledger_table(_load(cfg), cfg.label))
+    print(render.ledger_table(_load(cfg), cfg.label, cfg=cfg))

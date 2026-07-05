@@ -1,0 +1,1 @@
+parse_cost returns $0 for a report that carries a real total_cost_usd — a paid run recorded as free, understating the price of trust

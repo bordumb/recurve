@@ -1,0 +1,1 @@
+the derived per-task timeout ignores the floor, so a suite of fast canonicals yields a knife-edge timeout that flakes a slow cell into an error

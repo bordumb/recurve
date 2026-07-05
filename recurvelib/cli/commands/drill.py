@@ -11,13 +11,52 @@ from ..base import (
     _draft_backlog,
 )
 
+
+def _record_diff_challenge(cfg, gap, probe_r, ref_r) -> None:
+    """R4/AI8: `drill --diff` finding a real disagreement on a CLOSED
+    claim's CURRENT state is exactly "a later differential pass" showing a
+    published GREEN wrong — record it as a `challenge_event`
+    (`phase="post_publication"`), not a printed line nobody remembers.
+    Failure to record is never fatal to the drill itself (observability,
+    not control flow — matching the report-posting convention elsewhere in
+    the loop)."""
+    try:
+        from recurvelib.adapters.challenge_event import make_challenge_event, ChallengeLog
+        from recurvelib.analysis.oracle_tier import derive_tier
+        tier = derive_tier(gap, cfg)
+        event = make_challenge_event(
+            claim_id=gap.id,
+            phase="post_publication",
+            tier_at_challenge=tier.value,
+            reason=(f"drill --diff disagreement: probe={probe_r.outcome.value} "
+                   f"reference={ref_r.outcome.value} against reference {gap.reference}"),
+        )
+        ChallengeLog(cfg, gap.suite).append(event)
+    except Exception:
+        pass
+
+
 def cmd_drill(args):
     """The sabotage audit: re-prove the guards can still catch their defects.
     Trap audit (every closed gap's probe must turn RED on its kept
     counterexamples) plus the per-suite end-to-end hook (harness/drill.sh on
-    a scratch tree copy, --deep). Leaves NO trace in the ledger or run
-    records — a drill that pollutes the dataset would poison the very
-    evidence it exists to validate."""
+    a scratch tree copy, --deep). The trap-audit and fuzz/iso passes leave NO
+    trace in the ledger or run records — re-running a KNOWN fixture is
+    drill's own self-test, and polluting the cost/reward dataset with it
+    would poison the very evidence it exists to validate.
+
+    `--diff` is different in kind, not just in name: it checks the probe
+    against its reference on the SAME, CURRENT, real state — a genuine
+    finding about whether a CLOSED claim is still actually true, not a
+    self-test replay of a known fixture. R4/AI8
+    (docs/plans/oracle-strength-and-decorrelation.md,
+    docs/plans/ablation-infra.md) name exactly this case — "a later
+    differential pass" showing a published GREEN wrong — as a
+    challenge_event trigger, so a real `--diff` disagreement on a closed
+    claim IS recorded there (recurvelib.adapters.challenge_event), never
+    silently printed and forgotten. This is a third, narrow log distinct
+    from both the ledger and the run-record dataset the paragraph above
+    protects."""
     import os
     import shutil
     import tempfile
@@ -186,6 +225,7 @@ def cmd_drill(args):
                         diff_disagreements += 1
                         failures.append(f"{g.id} diff disagreement "
                                         f"probe={probe_r.outcome.value} reference={ref_r.outcome.value}")
+                        _record_diff_challenge(cfg, g, probe_r, ref_r)
             if args.deep and cfg.tree is not None:
                 for name, sc in cfg.suites.items():
                     hook = sc.dir / "harness" / "drill.sh"

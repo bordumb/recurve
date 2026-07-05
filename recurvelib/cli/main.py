@@ -31,6 +31,7 @@ from .commands.demo import cmd_demo
 from .commands.drill import cmd_drill
 from .commands.freshness import cmd_freshness
 from .commands.frontier import cmd_frontier
+from .commands.governor import cmd_governor
 from .commands.import_ import cmd_import
 from .commands.init import cmd_init
 from .commands.install import cmd_install
@@ -347,6 +348,18 @@ def park(
 ):
     cmd_park(_ns("park", gap_id=gap_id, reason=reason, attempt=attempt,
                  observed=observed, unpark=unpark))
+
+
+@app.command(help="human_required governor: verify + register a signed attestation")
+def governor(
+    action: str = typer.Argument(..., help="approve"),
+    claim_ids: List[str] = typer.Argument(None, help="claim id(s) the attestation covers"),
+    attestation: str = typer.Option(..., "--attestation", help="path to the signed attestation JSON"),
+    ref: Optional[str] = typer.Option(None, "--ref", help="commit the attestation's hash binds to, "
+                                      "if not already recorded in the attestation payload"),
+):
+    cmd_governor(_ns("governor", action=action, claim_ids=claim_ids or [],
+                     attestation=attestation, ref=ref))
 
 
 @app.command(help="tree lock: status / acquire / release / steal")

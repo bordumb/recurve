@@ -82,3 +82,21 @@ returns `PIVOT` for a non-stalled current item with a higher-value one available
 When `current_id` is no longer on the frontier (covered, or never there), `pick_next` reconciles to the
 frontier — `(PIVOT, best)` — rather than echoing the dead id back as `CONTINUE`. Negative space: a controller
 that returns `(CONTINUE, current_id)` for a `current_id` absent from the frontier must turn the probe RED.
+
+## ST-12 — the governor supersedes STOP_SUCCESS (R5)
+
+`decide()` gains a `governor_status` parameter (`"off"` default — unchanged
+behavior for every existing caller). When the gate/mechanical conditions for
+success hold: `"off"`/`"cleared"` -> `STOP_SUCCESS` (as before); `"pending"`
+(a configured governor has not yet cleared the cycle) -> the new
+`PENDING_GOVERNOR` verdict, never `STOP_SUCCESS`; `"vetoed"` -> `CONTINUE`
+(the veto becomes a captured trap on the vetoed claim; the cycle keeps
+working). `decide()` never invokes a `Governor` itself — the calling loop
+measures the status and passes it in, same separation as every other
+Progress field.
+
+Negative space: a fully-green cycle with `governor_status="pending"` that
+still returns `STOP_SUCCESS` must turn the probe RED — `governor_cleared`
+cannot default to true for a cycle that explicitly reports the governor as
+not yet run. An unrecognized `governor_status` value must raise, not
+silently resolve to some default behavior.

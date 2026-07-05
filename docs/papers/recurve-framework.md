@@ -1035,6 +1035,67 @@ not eliminate it. The practical consequence is that automated authoring is safe
 first exactly where the oracle is strongest — sound proof kernels,
 reference-implementation-checked code — and must be earned outward from there.
 
+## 7.5 The economics of verified work
+
+The framework's overhead has a price, and its absence has a different one —
+and the two are not denominated in the same currency. A gate refusal costs
+tokens and a retry; a false "done" costs whatever is downstream of belief:
+reviewer hours, broken builds, and — the compounding term — every later
+change built on the defect before it surfaces. Software engineering has long
+observed that the cost of a defect grows with the latency of its discovery;
+unverified autonomous work *institutionalizes* that latency, because the only
+completion signal is the agent's self-report, which the record shows to be
+least trustworthy exactly when the work is wrong (§6.3). False-dones
+therefore accumulate as debt at generation speed: each one becomes
+load-bearing for the tasks that follow it, so the eventual repair bill scales
+not with the number of defects shipped but with everything built on top of
+them in the interim.
+
+The asymmetry sharpens as generation scales. Agent throughput grows with
+compute; the traditional backstop — human review — does not. A fleet that
+writes ten times more code produces ten times more "done" signals against a
+fixed budget of human attention, so the fraction of claimed work that anyone
+actually verifies falls monotonically unless verification is mechanized with
+the same seriousness as generation. The gate substitutes the cheap resource
+for the scarce one: it spends a bounded token overhead — the **price of
+trust**, the token and wall-clock ratio between gated and bare runs — to
+convert silent false-dones into either repairs (a probe catches the failure
+while the agent can still act on it) or explicit refusals (a red gate at
+budget exhaustion). A refusal, unlike a false done, is priced correctly by
+its recipient: it announces the absence of the result rather than
+counterfeiting its presence. In economic terms the discipline is an insurance
+premium — fixed, measurable, paid in the cheapest resource in the loop —
+against a heavy-tailed loss paid in the most expensive one.
+
+The most consequential future use case is substitution. Gate overhead
+multiplies token cost by a small factor; model tiers differ in price by
+factors of the same magnitude — so "a small model behind the gate" and "a
+frontier model on its honor" meet at comparable spend, and the live question
+is which configuration ships less bad work per unit cost. The gate does not
+care how capable the agent it referees is, while the bare configuration's
+trustworthiness is exactly as good as the agent's self-assessment — which
+degrades fastest for the cheapest models. If the gated-cheap configuration
+wins at matched spend, the procurement of autonomous work inverts: what is
+priced is no longer raw capability but the *verified-done signal* — a "done"
+with a measured false-done rate, auditable from the run ledger's standing
+statistics (§5.2). Contracts over agent work then become writable at all: a
+service-level agreement on shipped-work quality is unenforceable over
+self-reported completion and straightforward over gated completion, where
+every close carries its evidence.
+
+These are economic hypotheses, and this paper permits itself only one way to
+state such things: falsifiably, with the measurement named. The instrument is
+the one the framework's own methodology demands — the same agent, on the same
+externally-authored tasks, with and without the gate, judged by held-out
+oracles the agent never sees, at matched budgets [@soberlook]; its primary
+quantities are the false-done-rate delta and the price of trust, reported
+side by side so the trade is visible in one glance. Until those numbers
+exist, this section is a forecast rather than a result — but it is a forecast
+the framework is built to check, and either outcome is informative: a large
+delta prices the gate, and a small one measures how far self-authored checks
+share the blind spots of the work they check (§2.6), which is the empirical
+case for the adversarial and differential mechanisms of §7.2.
+
 ---
 
 # 8. Conclusion

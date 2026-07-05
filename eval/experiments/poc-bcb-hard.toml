@@ -1,0 +1,44 @@
+[experiment]
+name = "poc-bcb-hard"
+question = "Does the gate reduce shipped-bad-work at matched budget?"
+
+[matrix]
+models  = ["claude-haiku-4-5", "claude-sonnet-5"]
+arms    = ["A0", "A3"]
+budgets = [0.50]   # DOLLARS per cell (--max-budget-usd); budget-matched control
+seeds   = [0]
+
+[tasks]
+benchmark = "bigcodebench-hard"
+# Pinned at first fetch (2026-07-05). The local JSONL is the source of truth for
+# a run — hermetic, no network — and `hash`/`count` pin it: load_pinned refuses
+# any drift. `revision` records the HF dataset commit the local copy came from.
+# The JSONL lives in the gitignored eval/datasets/ (large, reproducible).
+local     = "datasets/bigcodebench-hard@298d2cc7b96612e15e47313c3603ee124cee0c1f.jsonl"
+revision  = "298d2cc7b96612e15e47313c3603ee124cee0c1f"   # bigcode/bigcodebench-hard split v0.1.0_hf
+hash      = "e2f21cd5dc768bcd9a5bbd2fa6225855c431abd1a73f4cfc736799f548a883fd"
+count     = 148
+sample    = { n = 50, seed = 7 }           # pilot; remove for the full 148
+# Pre-registered exclusion table (frozen before the pilot). Every non-pass
+# canonical must appear here with a reason; calibration refuses an unexplained
+# failure (EV-16). Task-level → symmetric across all cells.
+exclusions = "exclusions/bcb-hard.json"
+
+[oracle]
+runs = 3
+verdict = "majority"
+grade_concurrency = 2   # conservative for the pilot; recorded in the lock, checked against the run (O4)
+
+# The oracle environment — the other half of the experiment, pinned like the
+# dataset. A docker oracle REQUIRES an immutable digest (a bare :tag is mutable);
+# `eval plan` resolves this intent into oracle.lock.json and refuses on drift.
+# This is the DERIVED image (base BCB evaluate @a3cd34ec + the nltk corpora that
+# 177/655 need — see oracle/Dockerfile.nltk), so those tasks grade hermetically
+# instead of being excluded. The digest is its local image Id.
+[oracle.env]
+mode     = "docker"
+image    = "recurve-bcb-oracle"   # bare name; the derived image is pinned+run by its content Id below
+digest   = "sha256:0e0d0a9814676fc8ed7da7710d9248ded382ea75ceaec3bfe156316d7af2f713"  # derived image Id; rebuild → new Id → drift → re-calibrate
+platform = "linux/amd64"    # amd64-under-Rosetta on arm64 — recorded because emulation changes timing
+network  = "none"           # grading is hermetic; the container is the sandbox
+timeout  = "calibrated"     # derived from the calibration run's canonical p99, not guessed

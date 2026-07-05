@@ -78,6 +78,12 @@ class Gap:
     # Absolute path to a stricter/slower reference oracle, or None. `drill
     # --diff` runs it beside the probe and alarms on disagreement.
     reference: Path | None = None
+    # AI9: a claim-level floor on the governor tier — resolves to AT LEAST
+    # this strength regardless of a weaker suite-wide `[gate] governor=`
+    # default (recurvelib.adapters.policy.effective_governor_tier). Empty
+    # means "no floor, use the suite default" — no behavior change for the
+    # common case.
+    min_governor_tier: str = ""
 
     @property
     def trap_dir(self) -> Path | None:
@@ -119,6 +125,17 @@ class Gap:
     ) -> "Gap":
         if not isinstance(raw, dict):
             raise GapParseError(f"{source_file}: gap entry is not a mapping: {raw!r}")
+
+        # The oracle tier (recurvelib.analysis.oracle_tier) is ALWAYS derived
+        # from recorded pass evidence — it is never a ledger field. A gap
+        # authoring its own 'tier' is exactly the self-reported-tier gaming
+        # this refusal exists to prevent.
+        if "tier" in raw:
+            raise GapParseError(
+                f"{source_file}: gap {raw.get('id', '?')!r} sets 'tier' directly — "
+                f"oracle tier is derived from recorded evidence, never hand-set "
+                f"(see recurvelib.analysis.oracle_tier)"
+            )
 
         def req(key: str) -> Any:
             if key not in raw or raw[key] in (None, ""):
@@ -166,6 +183,18 @@ class Gap:
         if reference_field:
             reference = (suite_dir / str(reference_field)).resolve()
 
+        # AI9: a claim-level governor-tier floor, validated against the known
+        # vocabulary at parse time — an unrecognized value is a parse error,
+        # never a silently-ignored typo.
+        min_governor_tier = str(raw.get("min_governor_tier", "")).strip()
+        if min_governor_tier and min_governor_tier not in (
+            "off", "mechanical", "mechanical_review", "human_required"
+        ):
+            raise GapParseError(
+                f"{source_file}: gap {gid!r} has min_governor_tier={min_governor_tier!r}; "
+                f"allowed: off, mechanical, mechanical_review, human_required"
+            )
+
         # The parse-time invariant the whole loop rests on: a non-permanent gap
         # must name a probe. We allow the file to be absent here (intake may be
         # mid-flight) — `validate` reports missing files — but a null probe
@@ -194,6 +223,7 @@ class Gap:
             trap_waiver=str(raw.get("trap_waiver", "")).strip(),
             oracle_waiver=str(raw.get("oracle_waiver", "")).strip(),
             reference=reference,
+            min_governor_tier=min_governor_tier,
         )
 
 
