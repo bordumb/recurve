@@ -290,3 +290,21 @@
   probe: probes/ev-14.sh
   unlocks: two runs' oracles are provably the same or provably different by one hash, and drift
     is refused at plan time — the resolution half of naturalizing the oracle
+
+- id: EV-15
+  title: Every row records which oracle graded it
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-15
+  evidence:
+  - eval/evallib/orchestrate.py
+  observed: 'GREEN at close 2026-07-05: every row records which oracle graded it (oracle_env_hash),
+    required by row_is_complete'
+  smallest_fix: orchestrate stamps oracle_env_hash from provenance into every row and adds it to
+    REQUIRED_ROW_FIELDS, so row_is_complete refuses a row that cannot say which oracle graded it
+  probe: probes/ev-15.sh
+  unlocks: '"graded by which oracle?" is answerable per row forever — the rows dereference to the
+    lock, so two rows are provably the same or different oracle without carrying the whole env'

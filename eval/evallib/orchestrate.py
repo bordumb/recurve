@@ -23,6 +23,7 @@ REQUIRED_ROW_FIELDS = (
     "cell_id", "model", "arm", "task_id",
     "declared_done", "oracle_verdict",
     "dataset_revision", "recurve_commit", "adapter_version", "seed",
+    "oracle_env_hash",   # WHICH oracle graded this — provenance on par with the dataset revision
 )
 
 
@@ -98,6 +99,6 @@ def make_orchestrator(agent, tasks_by_id: dict, pins: dict,
             "tokens_out": agent_row.get("tokens_out", 0),
             "agent_exit": agent_row.get("agent_exit"),
             **{k: provenance.get(k) for k in
-               ("dataset_revision", "recurve_commit", "adapter_version")},
+               ("dataset_revision", "recurve_commit", "adapter_version", "oracle_env_hash")},
         }
     return orchestrate

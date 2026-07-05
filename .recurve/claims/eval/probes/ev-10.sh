@@ -25,7 +25,7 @@ TASK={"task_id":"t/add","instruct_prompt":"write add(a,b) returning the sum",
       "test":"import unittest\n"
              "class T(unittest.TestCase):\n def test(self): self.assertEqual(task_func(1,2),3)\n"}
 PINS={TASK["task_id"]: content_hash([TASK])}; TASKS={TASK["task_id"]:TASK}
-PROV={"dataset_revision":"rev1","recurve_commit":"c1","adapter_version":"0.1.0"}
+PROV={"dataset_revision":"rev1","recurve_commit":"c1","adapter_version":"0.1.0","oracle_env_hash":"oeh:test"}
 GOOD="def task_func(a,b):\n return a+b\n"
 def cell(arm): return {"cell_id":"x","model":"claude-haiku-4-5","arm":arm,
                        "budget":60000,"seed":0,"task_id":TASK["task_id"]}

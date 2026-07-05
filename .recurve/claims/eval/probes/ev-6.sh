@@ -23,7 +23,7 @@ TASK={"task_id":"t/add","instruct_prompt":"add(a,b)",
       "test":"import unittest\n"
              "class T(unittest.TestCase):\n def test(self): self.assertEqual(task_func(1,2),3)\n"}
 PINS={TASK["task_id"]: content_hash([TASK])}; TASKS={TASK["task_id"]:TASK}
-PROV={"dataset_revision":"rev1","recurve_commit":"c1","adapter_version":"0.1.0"}
+PROV={"dataset_revision":"rev1","recurve_commit":"c1","adapter_version":"0.1.0","oracle_env_hash":"oeh:test"}
 def sol_ok(ws): (pathlib.Path(ws)/"solution.py").write_text("def task_func(a,b):\n return a+b\n")
 def sol_bad(ws): (pathlib.Path(ws)/"solution.py").write_text("def task_func(a,b):\n return a-b\n")
 def gate(ws,v): (pathlib.Path(ws)/".gate").write_text(v)

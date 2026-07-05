@@ -213,3 +213,14 @@ calibration automatically, while calibration can still hang its outputs off a
 stable key. Negative space (a trap each): a locally-present digest that disagrees
 with the manifest accepted (drift not refused); the identity hash ignoring the
 grading wrapper (a changed grader reading as the same oracle).
+
+## EV-15 — Every row records which oracle graded it
+
+The oracle-env hash is provenance on par with the dataset revision and recurve
+commit: without it, two identical-looking rows could have been graded by
+different oracles and nothing would show it. The orchestrator stamps
+`oracle_env_hash` from provenance into every row, and `row_is_complete` refuses a
+row that lacks it — so "graded by which oracle?" is answerable per row forever, by
+dereferencing the hash to the lock in the run dir. The rows stay small (one hash,
+not the whole lock). Negative space (the trap): a row without `oracle_env_hash`
+accepted as complete — the untraceable-oracle hole.
