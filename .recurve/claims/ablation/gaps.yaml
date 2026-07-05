@@ -1,0 +1,23 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: AB-1
+  title: the two ports exist; nothing existing changes
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-1
+  evidence:
+  - recurvelib/loop/reviewers.py
+  observed: 'GREEN at baseline 2026-07-05: Adversary/Governor ports exist alongside World/Actor;
+    capture()/within_boundary/guarded_propose are untouched; neither verdict type can certify
+    a claim directly'
+  smallest_fix: recurvelib.loop.reviewers defines Adversary/Governor Protocols plus AdversaryVerdict/GovernorVerdict,
+    structurally unable to certify a claim GREEN directly (has_bypass_field guards against
+    a future bypass field); runtime.py is untouched.
+  probe: probes/ab-1.sh
+  unlocks: a cross-model adversary and a run-level governor have a concrete port to implement
+    against
