@@ -138,15 +138,20 @@ def cmd_run(args) -> int:
 
     lock = json.loads((run_dir / "oracle.lock.json").read_text())
     oracle_env_hash = lock["oracle_env_hash"]
-    # Point the oracle at the pinned container (via the EV-11 seam) and the
-    # calibrated per-task timeout.
+    oracle_timeout = int(cal["resolved_timeout"])
+
+    # Start ONE warm oracle container for the whole run (EV-19) and grade by
+    # `docker exec` — the per-grading container tax is paid once, not per cell.
+    warm = None
     if lock.get("mode") == "docker":
-        from evallib.oracle_docker import wrapper_path
-        os.environ["RECURVE_ORACLE_PYTHON"] = str(wrapper_path())
-        os.environ["RECURVE_ORACLE_IMAGE"] = lock["digest"]   # run by content-addressed digest/Id
+        from evallib.warm_oracle import WarmOracle
+        from evallib import quarantine
         os.environ.setdefault("RECURVE_ORACLE_TMP", "/private/tmp/recurve-oracle-work")
         os.makedirs(os.environ["RECURVE_ORACLE_TMP"], exist_ok=True)
-    oracle_timeout = int(cal["resolved_timeout"])
+        warm = WarmOracle(lock["digest"], os.environ["RECURVE_ORACLE_TMP"],
+                          platform=lock.get("platform", "linux/amd64"))
+        warm.start()
+        quarantine.set_grader(warm.grade)
 
     cells = [json.loads(l) for l in (run_dir / "matrix.jsonl").read_text().splitlines() if l.strip()]
     # Re-resolve the pinned tasks (WITH their hidden `test`) from the frozen
@@ -171,8 +176,14 @@ def cmd_run(args) -> int:
         budget=fallback_budget, recurve_cmd="recurve", oracle_runs=oracle_runs,
         oracle_timeout=oracle_timeout)
 
-    n = run(cells, run_dir / "results.jsonl", adapter,
-            workspace_root=run_dir / "cells", workers=args.workers)
+    try:
+        n = run(cells, run_dir / "results.jsonl", adapter,
+                workspace_root=run_dir / "cells", workers=args.workers)
+    finally:
+        if warm is not None:
+            from evallib import quarantine
+            quarantine.set_grader(None)
+            warm.stop()
     print(f"ran {n} cell(s); results → {run_dir / 'results.jsonl'}")
     return 0
 

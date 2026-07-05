@@ -278,3 +278,22 @@ one-command remediation (`eval oracle build`), so a fresh clone reaches
 ready-to-plan from committed files alone. Negative space (a trap each): a
 divergent rebuild silently adopted; a missing-image refusal that fails to name
 the remediation.
+
+## EV-19 — Warm oracle container: one start per run, `docker exec` per grading
+
+The oracle wrapper's per-grading `docker run --rm` pays a container create/start/
+teardown for every grading — ~1-2s under emulation against as little as 0.6s of
+work; a full run grades ~1,776 times, so startup alone would burn ~15-45 minutes.
+`WarmOracle` starts ONE container from the pinned digest and execs into it per
+grading, so container *starts* are bounded by workers, not gradings (measured: 1
+start for a 10-grading batch, ~0.25s/exec live vs ~1-2s/run). Correctness is kept,
+not traded: the started container's image must equal the pinned digest (retag
+guard); each grading runs in its own workdir under the shared mount, network-
+isolated at container start; and a warm container that dies mid-run is restarted
+from the same digest (recorded) and the interrupted task re-graded, never a silent
+error. `quarantine` grades through a pluggable backend so the run installs the
+warm path while hermetic tests and the docker-run fallback use a fresh subprocess;
+the warm grader's source is folded into the oracle-env identity, so switching to
+it invalidates a stale calibration. Negative space (a trap each): a grader that
+spawns one container per grading; a dead container yielding a silent error instead
+of restart+re-grade; an exec into a mismatched-image container.

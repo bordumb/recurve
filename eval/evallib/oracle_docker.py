@@ -22,8 +22,12 @@ def wrapper_path() -> Path:
 
 
 def wrapper_sha(path: str | Path | None = None) -> str:
-    p = Path(path) if path else wrapper_path()
-    return "wsha:" + hashlib.sha256(p.read_bytes()).hexdigest()[:16]
+    """The identity of the grading MECHANISM: the docker wrapper script plus the
+    warm-container grader (EV-19). A change to either is a different oracle, so it
+    changes the oracle_env_hash and invalidates a stale calibration."""
+    from evallib import warm_oracle
+    blob = wrapper_path().read_bytes() + Path(warm_oracle.__file__).read_bytes()
+    return "wsha:" + hashlib.sha256(blob).hexdigest()[:16]
 
 
 def host_fingerprint() -> str:

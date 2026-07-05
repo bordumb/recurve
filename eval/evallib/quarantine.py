@@ -25,6 +25,19 @@ class OracleTamperError(RuntimeError):
     """The oracle's test text does not match the pin recorded at fetch time."""
 
 
+# A pluggable grader lets the run install the warm-container path (EV-19) while
+# hermetic tests and the docker-run fallback use the default subprocess. Signature:
+# grade(workdir: Path, argv: list[str], timeout) -> (returncode, combined_output).
+_GRADER = None
+
+
+def set_grader(fn) -> None:
+    """Install (or clear, with None) the grading backend `_run_once` delegates to.
+    The run sets the warm-container grader; the default is a fresh subprocess."""
+    global _GRADER
+    _GRADER = fn
+
+
 def oracle_python() -> str:
     """The interpreter that grades a solution. A real run points
     RECURVE_ORACLE_PYTHON at a dedicated BigCodeBench venv (the heavy third-party
@@ -52,17 +65,20 @@ def _run_once(test_src: str, solution_src: str, timeout: int) -> str:
     base = os.environ.get("RECURVE_ORACLE_TMP") or None
     d = Path(tempfile.mkdtemp(dir=base))
     (d / "oracle_case.py").write_text(solution_src + "\n\n" + test_src)
-    try:
-        proc = subprocess.run(
-            [oracle_python(), "-m", "unittest", "oracle_case", "-v"],
-            cwd=d, capture_output=True, text=True, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        return "error"
-    if proc.returncode == 0:
+    argv = ["-m", "unittest", "oracle_case", "-v"]
+    if _GRADER is not None:
+        rc, blob = _GRADER(d, argv, timeout)
+    else:
+        try:
+            proc = subprocess.run([oracle_python(), *argv], cwd=d,
+                                  capture_output=True, text=True, timeout=timeout)
+            rc, blob = proc.returncode, proc.stdout + proc.stderr
+        except subprocess.TimeoutExpired:
+            rc, blob = 124, "TIMEOUT"
+    if rc == 0:
         return "pass"
-    # unittest exits 1 on failures/errors; distinguish an assertion fail from a
-    # setup error (import crash) by scanning the report.
-    blob = proc.stdout + proc.stderr
+    # unittest exits nonzero on failures/errors; distinguish an assertion fail
+    # from a setup error (import crash) by scanning the report.
     if "FAILED" in blob or "AssertionError" in blob or "FAIL" in blob:
         return "fail"
     return "error"

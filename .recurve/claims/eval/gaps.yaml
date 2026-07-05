@@ -378,3 +378,27 @@
   oracle_waiver: the actual docker build + grade need docker (build-time network); the reconcile +
     remediation logic is tested hermetically and the verb runs full-strength where docker is present
 
+- id: EV-19
+  title: 'Warm oracle container: one start per run, docker exec per grading'
+  class: friction
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - EV-19
+  evidence:
+  - eval/evallib/warm_oracle.py
+  - eval/evallib/quarantine.py
+  - eval/evallib/cli.py
+  observed: 'GREEN at close 2026-07-05: warm oracle: one container start per batch, docker exec
+    per grading, fresh workdir, retag-refused, dead-container restart+re-grade'
+  smallest_fix: WarmOracle starts one container from the pinned digest and execs per grading
+    (starts bounded by workers, not gradings), refuses a mismatched-image container, gives each
+    grading a fresh workdir, and restarts+re-grades on a mid-run death; quarantine grades through
+    a pluggable backend the run installs; the warm grader is folded into the oracle-env identity
+  probe: probes/ev-19.sh
+  unlocks: the ~1,776-grading full run pays the container tax once (per worker), not per grading —
+    ~15-45 min of pure startup removed — without weakening isolation or the digest pin
+  oracle_waiver: real container start/exec need docker; the start-once / exec-per-grade / restart /
+    retag-refuse orchestration is tested hermetically with an injected runner and verified live
+

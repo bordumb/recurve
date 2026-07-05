@@ -1,0 +1,1 @@
+a warm container that dies mid-run yields a silent error for the interrupted task instead of restarting and re-grading it
