@@ -14,13 +14,13 @@
 ## Conventions
 
 `missing-surface` claims about `eval/evallib/arms.py`, `.../orchestrate.py`,
-`.../materialize.py`, `.../done_signal.py`, `.../audit.py`, and (for K3)
+`.../materialize.py`, `.../done_signal.py`, `.../audit.py`, and
 `recurvelib.loop.boundary`/`recurvelib.adapters.boundary`. `reads: none`.
 Probes construct real `ArmSpec`s and drive the real kernel
 (`make_orchestrator`/`materialize`) with mock agents — no live agent, no
 spend, mirroring the `eval` suite's own convention.
 
-## AK-1 — ArmSpec replaces the flat dict; A0/A3/A7-A10 unchanged (K1)
+## AK-1 — ArmSpec replaces the flat dict; A0/A3/A7-A10 unchanged
 
 Every arm is `ArmSpec(workspace, done_signal, boundary, audit, adversary,
 governor)`. A0 = `(bare, self_report, enforced, none, off, off)`. A3 =
@@ -38,3 +38,19 @@ Negative space: a kernel that drops the "only non-default ports appear in
 the row" discipline — leaking `boundary=`/`audit=` columns onto every row,
 even A0/A3's, which never asked for them — must diverge from the golden
 fixture and be caught.
+
+## AK-2 — A0 and A6 share the self_report done-signal port
+
+A0 (`workspace="bare"`) and A6 (`workspace="recurve_init"`) are the SAME
+`done_signal="self_report"` — they differ only in `workspace`. A6's
+workspace is real (`recurve init` runs for real; a real ledger is present),
+but `self_report` never reads it: the gate function is called ZERO times,
+and even a genuinely red verdict has zero effect on the recorded
+`declared_done`. Proven both in isolation (the port function directly) and
+end to end (through the real orchestrator for the A6 arm).
+
+Negative space: a `self_report` that gives A6 its own bespoke "peek at the
+gate if this looks like a recurve workspace" logic — a plausible bug where
+someone "helpfully" makes the port smarter for a recurve-initialized
+workspace — must be caught; A0 and A6 share one function object, not two
+that merely behave alike.

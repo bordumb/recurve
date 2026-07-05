@@ -3,7 +3,7 @@
 # `observed` field quotes actual dated output, never a prediction.
 
 - id: AK-1
-  title: ArmSpec replaces the flat dict; A0/A3/A7-A10 unchanged (K1)
+  title: ArmSpec replaces the flat dict; A0/A3/A7-A10 unchanged
   class: missing-surface
   status: closed
   severity: headline
@@ -24,3 +24,25 @@
   unlocks: adding a 7th axis later is a new defaulted ArmSpec field, never an edit to an existing
     arm's literal; the byte-identical regression fixture proves A0/A3/A7-A10 are unchanged,
     not just unedited.
+
+- id: AK-2
+  title: A0 and A6 share the self_report done-signal port
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AK-2
+  evidence:
+  - eval/evallib/arms.py
+  - eval/evallib/done_signal.py
+  observed: 'GREEN at baseline 2026-07-05: A0 and A6 share the SAME self_report done-signal
+    function object; A6''s real recurve ledger is present but never consulted — the gate is
+    called zero times and a red verdict has zero effect on declared_done'
+  smallest_fix: A6 = replace(A3, done_signal="self_report"); self_report_done_signal reads
+    solution.py alone and never calls gate_fn, regardless of workspace — the same function
+    object serves A0 and A6.
+  probe: probes/ak-2.sh
+  unlocks: a real recurve ledger present in the workspace (A6) has zero effect on the declared-done
+    decision — proven by a zero-call assertion on the gate function, not just a behavioral
+    coincidence.

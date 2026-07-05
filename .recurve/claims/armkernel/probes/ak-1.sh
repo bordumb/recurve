@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AK-1 (K1): ArmSpec replaces the flat {"recurve": bool, "config": dict} shape.
+# AK-1: ArmSpec replaces the flat {"recurve": bool, "config": dict} shape.
 # A0 = (bare, self_report, enforced, none, off, off). A3 = (recurve_init, gate,
 # enforced, none, off, off). A7-A10 extend A3 by adversary=/governor= only,
 # unchanged from today. The load-bearing claim: A0/A3/A7-A10 cells run through
@@ -132,7 +132,7 @@ except Exception as e:
     print('MISSING', e); raise SystemExit(0)
 
 # 1. ArmSpec's shape: workspace/done_signal required; everything else defaulted
-# (K1's 'a 7th axis needs no edit to an existing literal' promise, verified
+# ('a 7th axis needs no edit to an existing literal' promise, verified
 # structurally — every field but the first two carries a real default).
 fields = dataclasses.fields(ArmSpec)
 names = [f.name for f in fields]
@@ -142,7 +142,7 @@ for f in fields[2:]:
         continue
     assert f.default is not dataclasses.MISSING, f'{f.name} has no default — a new arm would have to set it'
 
-# 2. A0/A3's exact port tuple, per the K1 assertion text.
+# 2. A0/A3's exact port tuple.
 a0, a3 = arm_spec('A0'), arm_spec('A3')
 assert (a0.workspace, a0.done_signal, a0.boundary, a0.audit, a0.adversary, a0.governor) == \
        ('bare', 'self_report', 'enforced', 'none', 'off', 'off'), a0
