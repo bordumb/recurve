@@ -202,6 +202,11 @@ not `kernel_verified`).
 house rule applies directly: fuzzing/adversary review are knobs, not
 policy). No claim about *which* other model to use beyond "recorded,
 different, and verified"; provider/model choice is the caller's.
+"Verified" may mean served-model metadata (default, cheap) or a
+cryptographic signature from a distinct identity (`ablation-infra.md`
+AI7) — the latter is the same non-repudiation guarantee `auths-curve`'s
+witness cosignature already provides for signing, repointed at identity
+verification here.
 
 ### R3 — Surface the weak-oracle question during authoring, not after
 
@@ -243,7 +248,9 @@ unanswerable).
 **Bounds.** This is the honesty/measurement backstop, not a prevention
 mechanism — R1–R3 are prevention; R4 exists because prevention will
 sometimes fail anyway. That is the paper's whole point: trust is graded,
-not absolute.
+not absolute. Pre-launch, this event type is unified with R5's veto event
+into one `challenge_event` schema (`ablation-infra.md` AI8) rather than
+maintained as two parallel, overlapping shapes.
 
 ### R5 — The governor: a superseding, run-level check on STOP_SUCCESS itself
 
@@ -252,7 +259,7 @@ a different check, at a different point: an authority the controller
 must clear *in addition to* the gate before it may honor STOP_SUCCESS —
 so a run where every individual claim was, on its own terms, honestly
 gated can still be stopped, reopened, or forced to restart if the
-governor objects. Two tiers, deliberately priced differently:
+governor objects. Three tiers, deliberately priced differently:
 
 - **Mechanical tier (near-free, no LLM; default candidate).** Before a
   cycle's STOP_SUCCESS is honored, every probe *and* every trap the
@@ -274,6 +281,17 @@ governor objects. Two tiers, deliberately priced differently:
   machinery exactly: a fresh, read-only-mounted executor with no access
   to the burndown loop's live session, and a *verified* (not declared)
   served-model identity.
+- **Human tier (costs a human's time; never the suite default, but may
+  be floored per claim — see Bounds).** A named human identity, distinct
+  from any agent identity, signs an explicit approval bound to the exact
+  reviewed artifact, asynchronously — the governor's verdict includes a
+  `pending_human_signoff` state while it waits (`ablation-infra.md` AI6).
+  This is the tier for claims whose stakes exceed what any automated
+  check should be trusted to bless alone — e.g., a claim asserting an
+  error in a third party's published, peer-reviewed work, where the
+  right question is never "did a different model agree" but "did a
+  human independently re-derive this before anyone called it an
+  erratum."
 
 **The `/recurve-work` plumbing gap this exposes, concretely.** Endless
 mode currently drives the whole loop with one invocation —
@@ -338,15 +356,25 @@ an opaque governor opinion — a regression in auditability, not a fix.
   controller's point of view — before building new bounding machinery.
 
 **Bounds.** A suite/run config knob, same shape as R2's:
-`[gate] governor = "off" | "mechanical" | "mechanical_review"`.
-`mechanical`: default-on candidate (cost is re-execution of existing
-work, no new agent calls). `mechanical_review`: off by default, same
-house rule as R2 (a parameter, not a policy), but documented as the
+`[gate] governor = "off" | "mechanical" | "mechanical_review" |
+"human_required"` (the fourth value specified in `ablation-infra.md`
+AI6 — an auths-signed, asynchronous human sign-off, borrowing the
+signer/witness seam already shipped in `auths-curve`). `mechanical` is
+**on by default** — pre-launch, there is no existing deployment whose
+behavior this would change, and the cost is zero (re-execution of
+existing work, no new agent calls). `mechanical_review`: off by default,
+same house rule as R2 (a parameter, not a policy), but documented as the
 recommended setting for endless/unattended burndown mode specifically —
 the mode with no human watching individual closes, which is the mode the
-incident happened in. R5 does not replace R4: R5 is preventive (before
-the run reports done), R4 is the backstop for whatever R5 still misses
-(after).
+incident happened in. `human_required` is never the suite-wide default,
+but a claim may **floor** itself there via `min_governor_tier`
+(`ablation-infra.md` AI9), overriding a weaker ambient setting — the
+mechanism a claim like "this contradicts a published, peer-reviewed
+result" should use, since that class of claim should never silently run
+under automated-only review. R5 does not replace R4: R5 is preventive
+(before the run reports done), R4 is the backstop for whatever R5 still
+misses (after) — and, pre-launch, the two share one event schema
+(`ablation-infra.md` AI8).
 
 ## 3a · Ablatability: independent switches, recorded configs, a ladder not a factorial
 
@@ -443,6 +471,9 @@ caught before publication rather than after).
 - `decide()` gains `ST-9` (governor-gated STOP_SUCCESS) without breaking
   `ST-1..8`; a cycle cannot reach STOP_SUCCESS with `governor_cleared`
   unset.
+- A claim floored at `human_required` (via `min_governor_tier`) cannot
+  reach STOP_SUCCESS on any automated pass alone, however many models
+  agree — only a verified human attestation clears it.
 - No existing claim's GREEN/RED verdict changes — this wave is additive
   metadata and new opt-in/default-cheap mechanisms, not a semantics
   change to any already-closed claim.

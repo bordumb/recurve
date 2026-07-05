@@ -26,6 +26,13 @@ ports/adapters to recurve as a foreign pattern — it's **finishing a
 design the engine already declared**, extended to cover the run-level
 governor the O6 incident showed was also necessary.
 
+**Written pre-launch.** There are no existing deployments to preserve
+compatibility with. Where a cleaner design requires a breaking change — a
+new `Protocol` method, a merged ledger schema, a changed default — this
+PRD takes it, and says so explicitly (marked *pre-launch simplification*
+at each such point) rather than staging it behind a flag for a migration
+that will never happen.
+
 ## 1 · The pattern already exists four times; name it, then reuse it
 
 | Existing extension point | The "port" | The "adapter" |
@@ -88,6 +95,12 @@ directly):
 
 ```
 recurvelib/adapters/
+  _shared/              # written once, composed by adversary/ and governor/ (AI11)
+    reviewer_base.py      # isolation + snapshot + provenance wiring shared by both
+    identity.py            # mint_human/mint_agent, is_human_identity/is_agent_identity
+                           # (borrows auths-curve's src/auths_curve/integration.py pattern)
+    provenance.py           # the two-tier Provenance envelope (AI7): metadata_verified |
+                           # cryptographically_attested (auths sign_verdict/verify_verdict)
   adversary/
     off.py          # no-op: always no_objection (today's default behavior)
     same_model.py    # isolated review, no cross-model identity requirement
@@ -96,6 +109,7 @@ recurvelib/adapters/
     off.py
     mechanical.py     # fresh-checkout re-execution of the cycle's probes+traps
     review.py          # decorrelated-model batch review over the cycle
+    human_required.py  # async: pending_human_signoff -> auths-signed approval (AI6)
   isolation/           # shared strategy, used by both adversary/ and governor/
     subprocess_tempdir.py   # default
     docker.py                # opt-in, for adapters needing a heavy pinned runtime
@@ -112,7 +126,8 @@ the framework paper's §7.3 portable-claims ambition):
 ADVERSARY_ADAPTERS = {"off": NoOpAdversary, "same_model": SameModelAdversary,
                       "cross_model": CrossModelAdversary}
 GOVERNOR_ADAPTERS  = {"off": NoOpGovernor, "mechanical": MechanicalGovernor,
-                      "mechanical_review": MechanicalReviewGovernor}
+                      "mechanical_review": MechanicalReviewGovernor,
+                      "human_required": HumanRequiredGovernor}
 ```
 
 `[gate] adversary = "cross_model"` / `[gate] governor =
@@ -199,6 +214,46 @@ context-passing schemes:
   contrast, must re-execute existing traps (that is its entire job), so
   its snapshot includes them. This is a config field on the snapshot
   builder (`include_existing_traps: bool`), not a hardcoded choice.
+
+## 5a · Cryptographic identity: borrowing auths-curve's signer/witness seam
+
+A working, offline-verifiable identity-and-signing seam already exists in
+this workspace — `auths-curve` (`src/auths_curve/integration.py`,
+`tools/auths_sign_receipt.py`) — built for a different purpose (an auths
+agent identity signs off on recurve's own gate verdicts) but directly
+reusable here, not reinvented:
+
+- **`mint_agent`/`is_agent_identity`** already mint a `did:keri:` identity
+  carrying a **capability attestation** marking it as an agent, and check
+  for that attestation's presence — this PRD adds the mirror,
+  **`mint_human`/`is_human_identity`**, marked by a *positive* human
+  capability attestation (not the mere absence of an agent one — presence
+  checks are harder to spoof than absence checks, same principle as R1's
+  anti-gaming traps).
+- **`sign_verdict`/`verify_verdict`** already produce and check a tamper-
+  evident, offline-verifiable action envelope over an arbitrary payload
+  (today: a recurve gate verdict). AI6's human sign-off reuses this exact
+  pair unchanged, just pointed at a different payload (a governor
+  approval record).
+- **The witness cosignature is already this PRD's R2, shipped, for a
+  different role.** `auths-curve`'s docs state the principle directly:
+  "the witness identity differs from the signer's — the whole point...
+  so the referee cannot quietly bless its own work." That *is*
+  cross-model decorrelation — for signing rather than authoring. AI7
+  folds it back: a cryptographic signature from a distinct, known key is
+  **non-repudiable** in a way "the API said a different model served
+  this" is not — strictly stronger than R2's metadata-based identity
+  check.
+- **The gap, stated honestly**: there is no biometric/hardware-gated key
+  in `auths-curve` today — its "fingerprint" is a Material Design icon in
+  the docs, not a feature. A human identity's key should be gated by
+  platform biometric authentication (Touch ID / Secure Enclave on macOS,
+  WebAuthn's platform authenticator as a cross-platform fallback) rather
+  than the passphrase-derived KDF the agent path uses — this is new
+  integration work. The broader auths ecosystem reportedly has a
+  `SecureEnclaveBridge.swift` (unverified this session, in a different
+  repo) — check whether it's reachable before building a biometric gate
+  from scratch.
 
 ## 6 · Requirements
 
@@ -287,13 +342,149 @@ composer must fail to import if it defines its own
 stdlib+PyYAML); the dependency is one-directional (`eval` imports
 `recurvelib`, never the reverse).
 
+### AI6 — Human-required governance, cryptographically attested (pre-launch simplification: async verdict state)
+
+**Assertion.** `governor = "human_required"` is a real adapter (§5a). Its
+verdict adds a third state beyond `cleared`/`veto`:
+**`pending_human_signoff`** — human review is asynchronous by nature, so
+`audit()` cannot block the loop waiting for it. On
+`pending_human_signoff`, the cycle stays in `PENDING_GOVERNOR` and the
+loop **suspends cleanly** (exits, does not busy-wait) rather than
+spinning. A separate command, `recurve governor approve <claim_id>
+--attestation <path>`, resumes it. The attestation is an auths-signed
+envelope (§5a) over `{cycle_snapshot_hash, claim_ids, decision,
+rationale}` — bound to the exact reviewed artifact by its content hash —
+and it must be signed by a **human-attested identity**
+(`is_human_identity()` true), never an agent-attested one.
+
+**Counterexamples (traps).**
+- An attestation whose signed `cycle_snapshot_hash` does not match the
+  current snapshot must be refused (replay/drift fixture — an approval
+  of v1 must not clear a claim silently modified to v2).
+- An attestation signed by an agent-attested identity must be refused
+  even if the signature otherwise verifies (identity-type fixture — a
+  script cannot forge "a human looked at this" by minting itself a key).
+- A `pending_human_signoff` cycle must not silently resolve to either
+  `cleared` or `veto` on any timeout, cap, or default — it stays pending
+  until an explicit, verified attestation arrives. No default-approve,
+  no default-reject.
+- A `min_governor_tier = "human_required"` claim (AI9) must be
+  unaffected by a suite-wide `governor = "mechanical"` or `"off"`
+  default — the floor holds regardless of the ambient config.
+
+**Bounds.** Reuses `auths-curve`'s `sign_verdict`/`verify_verdict`
+directly rather than inventing new cryptography (§5a). The physical
+biometric gate on the human key is tracked as its own integration
+task — verify whether the auths ecosystem's Secure Enclave bridge is
+reachable from this context before building a fresh one.
+
+### AI7 — Uniform provenance: every port, not just adversary/governor; two tiers of strength
+
+**Assertion.** `Actor`, `Adversary`, and `Governor` all return their
+result alongside a **`Provenance`** object — closing the asymmetry where
+R2/R5 verify the adversary/governor's identity *against* the actor's
+logged identity, while the actor's own identity was never itself held to
+the same standard. Provenance has two strengths, chosen per adapter:
+**`metadata_verified`** (the served-model field from the provider's own
+API response — cheap, the R2/R5 default) and
+**`cryptographically_attested`** (an auths-signed envelope, §5a —
+required for `human_required`, available as an upgrade for
+`cross_model`/`mechanical_review` when the deployment wants the
+witness-cosignature-grade guarantee rather than a trusted metadata
+field).
+
+**Counterexamples (traps).** A port claiming `cryptographically_attested`
+provenance whose envelope fails to verify against the claimed identity's
+public key must be demoted to unverified, never silently accepted. A
+`cross_model` adversary configured for cryptographic attestation but
+signing with the actor's own key must be refused — the same identity
+check as R2's metadata trap, now enforced by signature instead of (or in
+addition to) API response inspection.
+
+**Bounds.** `metadata_verified` remains the default for the automated
+tiers (cheap); `cryptographically_attested` is opt-in for them and
+mandatory for `human_required`. R1's oracle-tier vocabulary is not
+expanded further to track this distinction now (avoid tier-list bloat) —
+noted as a natural future refinement if it proves useful in practice.
+
+### AI8 — One challenge-event schema, not two (pre-launch simplification)
+
+**Assertion.** `oracle-strength-and-decorrelation.md`'s R4 "reversal
+event" and R5 "veto event" are the same concept at different points in
+time — a GREEN challenged by a stronger check, either before the run
+publishes success (veto) or after (reversal). Pre-launch, with no
+existing ledger data to migrate, they are **one event type**,
+`challenge_event`, carrying `phase: pre_publication | post_publication`,
+the R1 tier held at challenge time, and — when the challenger was
+human — a reference to the AI6 attestation. `recurve stats` reports one
+combined rate, sliceable by phase.
+
+**Counterexamples (traps).** An event recorded in either of the old,
+separate reversal/veto shapes must fail schema validation — there is
+deliberately no dual-schema compatibility path to preserve, since nothing
+exists yet that depends on the old shape.
+
+**Bounds.** This simplification is justified specifically by pre-launch
+status; called out so a future contributor doesn't wonder why R4/R5 were
+drafted with two schemas and shipped with one.
+
+### AI9 — Policy floor: a claim can mandate a stronger tier than the suite default
+
+**Assertion.** A claim (or a claim tag/category) may declare
+`min_governor_tier`, which the effective tier for that claim resolves to
+at **at least** — the suite-wide `[gate] governor=` default may
+strengthen it further but never weaken it below the floor. This is how a
+claim tagged e.g. `asserts_third_party_error` mandates `human_required`
+regardless of whatever the operator's global config happens to be set
+to.
+
+**Counterexamples (traps).** A suite-wide `governor = "off"` must not
+suppress a claim-level `min_governor_tier = "human_required"` — the
+floor-override fixture: the claim's effective tier must still resolve to
+`human_required`.
+
+**Bounds.** Floors compose by max-strength only; a claim with no floor
+uses the suite default exactly as today (no behavior change for the
+common case).
+
+### AI10 — The mechanical governor tier is default-on (pre-launch simplification: no legacy default to preserve)
+
+**Assertion.** `[gate] governor` defaults to `"mechanical"`, not `"off"`.
+Cost is zero (re-execution of work already done, no new agent calls),
+and pre-launch removes the only reason to ship the weaker default —
+there are no existing configs whose behavior this would silently change.
+
+**Bounds.** `mechanical_review` and `human_required` remain opt-in or
+floor-driven (AI9) — only the free tier's default changes.
+
+### AI11 — Shared reviewer plumbing, written once
+
+**Assertion.** Isolation-executor invocation, snapshot construction, and
+provenance attachment are written once in
+`adapters/_shared/reviewer_base.py`, and
+`adversary/*.py`/`governor/*.py` adapters compose from it rather than
+each reimplementing their own copy.
+
+**Counterexamples (traps).** A lint-shaped check: a new adapter file that
+constructs its own subprocess/snapshot/provenance logic instead of
+importing `_shared.reviewer_base` should be flagged — a nice-to-have
+static check, not a hard release gate.
+
+**Bounds.** Internal code organization only; no external config surface
+changes.
+
 ## 7 · Sequencing
 
 AI1 (protocols) → AI3 (snapshot mechanism — needed by everything else)
-→ AI4 (isolation strategy) → AI2 (registry + the concrete `off`/
+→ AI4 (isolation strategy) → AI11 (shared reviewer plumbing, so AI2's
+adapters compose from one implementation rather than three) → AI7
+(uniform provenance, both tiers) → AI2 (registry + the concrete `off`/
 `same_model`/`cross_model`/`mechanical`/`mechanical_review` adapters,
-satisfying `oracle-strength-and-decorrelation.md` R2/R5) → AI5 (wire the
-eval's arm composer to the same registry, unblocking A7–A10).
+satisfying `oracle-strength-and-decorrelation.md` R2/R5) → AI6
+(`human_required`, reusing AI7's cryptographic tier and §5a's auths seam)
+→ AI9 (policy floor) and AI10 (mechanical default-on) → AI8 (challenge-
+event schema unification) → AI5 (wire the eval's arm composer to the
+same registry, unblocking A7–A10).
 
 ## 8 · Acceptance for the wave
 
@@ -309,6 +500,15 @@ eval's arm composer to the same registry, unblocking A7–A10).
   (the O6 replay, at claim level and run level) pass using the adapters
   this PRD builds — this PRD is done when that PRD's fixtures are green
   using real adapters, not stubs.
+- The `human_required` async fixture (AI6) passes: a
+  `pending_human_signoff` cycle suspends cleanly, resumes only on a
+  verified, hash-bound, human-attested approval, and never auto-resolves.
+- The floor-override fixture (AI9) passes: a claim's `min_governor_tier`
+  holds regardless of a weaker suite-wide default.
+- The unified `challenge_event` schema (AI8) is the only shape written —
+  no parallel reversal/veto structures survive in code.
+- The mechanical governor tier is on by default in a fresh suite (AI10);
+  no configuration step is required to get it.
 
 ## 9 · Relationship to the other plans
 
@@ -320,3 +520,10 @@ rather than per-feature bespoke code, and so the *next* ablation switch
 (a `kernel_verified` governor adapter, a differential-mechanical
 reference generator, whatever `eval-full.md`'s program surfaces next) is
 a new adapter file, not a new architecture.
+
+It also borrows rather than reinvents: `auths-curve`'s already-shipped
+signer/witness seam (§5a) supplies the cryptographic backbone for AI6's
+human sign-off and AI7's provenance upgrade — the same mechanism that
+signs recurve's own gate verdicts today, repointed at governor approvals.
+The one genuinely new piece is the biometric/hardware gate on a human
+identity's key, which does not exist anywhere in this workspace yet.
