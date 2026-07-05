@@ -32,18 +32,38 @@ _DIFF_HEADER_RE = re.compile(r"^(diff --git|index |--- |\+\+\+ |@@ )")
 
 
 def test_patch_signals(test_patch: str) -> list[str]:
-    """Pull the meaningful ADDED lines out of a unified diff — the content
+    """Pull the meaningful ADDED content out of a unified diff — the content
     that must never be visible to the agent. Skips diff plumbing (headers,
-    hunk markers) and blank/whitespace-only additions, which would either
-    never appear verbatim anyway or would produce false positives against
-    ordinary boilerplate (e.g. a bare blank `+` line)."""
+    hunk markers). Consecutive added lines within one hunk are joined into a
+    SINGLE multi-line signal, never checked line-by-line: an individual added
+    line is very often ordinary, common code (e.g. `with pytest.raises(...):`)
+    that already recurs elsewhere in the same file for unrelated reasons —
+    checking it alone against the whole file produces a false "leak" on a
+    workspace that never saw test_patch at all. The full contiguous block
+    (the new test's name plus its body) is what is actually novel and
+    specific to the hidden test; a real leak still reproduces that whole
+    block verbatim, so the check does not get weaker, only more precise."""
     signals = []
+    block: list[str] = []
+
+    def flush() -> None:
+        if block:
+            joined = "\n".join(block)
+            if len(joined) >= 4:   # a bare `+` or "+)" is not a meaningful signal
+                signals.append(joined)
+            block.clear()
+
     for line in test_patch.splitlines():
-        if not line.startswith("+") or _DIFF_HEADER_RE.match(line):
-            continue
-        content = line[1:].strip()
-        if len(content) >= 4:   # a bare `+` or "+)" is not a meaningful signal
-            signals.append(content)
+        if line.startswith("+") and not _DIFF_HEADER_RE.match(line):
+            content = line[1:]   # keep original indentation -- a real leak
+                                  # reproduces it verbatim, so the signal must too
+            if content.strip():
+                block.append(content)
+            else:
+                flush()   # a blank added line ends the contiguous run
+        else:
+            flush()   # any non-add line (context/removed/header) ends the run
+    flush()
     return signals
 
 
@@ -121,14 +141,27 @@ def default_extract_tree(container_id: str, workdir: str, dest: Path) -> None:  
     `git init` it — the agent edits this REAL host copy; `run_tests.sh`
     (materialized alongside it) syncs edits back into the container to run
     the repo's own tests. The host copy is what a `git diff` against is
-    computed from once the agent is done."""
+    computed from once the agent is done. `/testbed` is itself a real repo
+    checkout with its own pre-existing `.git` history; `git init` there
+    would just re-open THAT repo (not start a fresh one), so `git add -A`
+    finds nothing new against its existing HEAD and the commit below fails
+    with "nothing to commit" -- the copied-in `.git` is removed first so
+    this directory's own history always starts clean, at exactly this tree."""
+    import shutil
     import subprocess as sp
     dest.mkdir(parents=True, exist_ok=True)
     sp.run(["docker", "cp", f"{container_id}:{workdir}/.", str(dest)], check=True)
+    shutil.rmtree(dest / ".git", ignore_errors=True)
     sp.run(["git", "init", "-q"], cwd=dest, check=True)
     sp.run(["git", "add", "-A"], cwd=dest, check=True)
+    # --no-gpg-sign: this is a throwaway, internal bookkeeping commit (the
+    # pre-agent baseline `extract_diff` diffs against), never a real,
+    # user-authored commit -- signing it would try to invoke this machine's
+    # configured signing helper, which needs an interactive hardware-key
+    # unlock that cannot be satisfied in this automated path.
     sp.run(["git", "-c", "user.email=recurve@localhost", "-c", "user.name=recurve",
-            "commit", "-q", "-m", "initial checkout (pre-agent)"], cwd=dest, check=True)
+            "commit", "--no-gpg-sign", "-q", "-m", "initial checkout (pre-agent)"],
+           cwd=dest, check=True)
 
 
 def _write_run_tests_script(dest: Path, container_id: str, workdir: str, test_cmd: str) -> None:

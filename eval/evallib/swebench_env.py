@@ -145,10 +145,19 @@ def build_environment_image(instance: dict, *, client=None,
     import platform as _platform
     import docker
     from swebench.harness.test_spec.test_spec import make_test_spec
-    from swebench.harness.docker_build import build_instance_image
+    from swebench.harness.docker_build import build_env_images, build_instance_image
 
     client = client or docker.from_env()
     test_spec = make_test_spec(instance, namespace=None)
+    # build_instance_image alone assumes the env (and base) image already
+    # exists -- it does not build them. build_env_images is SWE-bench's own
+    # prerequisite step (base image, then the per-repo/version env image);
+    # skipping it means build_instance_image fails looking for an env image
+    # that was never built. Passed as an already-built TestSpec (not the raw
+    # instance dict): build_env_images' own default tags are None, which
+    # make_test_spec rejects -- passing a TestSpec sidesteps the re-derivation
+    # entirely (get_test_specs_from_dataset returns TestSpec input unchanged).
+    build_env_images(client, [test_spec], force_rebuild=force_rebuild)
     build_instance_image(test_spec, client, logger=None, nocache=force_rebuild)
     digest = local_image_digest(test_spec.instance_image_key)
     if digest is None:

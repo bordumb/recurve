@@ -1,0 +1,32 @@
+{
+  "pallets__flask-5014": {
+    "base_commit": "7ee9ceb71e868944a46e1ff00b506772a53a4f1d",
+    "digest": "sha256:6d65076d1ffdcf06ba4eec01274d4ea8198015edc5a61d2c536c784cba97ac4c",
+    "environment_image_hash": "eih:0a42dd9076280410d789a87c2a372ea3",
+    "host": "Darwin/arm64/27.0.0",
+    "image": "sweb.eval.x86_64.pallets__flask-5014:latest",
+    "instance_id": "pallets__flask-5014",
+    "platform": "linux/x86_64",
+    "repo": "pallets/flask"
+  },
+  "pylint-dev__pylint-4661": {
+    "base_commit": "1d1619ef913b99b06647d2030bddff4800abdf63",
+    "digest": "sha256:3dd7e37995e08a7b1f51b7f850a941e4e6bbc6e88e9e9e6f5ac4b823e2826b24",
+    "environment_image_hash": "eih:46106e122f124c7a886bfd4b8399077e",
+    "host": "Darwin/arm64/27.0.0",
+    "image": "sweb.eval.x86_64.pylint-dev__pylint-4661:latest",
+    "instance_id": "pylint-dev__pylint-4661",
+    "platform": "linux/x86_64",
+    "repo": "pylint-dev/pylint"
+  },
+  "pylint-dev__pylint-4970": {
+    "base_commit": "40cc2ffd7887959157aaf469e09585ec2be7f528",
+    "digest": "sha256:00d5f0b844279bd196327a44490cefa6f4537aafce6be8eeaaf1b877321104c9",
+    "environment_image_hash": "eih:1c5962b7ad9fc692c7c74e828da0822b",
+    "host": "Darwin/arm64/27.0.0",
+    "image": "sweb.eval.x86_64.pylint-dev__pylint-4970:latest",
+    "instance_id": "pylint-dev__pylint-4970",
+    "platform": "linux/x86_64",
+    "repo": "pylint-dev/pylint"
+  }
+}

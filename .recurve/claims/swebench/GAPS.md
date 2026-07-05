@@ -64,14 +64,42 @@ does not exist in this container's tree at all).
 
 `assert_quarantined_swe` is the load-bearing guard, run BEFORE the workspace
 is ever handed to an agent: `test_patch_signals` pulls the meaningful added
-lines out of the instance's `test_patch`, and any of them appearing in any
-file the agent can see raises `QuarantineError` (the SAME exception type
-BigCodeBench's own `materialize.assert_quarantined` raises — one failure
-mode, one name, across both benchmarks). Negative space (guarded by the
-trap): a workspace whose container tree contains `test_patch` content,
-accepted because the leak check only compared the raw byte-for-byte patch
-text (not the per-line signals `test_patch_signals` extracts) and so missed
-a leak of the SAME content in reformatted/reindented form.
+content out of the instance's `test_patch` — CONTIGUOUS runs of added lines,
+never single lines in isolation — and any of them appearing in any file the
+agent can see raises `QuarantineError` (the SAME exception type BigCodeBench's
+own `materialize.assert_quarantined` raises — one failure mode, one name,
+across both benchmarks). Negative space (guarded by the trap): a workspace
+whose container tree contains `test_patch` content, accepted because the leak
+check only compared the raw byte-for-byte patch text (not the per-line
+signals `test_patch_signals` extracts) and so missed a leak of the SAME
+content in reformatted/reindented form.
+
+Found running the REAL flask instance through this smoke (never exercised
+before — the original hermetic fixture only used a synthetic example small
+enough to never collide with itself): checking individual added lines in
+isolation false-positives whenever a short, ordinary line (e.g. `with
+pytest.raises(ValueError):`) coincidentally recurs elsewhere in the SAME
+file for unrelated reasons — the real flask/pylint repos are large enough
+for this to be common, not rare. Fixed by grouping consecutive added lines
+into ONE multi-line signal per contiguous run; a real leak still reproduces
+the whole block verbatim (the trap above still catches it), but an isolated
+common line no longer false-positives on a workspace that never saw
+`test_patch` at all. Regression case added to this claim's own positive
+assertions (a real base file containing the coincidental line but not the
+full added block must NOT be flagged).
+
+Two further bugs found the same way, both inside `default_extract_tree`
+(`# pragma: no cover — needs docker`, so only a real run exercises it):
+(1) `/testbed` is itself a real git checkout with its own pre-existing
+`.git` history — a bare `git init` there re-opens THAT repo rather than
+starting fresh, so `git add -A` finds nothing new against its existing HEAD
+and the initial commit fails with "nothing to commit". Fixed by removing
+the copied-in `.git` before initializing. (2) this machine's global git
+config signs every commit through a hardware-key helper that needs an
+interactive unlock — including this throwaway, internal bookkeeping commit,
+which is never a real user-authored commit. That hung for minutes per cell
+waiting on a prompt that can never come in an automated run. Fixed with
+`--no-gpg-sign` on that one commit.
 
 ## SW-3 — Oracle quarantine: a fresh instance, the diff, and nothing else
 

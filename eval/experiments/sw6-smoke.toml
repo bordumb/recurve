@@ -1,0 +1,58 @@
+# SW6 — the live smoke: 3 real SWE-bench Verified instances x 2 models x
+# {A0, A9} through the FULL paid pipeline. Unlike BigCodeBench (one shared
+# oracle image for the whole run), each instance has its OWN environment
+# image (SW1) — there is no single `[oracle.env]` digest to pin here; see
+# `oracle.env.locks` below. Per-cell budget cap + EV-23/24's hard-kill
+# watchdog apply exactly as they do for O6 (docs/plans/eval-swebench-infra.md
+# SW6's own bound). Spend ceiling: <= $4/cell, 12 cells, worst case ~$48-55.
+[experiment]
+name = "sw6-smoke"
+question = "Do A0 and A9 produce analyze-complete rows with real telemetry on a real, multi-file repo task — and does A9's governor genuinely engage?"
+
+[matrix]
+models  = ["claude-haiku-4-5", "claude-sonnet-5"]
+arms    = ["A0", "A9"]
+budgets = [4.0]    # DOLLARS per cell (--max-budget-usd)
+seeds   = [0]
+
+[tasks]
+benchmark = "swebench-verified"
+# Pinned at first fetch (2026-07-05) via swebench_taskstore.fetch_swebench_verified.
+# The local JSONL is the source of truth for a run (hermetic, no network);
+# `hash`/`count` pin it exactly as BigCodeBench's own tasks table does.
+# `revision` is princeton-nlp/SWE-bench_Verified's HF dataset commit sha.
+local     = "datasets/swebench-verified@c104f840cc67f8b6eec6f759ebc8b2693d585d4a.jsonl"
+revision  = "c104f840cc67f8b6eec6f759ebc8b2693d585d4a"
+hash      = "076018aaac46ff5a1fb3b584a2e3bc0506a089a929e8bbd9449dd44764213349"
+count     = 3
+# All 3 fetched instances run (no sampling) -- chosen up front for small,
+# cheap environment images: pure-Python deps, no compiled-extension builds.
+# psf__requests-5414 was tried first and DROPPED (not excluded silently): its
+# canonical patch fails calibration under --network=none because 4
+# PASS_TO_PASS tests (TestTimeout::test_connect_timeout, ...) require a real
+# (if unreachable) network path to trigger a connection timeout -- a
+# structural sandbox/test mismatch, not a code defect. Swapped for
+# pylint-dev__pylint-4661 (same 2.10 environment family as pylint-4970,
+# already proven; PASS_TO_PASS count 0, so nothing else can fail).
+instance_ids = ["pallets__flask-5014", "pylint-dev__pylint-4970", "pylint-dev__pylint-4661"]
+
+[oracle]
+runs = 3
+verdict = "majority"       # SW7: grade_with_majority_vote — 3 independent runs, strict majority
+grade_concurrency = 1      # sequential for the first real run, same posture O6 took
+
+# The oracle environment is PER-INSTANCE (SW1) -- each of the 3 instances above
+# gets its own image, built via SWE-bench's own official tooling
+# (swebench_env.build_environment_image), never one shared digest. `locks`
+# names where those per-instance resolved locks live once built; each entry
+# is exactly build_environment_image's return value, keyed by instance_id.
+# All 3 instances' locks are built and present in that file. A driver must
+# still refuse to run any cell whose instance_id is missing from it (same
+# "refuse-with-remediation, never silent rebuild" posture as BigCodeBench's
+# oracle.lock.json).
+[oracle.env]
+mode     = "docker"
+per_instance = true
+locks    = "oracle/swebench_locks.json"
+network  = "none"           # grading is hermetic; the container is the sandbox
+timeout  = "calibrated"      # derived per-environment (SW4), not guessed

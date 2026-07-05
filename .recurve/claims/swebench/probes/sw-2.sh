@@ -108,6 +108,22 @@ try:
 except QuarantineError:
     pass
 
+# 4b. regression (found running the real flask instance through this smoke):
+# an individual added line is often ordinary, common code that ALREADY
+# recurs elsewhere in the SAME file for unrelated reasons (e.g. a pytest
+# idiom used by several tests) -- checking line-by-line false-positives on
+# a workspace that never saw test_patch at all. The base file here contains
+# 'with pytest.raises(ValueError):' (from an UNRELATED, pre-existing test),
+# but NOT the full added block (the new test doesn't exist without
+# test_patch) -- must NOT be flagged.
+BASE_FILE_WITH_COINCIDENTAL_LINE = {
+    '/testbed/tests/test_blueprints.py':
+        'def test_some_other_existing_test(app, client):\n'
+        '    with pytest.raises(ValueError):\n'
+        '        flask.Blueprint(\"other.thing\", __name__)\n',
+}
+assert_quarantined_swe(BASE_FILE_WITH_COINCIDENTAL_LINE, TEST_PATCH)
+
 # 5. end to end: materialize_swe_repo_workspace refuses BEFORE writing
 # anything agent-visible, when the container's real tree leaks.
 import tempfile, pathlib
