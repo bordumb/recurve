@@ -38,7 +38,8 @@ def check(label, cond):
 
 green = Progress(open=0, regressed=0, broken=0, uncovered=0, divergent=False)
 
-# 1. governor_status="off" (the default) is byte-identical to pre-R5 behavior.
+# 1. governor_status="off" (the default) means no governor is configured at
+# all, so a green cycle proceeds straight to STOP-SUCCESS.
 check("governor off (default) -> STOP-SUCCESS on a green cycle",
       decide([green]) == Verdict.STOP_SUCCESS)
 check("governor_status='off' explicit -> STOP-SUCCESS", decide([green], governor_status="off") == Verdict.STOP_SUCCESS)

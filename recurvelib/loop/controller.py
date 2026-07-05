@@ -27,9 +27,10 @@ class Verdict(Enum):
 
 
 # The governor's status for THIS decision, as the calling loop measured it —
-# never decided by decide() itself (decide() never invokes a Governor; a
-# caller that never configured one passes "off", exactly the pre-R5 default,
-# so no existing caller's verdict changes without an explicit opt-in).
+# decide() never invokes a Governor itself (that stays the calling loop's
+# job, via recurvelib.adapters). "off" means exactly what [gate] governor =
+# "off" means: no governor is configured for this decision at all, so none
+# is consulted — a real, meaningful config value, not a placeholder.
 GOVERNOR_STATUSES = ("off", "cleared", "pending", "vetoed")
 
 
@@ -58,8 +59,8 @@ def decide(history: list[Progress], k: int = 3, governor_status: str = "off") ->
     Rules (``stopping-controller.md`` §3, extended by R5):
       * The gate/mechanical conditions for success are
         ``open == regressed == broken == uncovered == 0`` and not divergent. When they hold:
-          - ``governor_status == "off"`` or ``"cleared"`` -> ``STOP_SUCCESS`` (unchanged from
-            pre-R5 behavior — a caller that never configured a governor is unaffected).
+          - ``governor_status == "off"`` (no governor configured) or ``"cleared"`` (a configured
+            governor actually cleared the cycle) -> ``STOP_SUCCESS``.
           - ``governor_status == "pending"`` -> ``PENDING_GOVERNOR`` (a configured governor has
             not yet cleared the cycle; not STOP_SUCCESS, not plain CONTINUE).
           - ``governor_status == "vetoed"`` -> ``CONTINUE`` (the veto becomes a captured trap on
@@ -76,11 +77,12 @@ def decide(history: list[Progress], k: int = 3, governor_status: str = "off") ->
         k: Window length for the non-improvement rules.
         governor_status: One of ``GOVERNOR_STATUSES`` — the governor's status for this
             decision, as the calling loop measured it. ``decide()`` never invokes a Governor
-            itself. Defaults to ``"off"`` — the exact pre-R5 behavior, so no existing caller's
-            verdict changes without an explicit opt-in.
+            itself (`recurvelib.adapters` and `recurvelib.analysis.decide_cli` do that); a
+            caller with no governor concept at all (e.g. `recurvelib.loop.runtime.run`'s
+            minimal closed loop) correctly passes `"off"`, its real, literal meaning.
 
     Usage:
-        v = decide(history)  # -> Verdict.STOP_SUCCESS / STOP_REVERT / CONTINUE (governor off)
+        v = decide(history)  # -> Verdict.STOP_SUCCESS / STOP_REVERT / CONTINUE (no governor)
         v = decide(history, governor_status="pending")  # -> Verdict.PENDING_GOVERNOR when gate-green
     """
     if governor_status not in GOVERNOR_STATUSES:

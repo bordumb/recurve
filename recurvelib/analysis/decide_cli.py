@@ -1,49 +1,24 @@
 """`decide` — surface the stopping controller as a callable verb.
 
 An orchestrator (or a human) needs to ask for a stop verdict from a *measured*
-progress vector rather than let a mechanical cap decide blind. This module is
-that surface: :func:`verdict_for` runs :func:`recurvelib.controller.decide` on a
-single measured cycle and returns its verdict string. It mirrors the controller
-exactly — the surface adds no policy of its own, so the verb can never disagree
-with the referee it exposes.
+progress vector rather than let a mechanical cap decide blind. :func:`verdict_for`
+runs :func:`recurvelib.controller.decide` on a single measured cycle and returns
+its verdict string. The surface adds no policy of its own beyond what R5 adds to
+the controller itself, so the verb can never disagree with the referee it exposes.
 
-:func:`verdict_for_configured` is the R5 live-loop wiring
-(`docs/plans/oracle-strength-and-decorrelation.md` R5, `docs/plans/ablation-infra.md`
-AI2): when a config is given and the gate/mechanical vector is green, it resolves
-``[gate] governor=`` through the SAME registry `AB-6`/`AB-7` built, invokes the
-real adapter against the ledger's currently-closed claims, and feeds its verdict
-into ``decide()`` — the exact call `templates/workflows/burndown.sh`'s
-``stop_verdict()`` already makes (``$PROG decide --open ... --regressed ...``),
-unchanged. A configured governor is invokable via config alone; no other part of
-the loop needs to change.
+When `cfg` names a configured (`!= "off"`) `[gate] governor=` and the
+gate/mechanical vector is green, `verdict_for` resolves it through the SAME
+registry `AB-6`/`AB-7` built, invokes the real adapter against the ledger's
+currently-closed claims, and feeds its verdict into `decide()` — the exact call
+`templates/workflows/burndown.sh`'s `stop_verdict()` already makes (`$PROG
+decide --open ... --regressed ...`), unchanged. A configured governor is
+invokable via config alone; no other part of the loop needs to change
+(`docs/plans/oracle-strength-and-decorrelation.md` R5,
+`docs/plans/ablation-infra.md` AI2).
 """
 from __future__ import annotations
 
 from recurvelib.loop.controller import Progress, decide
-
-
-def verdict_for(open: int, regressed: int, broken: int, uncovered: int, divergent: bool = False) -> str:
-    """Return the controller's verdict string for one measured progress vector.
-
-    A faithful thin mirror of :func:`recurvelib.controller.decide`: it wraps the
-    vector in a one-cycle history and returns the verdict's ``.value``. Same
-    inputs, same decision — the surface never overrides the controller.
-
-    Args:
-        open: Claims still RED (work remaining).
-        regressed: Claims that were GREEN and went RED this cycle.
-        broken: Claims that could not be measured.
-        uncovered: Frontier size — the completeness signal.
-        divergent: Whether a goal-counterexample passed (fidelity signal).
-
-    Returns:
-        The verdict string, one of ``"STOP-SUCCESS"`` / ``"STOP-REVERT"`` /
-        ``"CONTINUE"``.
-
-    Usage:
-        verdict_for(0, 0, 0, 0)  # -> "STOP-SUCCESS"
-    """
-    return decide([Progress(open, regressed, broken, uncovered, divergent)]).value
 
 
 def _resolve_governor_status(cfg, governor_tier: str) -> str:
@@ -107,24 +82,37 @@ def _resolve_governor_status(cfg, governor_tier: str) -> str:
     return "cleared"
 
 
-def verdict_for_configured(
-    cfg, open: int, regressed: int, broken: int, uncovered: int, divergent: bool = False,
+def verdict_for(
+    open: int, regressed: int, broken: int, uncovered: int, divergent: bool = False, cfg=None,
 ) -> str:
-    """Like :func:`verdict_for`, but consults the resolved config's
-    ``[gate] governor=`` for real when the gate/mechanical vector is green —
-    the R5 live-loop wiring. With ``governor="off"`` (or no config passed),
-    this is byte-identical to :func:`verdict_for`.
+    """Return the controller's verdict string for one measured progress vector.
 
-    Scope note: the governor audits ALL currently-closed claims in the
-    ledger (the full set STOP_SUCCESS is asserting about), not a
-    narrower "just this run's cycles" set — recurve does not yet track
-    per-run cycle boundaries finely enough to scope it tighter, and
-    auditing the full closed set is the safe direction to round in (it
-    can only find MORE to object to, never less).
+    Without `cfg` (or with `cfg.gate_governor == "off"`), a faithful thin mirror
+    of :func:`recurvelib.controller.decide`: wraps the vector in a one-cycle
+    history and returns the verdict's ``.value`` — no governor to consult, so
+    none is invoked. With a `cfg` naming a configured governor, and the vector
+    green, the governor is resolved through the registry and actually invoked
+    (see the module docstring) before the verdict is decided.
+
+    Args:
+        open: Claims still RED (work remaining).
+        regressed: Claims that were GREEN and went RED this cycle.
+        broken: Claims that could not be measured.
+        uncovered: Frontier size — the completeness signal.
+        divergent: Whether a goal-counterexample passed (fidelity signal).
+        cfg: A resolved `recurvelib.core.config.Config`, or `None`.
+
+    Returns:
+        The verdict string: ``"STOP-SUCCESS"`` / ``"STOP-REVERT"`` /
+        ``"CONTINUE"`` / ``"PENDING-GOVERNOR"``.
+
+    Usage:
+        verdict_for(0, 0, 0, 0)              # -> "STOP-SUCCESS" (no governor)
+        verdict_for(0, 0, 0, 0, cfg=cfg)      # -> resolves cfg's real governor
     """
     progress = Progress(open, regressed, broken, uncovered, divergent)
-    gate_green = (open == 0 and regressed == 0 and broken == 0 and uncovered == 0 and not divergent)
     governor_tier = getattr(cfg, "gate_governor", "off") if cfg is not None else "off"
+    gate_green = (open == 0 and regressed == 0 and broken == 0 and uncovered == 0 and not divergent)
 
     if not gate_green or governor_tier == "off":
         return decide([progress]).value
