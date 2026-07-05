@@ -40,11 +40,20 @@ str`), resolving `adversary=`/`governor=` through `recurvelib.adapters`'
 own registry rather than reimplementing anything (`ablation-infra.md`
 AI5). Adding an arm is one dict entry there, never new logic.
 
-**As of this writing, only `A0`, `A3`, `A7`, `A8`, `A9`, `A10` exist in
-that dict.** `A1`, `A2`, `A4`, `A5`, `A6` are documented in `eval-full.md`
-but have no `arms.py` entry yet — they aren't runnable until someone adds
-one. That is not a coincidence with the "run first" list below: the
-initial set is exactly the subset already wired to run.
+**Update (`eval-arm-kernel.md`):** `_ARMS` now holds `ArmSpec` tuples (one
+field per port — workspace/done_signal/boundary/audit/adversary/governor),
+not the flat `{"recurve", "config"}` dict described above, and `A4`, `A5`,
+`A6` are now real, runnable entries (`A6` shares `A0`'s `self_report`
+done-signal port; `A5` uses the new, real, off-by-default `BoundaryPort`;
+`A4` uses the new, additive-only `AuditPort`). `A1`/`A2` still have no
+entry — `A2` is a separate, pre-existing axis (`[gate] traps`) outside this
+port set, and `A1` is still blocked on the design question below.
+
+**As of the original writing, only `A0`, `A3`, `A7`, `A8`, `A9`, `A10` existed
+in that dict.** `A1`, `A2`, `A4`, `A5`, `A6` were documented in `eval-full.md`
+but had no `arms.py` entry yet. That was not a coincidence with the "run
+first" list below: the initial set was exactly the subset already wired to
+run.
 
 **What to run initially: A0, A3, A7, A8, A9, A10.** These answer the two
 questions we actually have live, unanswered stakes in right now — the
