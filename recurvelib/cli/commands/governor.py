@@ -1,30 +1,10 @@
 from __future__ import annotations
 
 import json
-import shlex
-import subprocess
 from pathlib import Path
 
 from ..base import *  # shared recurvelib imports
 from ..base import _fail, _config
-
-
-def _shell_verify_fn(verifier_cmd: str):
-    """Wrap a configured shell command into the `verify_fn(payload_bytes,
-    signature, public_key) -> bool` shape `human_required` needs — the same
-    seam `[receipts] verifier` already uses: the command receives the
-    payload bytes on stdin and the signature + public key as argv, and
-    exits 0 iff the signature verifies."""
-
-    def verify(payload_bytes: bytes, signature: str, public_key: str) -> bool:
-        try:
-            r = subprocess.run(shlex.split(verifier_cmd) + [signature, public_key],
-                              input=payload_bytes, capture_output=True, timeout=60)
-        except Exception:
-            return False
-        return r.returncode == 0
-
-    return verify
 
 
 def cmd_governor(args):
@@ -35,7 +15,7 @@ def cmd_governor(args):
     register it where `HumanRequiredGovernor` looks for it. An attestation
     that fails to verify is refused outright; nothing is registered."""
     from recurvelib.adapters.governor.human_required import (
-        cycle_snapshot_hash, verify_attestation, AttestationError,
+        cycle_snapshot_hash, verify_attestation, AttestationError, shell_verify_fn,
     )
 
     cfg = _config(args)
@@ -66,7 +46,7 @@ def cmd_governor(args):
         _fail("no commit to verify the attestation's cycle_snapshot_hash against — pass --ref")
     cycle = _Cycle(ref_commit, claim_ids)
 
-    ok, reason = verify_attestation(att, cycle, _shell_verify_fn(verifier_cmd))
+    ok, reason = verify_attestation(att, cycle, shell_verify_fn(verifier_cmd))
     if not ok:
         _fail(f"attestation refused: {reason}")
 

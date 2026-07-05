@@ -201,3 +201,23 @@ tested. AB-11 proves everything up to this exact boundary for real.
 Negative space: a sabotaged sibling `auths` tree missing the documented
 biometric-gate markers must be rejected by the structural checks before the
 probe ever reaches its SKIP.
+
+## AB-13 — [gate] governor= is invokable via config alone (the live wiring)
+
+`recurve decide` (`recurvelib.analysis.decide_cli.verdict_for_configured`),
+when a config resolves and the gate/mechanical vector is green, resolves
+`[gate] governor=` through the SAME registry AB-6/AB-7 built, invokes the
+real adapter against the ledger's currently-closed claims, and feeds its
+verdict into `decide()` — the exact call
+`templates/workflows/burndown.sh`'s `stop_verdict()` already makes
+(`$PROG decide --open ... --regressed ... --broken ... --uncovered ...`),
+completely unchanged. Proven with real `recurve decide` subprocess
+invocations over a tiny fixture project (`governor = "mechanical_review"`),
+including sourcing the REAL, unmodified shipped `stop_verdict()` bash
+function directly. `governor = "off"` (the sibling fixture) is byte-for-byte
+unaffected.
+
+Negative space: `governor=mechanical_review` configured with no
+`RECURVE_GOVERNOR_CMD` wired must never reach `STOP-SUCCESS` — a governor
+that cannot be consulted must resolve to `pending` (`PENDING-GOVERNOR`),
+never silently to `cleared`.

@@ -23,10 +23,33 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shlex
+import subprocess
 from pathlib import Path
 
 from recurvelib.loop.reviewers import GovernorVerdict
 from recurvelib.adapters._shared.identity import is_human_identity
+
+
+def shell_verify_fn(verifier_cmd: str):
+    """Wrap a configured shell command (`[gate] human_verifier`, the same
+    seam shape `[receipts] verifier` already uses) into the
+    `verify_fn(payload_bytes, signature, public_key) -> bool` shape this
+    module needs: the command receives the payload bytes on stdin and the
+    signature + public key as argv, and exits 0 iff the signature verifies.
+    Shared by the `recurve governor approve` CLI and the live decide()
+    wiring so there is one implementation of "run the configured verifier
+    command", not two."""
+
+    def verify(payload_bytes: bytes, signature: str, public_key: str) -> bool:
+        try:
+            r = subprocess.run(shlex.split(verifier_cmd) + [signature, public_key],
+                              input=payload_bytes, capture_output=True, timeout=60)
+        except Exception:
+            return False
+        return r.returncode == 0
+
+    return verify
 
 
 class AttestationError(Exception):

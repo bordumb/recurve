@@ -255,3 +255,27 @@
     not a claim that Secure Enclave hardware is absent from the machine; the structural
     seam is verified for real above, and AB-11 proves everything up to this exact boundary
     with a mocked human signer
+
+- id: AB-13
+  title: '[gate] governor= is invokable via config alone (the live wiring)'
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AB-13
+  evidence:
+  - recurvelib/analysis/decide_cli.py
+  - templates/workflows/burndown.sh
+  observed: 'GREEN at baseline 2026-07-05: [gate] governor= is invokable via config alone:
+    a real ''recurve decide'' subprocess  (the exact call burndown.sh''s stop_verdict() makes,
+    and the REAL sourced stop_verdict()  function itself) resolves mechanical_review through
+    the registry, invokes it, and  STOP-SUCCESS genuinely depends on its verdict — zero changes
+    to the loop'
+  smallest_fix: recurvelib.analysis.decide_cli.verdict_for_configured resolves [gate] governor=
+    through the registry, invokes the real adapter against the ledger's closed claims, and
+    feeds its verdict into decide() — the exact call stop_verdict() already makes, zero changes
+    to the loop.
+  probe: probes/ab-13.sh
+  unlocks: a configured governor genuinely supersedes STOP_SUCCESS in a live recurve run,
+    not just in an isolated regression fixture
