@@ -21,7 +21,7 @@ from pathlib import Path
 EVAL = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(EVAL))
 
-from src.benchmarks.swebench import grade_swe  # noqa: E402
+from src.benchmarks.swebench import grade_swe, prepare_swe  # noqa: E402
 
 
 def main() -> int:
@@ -43,7 +43,9 @@ def main() -> int:
 
         task_id = row["task_id"]
         instance = _load_instance(task_id)
-        result = grade({"task_id": task_id}, instance, ws)
+        cell = {"task_id": task_id}
+        prepare_swe(cell, instance, ws)   # re-extracts the diff into solution.py, same as a real orchestrated cell would
+        result = grade(cell, instance, ws)
         replay_verdict = result["verdict"]
         real_verdict = row["oracle_verdict"]
         match = "OK" if replay_verdict == real_verdict else "MISMATCH"

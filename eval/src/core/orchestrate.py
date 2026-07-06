@@ -70,7 +70,7 @@ def _apply_boundary_port(boundary: str) -> dict:
 
 
 def make_orchestrator(agent, tasks_by_id: dict, provenance: dict, *,
-                      grade, gate_fn=None):
+                      grade, gate_fn=None, prepare=None):
     """Return the adapter the runner drives. `agent(cell, workspace)` runs the
     model and returns at least `{terminated: bool}`. `grade(cell, task,
     workspace) -> {"verdict": str, "extra_row": dict}` is the ONE
@@ -84,6 +84,13 @@ def make_orchestrator(agent, tasks_by_id: dict, provenance: dict, *,
     where a benchmark's own semantics genuinely differ: carry the
     difference in `extra_row`, never average the two semantics into the
     shared orchestrator itself.
+
+    `prepare(cell, task, workspace)`, when given, runs right after the agent
+    terminates and BEFORE the done-signal port is consulted — the seam
+    `done_signal="self_report"` needs when a benchmark's self-report artifact
+    (`workspace/solution.py`) must be DERIVED from the workspace (SWE-bench's
+    diff) rather than being something the agent wrote directly (BigCodeBench).
+    Omitted (`None`) is a no-op, byte-identical to not having the seam at all.
 
     For an arm at every port's default (boundary="enforced", audit="none")
     the row is byte-identical to a pipeline that never knew those ports
@@ -102,6 +109,9 @@ def make_orchestrator(agent, tasks_by_id: dict, provenance: dict, *,
         # A slot, not a branch: resolved by NAME, applies to every cell
         # identically regardless of which arm or benchmark it is.
         boundary_fields = _apply_boundary_port(spec.boundary)
+
+        if prepare is not None:
+            prepare(cell, tasks_by_id[cell["task_id"]], workspace)
 
         done_port = resolve_done_signal_port(spec.done_signal)
         done_result = done_port(workspace, agent_row,

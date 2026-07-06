@@ -54,6 +54,8 @@ def check_one(name: str) -> list[str]:
         problems.append("load_tasks is not callable")
     if not callable(b.grade):
         problems.append("grade is not callable (must be a factory)")
+    if b.prepare is not None and not callable(b.prepare):
+        problems.append("prepare is neither None nor callable")
     if b.task_id_key not in ("task_id", "instance_id"):
         problems.append(f"unrecognized task_id_key {b.task_id_key!r}")
 

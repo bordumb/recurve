@@ -18,6 +18,18 @@ from evallib.swebench_pipeline import extract_diff
 from evallib.swebench_taskstore import load_pinned
 
 from src.core.benchmark import Benchmark, register
+from src.sut.recurve import gate_verdict as _gate_verdict
+from src.sut.recurve import make_governed_gate_fn as _make_governed_gate_fn
+
+
+def prepare_swe(cell: dict, task: dict, workspace) -> None:
+    """`Benchmark.prepare` — extracts the agent's diff and writes it to
+    `workspace/solution.py` BEFORE `done_signal` is consulted. SWE-bench's
+    self-report artifact (the diff) is DERIVED from the workspace, unlike
+    BigCodeBench's (the agent writes solution.py itself) -- done_signal=
+    "self_report" reads that file immediately after the agent terminates, so
+    extraction cannot wait until grading, which runs later."""
+    Path(workspace, "solution.py").write_text(extract_diff(Path(workspace)))
 
 
 def grade_swe(environment_locks: dict):
@@ -27,12 +39,13 @@ def grade_swe(environment_locks: dict):
     (`{digest, environment_image_hash, ...}`) — a genuinely per-instance
     oracle-env shape that must live in `extra_row`, never averaged into the
     shared orchestrator's single `provenance["oracle_env_hash"]` semantics
-    BigCodeBench uses."""
+    BigCodeBench uses. Reads the diff `prepare_swe` already wrote to
+    `solution.py` rather than re-extracting it -- one extraction per cell,
+    not two."""
     def grade(cell: dict, task: dict, workspace) -> dict:
         workspace = Path(workspace)
         lock = environment_locks[cell["task_id"]]
-        diff_text = extract_diff(workspace)
-        (workspace / "solution.py").write_text(diff_text)   # DoneSignalPort["self_report"] reads this, same as evallib's own orchestrate()
+        diff_text = Path(workspace, "solution.py").read_text()
 
         agent_container_id = None
         container_json = workspace / "container.json"
@@ -53,6 +66,28 @@ def grade_swe(environment_locks: dict):
             extra_row["oracle_unanimous"] = graded["unanimous"]
         return {"verdict": verdict, "extra_row": extra_row}
     return grade
+
+
+def default_gate_fn(workspace) -> str:
+    """`sut.recurve.gate_verdict` assumes the workspace root IS the git
+    checkout `recurve matrix --gate` runs in -- true for BigCodeBench, NOT
+    for SWE-bench, whose real checkout lives at `workspace/testbed/`
+    (`swebench_workspace.materialize_swe_repo_workspace`). Reuses
+    `gate_verdict` unchanged, just rooted at the right subdirectory --
+    matches `evallib.swebench_pipeline._default_gate` byte-for-byte."""
+    return _gate_verdict(Path(workspace) / "testbed")
+
+
+def make_governed_gate_fn(governor: str, actor_model: str, governor_cmd: str):
+    """`sut.recurve.make_governed_gate_fn`, rooted at `workspace/testbed/`
+    for the same reason `default_gate_fn` is -- the governor's own gate
+    check and its snapshot commit both need the real checkout, not the
+    cell's outer workspace directory."""
+    inner = _make_governed_gate_fn(governor, actor_model, governor_cmd)
+
+    def gate_fn(workspace):
+        return inner(Path(workspace) / "testbed")
+    return gate_fn
 
 
 def _load_tasks(manifest: dict, cache_dir) -> list[dict]:
@@ -104,4 +139,5 @@ register(Benchmark(
     grade=grade_swe,
     resolve_oracle_env=resolve_oracle_env,
     calibrate=calibrate,
+    prepare=prepare_swe,
 ))
