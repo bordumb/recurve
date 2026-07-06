@@ -27,7 +27,6 @@ through both implementations and their rows compare byte-for-byte before
 
 from __future__ import annotations
 
-import subprocess
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -35,6 +34,8 @@ from pathlib import Path
 from evallib.arms import arm_spec, resolve_boundary_adapter
 from evallib.audit import resolve_audit_port
 from evallib.done_signal import resolve_done_signal_port
+
+from src.sut.recurve import gate_verdict
 
 REQUIRED_ROW_FIELDS = (
     "cell_id", "model", "arm", "task_id",
@@ -52,12 +53,6 @@ class SequencingError(RuntimeError):
 def row_is_complete(row: dict) -> bool:
     """True iff a row carries everything analyze and reproduction need."""
     return all(k in row for k in REQUIRED_ROW_FIELDS)
-
-
-def _default_gate(workspace: Path) -> str:  # pragma: no cover - real subprocess
-    r = subprocess.run(["recurve", "matrix", "--gate"], cwd=workspace,
-                       capture_output=True, text=True)
-    return {0: "green", 1: "red"}.get(r.returncode, "broken")
 
 
 def _apply_boundary_port(boundary: str) -> dict:
@@ -110,7 +105,7 @@ def make_orchestrator(agent, tasks_by_id: dict, provenance: dict, *,
 
         done_port = resolve_done_signal_port(spec.done_signal)
         done_result = done_port(workspace, agent_row,
-                                gate_fn=gate_fn or _default_gate,
+                                gate_fn=gate_fn or gate_verdict,
                                 command=spec.external_ci_command)
         declared_done = done_result["declared_done"]
         gate_outcome = done_result["gate_outcome"]
