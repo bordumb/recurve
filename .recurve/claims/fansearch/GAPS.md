@@ -28,3 +28,41 @@ transport dominates a small viscosity), it reports violation. Negative
 space (kept RED as a counterexample): a scorer that ignores the sampled
 state entirely, or one whose derivative computation uses the wrong
 exponent, turns the probe RED.
+
+## Further validation before any engine code — three throwaway checks
+
+Not ledger claims (throwaway scripts, per this suite's own precondition
+rule) — recorded here so the next claim's author does not repeat the work.
+
+**Is there real signal in the candidate grammar?** Random/grid sampling
+over a richer candidate family (diagonal shell weights of several shapes —
+geometric, polynomial, monotone-random — plus optional cross-term
+coefficients) against a battery of single- and multi-active-shell states
+shows real separation: mean score 0.696, stdev 0.176, range 0.18–1.00
+across 400 sampled candidates, against a pure-geometric reference scoring
+0.69–0.78 depending on its rate. Not a flat landscape, and naive random
+sampling already reaches the reference's range. Worth searching.
+
+**Does classical optimization already solve it?** `scipy.optimize.
+differential_evolution` over the same parametrization (proxy score as
+objective) robustly recovers/beats the geometric reference: 0.965–1.000
+across 5 independent seeds, all with zero violations on the DE's own
+training battery, versus the reference's 0.69–0.75. Per this PRD's own
+decision rule, that descopes the engine: a classical optimizer stands in
+for the LLM fan-out/breeding machinery (islands, `Proposer`,
+`campaign_runner`) for this domain, unless a later check shows an LLM adds
+value a plain optimizer can't reach. Checked analytically (symbolic sum
+expansion, not just numerically): no choice of diagonal weight or
+cross-term coefficient makes the functional's derivative non-positive for
+*every* nonnegative multi-shell state short of the already-known constant-
+weight case — so the near-perfect DE scores are a genuine but non-universal
+empirical fit, not a hidden new theorem. Exactly the behavior the proxy/gate
+split is designed for: a good score guides, it does not decide.
+
+**Does candidate → statement → kernel-check work smoothly by hand?**
+Yes. A hand-authored generalization of the weighted-energy derivative
+identity — dissipativity of a single active shell holds for *any*
+nonnegative diagonal weight and *any* cross-term coefficients, not just
+the geometric one — went RED → GREEN through the real gate in the sibling
+`navier_stokes` repo (recorded there as `SH7`, `NavierStokes/Shells/
+Basic.lean`), kernel-clean, no regressions. The bridge works.
