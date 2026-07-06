@@ -100,3 +100,28 @@ Negative space (kept RED as a counterexample): `probes/fs-3.trap/
 wrong-weight-exponent/` drops a factor of 2 from the dissipation exponent —
 the probe's comparison against the same closed form `FS-1` verified
 catches the resulting mismatch, RED.
+
+## FS-4 — compile_to_claim's output elaborates through the real gate ✓
+
+`recurvelib/adapters/proxy/compile_to_claim.py` automates F0 Stage 3's
+hand-authored bridge: `compile_to_claim(candidate)` specializes
+`shell_single_active_dissipative` (`SH7`, the sibling `navier_stokes`
+repo) to a candidate's concrete weights, returning a named theorem, a
+check-file pin referencing it, and a trap redefining it as an impostor —
+never writing to disk or invoking the gate itself (a campaign engine would
+do that). This validates the *mechanism*, not new mathematics: any single
+candidate's single-shell dissipativity is already a proven corollary of
+`SH7`; a genuinely novel multi-shell bound is a harder, still-open
+question a survivor's numbers alone do not hand you a proof of. Verified
+against the real sibling toolchain (`lake env lean`): the compiled
+theorem elaborates kernel-clean, and the compiled trap is rejected with a
+type mismatch, on a concrete `N=3` candidate. Negative space (kept RED as
+a counterexample): `probes/fs-4.trap/wrong-rhs-index/` asserts the
+dissipation coefficient at index `0` instead of `N` — a plausible
+off-by-one — and the sibling gate's own type-checker rejects it.
+
+The sibling repo's default checkout does not have `SH7` merged onto its
+main branch yet (it landed on a matched feature branch there); the probe
+walks up to find a sibling `navier_stokes/` and SKIPs (non-blocking,
+`oracle_waiver` declared) when `SH7` is not present there — the AB-12/TK-2
+pattern. `$NAVIER_STOKES_REPO` overrides the lookup for a real run.

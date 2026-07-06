@@ -56,3 +56,27 @@
   probe: probes/fs-3.sh
   unlocks: the real proxy a classical-optimizer-driven campaign scores candidates with, in
     place of the throwaway Stage 0-2 scripts.
+
+- id: FS-4
+  title: compile_to_claim's output elaborates through the real sibling gate -- the promotion
+    bridge, automated
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - FS-4
+  observed: 'GREEN at baseline 2026-07-06: GREEN: compile_to_claim''s output elaborates and
+    is kernel-clean against the real sibling gate; its own trap is correctly rejected'
+  smallest_fix: add recurvelib/adapters/proxy/compile_to_claim.py (ClaimDraft, compile_to_claim)
+    turning a Candidate into a named Lean theorem + pin + trap, specializing shell_single_active_dissipative
+    (SH7) to the candidate's concrete numbers.
+  probe: probes/fs-4.sh
+  unlocks: the automated half of the promotion bridge (F0 Stage 3 proved it by hand); a real
+    campaign can now turn a survivor into a gate-checked claim without a human writing the
+    Lean.
+  oracle_waiver: the sibling navier_stokes repo's default checkout does not have SH7 merged
+    onto its main branch yet (it landed on a feature branch there, matched to this one) --
+    the probe walks up to find a sibling navier_stokes/ and SKIPs (non-blocking) when SH7
+    is not present there, exactly the AB-12/TK-2 pattern. $NAVIER_STOKES_REPO overrides the
+    lookup for a real run.
