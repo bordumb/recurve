@@ -1,0 +1,29 @@
+# datasets/registry.toml — one pin per dataset, looked up by name instead of
+# copy-pasted into every experiment manifest. Each entry here is copied
+# byte-for-byte from the inline pin already committed in an experiment file
+# (see the comment on each table) — `core/dataset_registry.py`'s own
+# round-trip test proves a registry lookup returns the identical dict a
+# manifest's inline `[tasks]` pin does today.
+#
+# Additive only: no experiment manifest is rewritten to reference this yet
+# (three real manifests currently duplicate these pins inline: o6-smoke.toml,
+# poc-bcb-hard.toml, runs/o6/manifest.toml) — this file gives a manifest the
+# *option* to reference a name (`[tasks].dataset = "bigcodebench-hard"`)
+# instead of repeating the pin, without requiring the existing, already-run
+# manifests to change.
+
+[bigcodebench-hard]
+# Copied from experiments/poc-bcb-hard.toml [tasks] (== experiments/o6-smoke.toml,
+# == runs/o6/manifest.toml [tasks] -- all three agree today; this table is what
+# "agree" should mean structurally, not by manual review.
+local    = "datasets/bigcodebench-hard@298d2cc7b96612e15e47313c3603ee124cee0c1f.jsonl"
+revision = "298d2cc7b96612e15e47313c3603ee124cee0c1f"
+hash     = "e2f21cd5dc768bcd9a5bbd2fa6225855c431abd1a73f4cfc736799f548a883fd"
+count    = 148
+
+[swebench-verified]
+# Copied from experiments/sw6-smoke.toml [tasks].
+local    = "datasets/swebench-verified@c104f840cc67f8b6eec6f759ebc8b2693d585d4a.jsonl"
+revision = "c104f840cc67f8b6eec6f759ebc8b2693d585d4a"
+hash     = "076018aaac46ff5a1fb3b584a2e3bc0506a089a929e8bbd9449dd44764213349"
+count    = 3

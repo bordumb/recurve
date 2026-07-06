@@ -1,0 +1,23 @@
+compare_sw6_smoke.py result -- 2026-07-06
+
+Replays the real, still-on-disk workspaces from the actual paid smoke
+(eval/runs/sw6-smoke/results.jsonl) through the new grade_swe port
+(eval/src/benchmarks/swebench.py), re-running GRADING ONLY (zero new API
+spend, real docker only) and diffing each replayed verdict against the
+real, recorded one.
+
+cell_id                                                       real  replay  match
+claude-haiku-4-5-swe-A0-4-0-0-pallets-flask-5014-7f02f8a2      pass  pass    OK
+claude-haiku-4-5-swe-A9-4-0-0-pallets-flask-5014-a94d511a      pass  pass    OK
+claude-sonnet-5-swe-A0-4-0-0-pallets-flask-5014-af6db838       pass  pass    OK
+claude-sonnet-5-swe-A9-4-0-0-pallets-flask-5014-7069c56c       pass  pass    OK
+claude-haiku-4-5-swe-A0-4-0-0-pylint-dev-pylint-4970-7990613d  fail  fail    OK
+claude-haiku-4-5-swe-A9-4-0-0-pylint-dev-pylint-4970-af7938df  fail  fail    OK
+claude-sonnet-5-swe-A0-4-0-0-pylint-dev-pylint-4970-25fa484a   fail  fail    OK
+claude-sonnet-5-swe-A9-4-0-0-pylint-dev-pylint-4970-a750bf9d   pass  pass    OK
+claude-haiku-4-5-swe-A0-4-0-0-pylint-dev-pylint-4661-22528b3e  fail  fail    OK
+claude-haiku-4-5-swe-A9-4-0-0-pylint-dev-pylint-4661-56332a10  fail  fail    OK
+claude-sonnet-5-swe-A0-4-0-0-pylint-dev-pylint-4661-27ccbbc2   pass  pass    OK
+claude-sonnet-5-swe-A9-4-0-0-pylint-dev-pylint-4661-82ba273a   fail  fail    OK
+
+RESULT: 12/12 match. all replayed verdicts match the real, recorded smoke.
