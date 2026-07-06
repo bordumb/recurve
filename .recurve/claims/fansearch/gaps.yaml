@@ -160,3 +160,24 @@
   probe: probes/fs-8.sh
   unlocks: 'proof that F5''s adapter interface is genuinely domain-agnostic: a second, mathematically
     unrelated domain registers through the exact same seam with no changes to the engine.'
+
+- id: FS-9
+  title: the [fansearch] proxy = "off" ablation switch is genuinely inert, not just documented
+    as a default
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - FS-9
+  observed: 'GREEN at baseline 2026-07-06: GREEN: fansearch_proxy defaults to off; the core
+    engine has zero references to the fansearch seam outside its own files; discovery_provenance
+    is silently empty by default'
+  smallest_fix: confirm recurvelib's core (loop, cli/commands/matrix, run, ...) has zero references
+    to fansearch_proxy/PROXY_ADAPTERS outside the fansearch seam's own files; confirm a recurve.toml
+    with no [fansearch] table parses to proxy="off"; confirm emit_for_matrix's discovery lookup
+    is silently empty with no promotions.jsonl.
+  probe: probes/fs-9.sh
+  unlocks: eval-full.md's arm A11 (backlog refilled by discovery search vs. a human/PRD) can
+    trust that turning fansearch on is the ONLY difference from A3's recurve.toml -- not an
+    assumption, a gated claim.

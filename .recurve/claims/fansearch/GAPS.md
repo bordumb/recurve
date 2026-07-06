@@ -240,3 +240,20 @@ Negative space (kept RED as a counterexample):
 `probes/fs-8.trap/wrong-dissipation-exponent/` drops a factor of 2 from
 the dissipation exponent — the probe's comparison against the exact
 analytic solution catches the resulting mismatch, RED.
+
+## FS-9 — the ablation switch is inert by default, not just documented as one ✓
+
+`eval-full.md`'s arm matrix gained `A11` — backlog refilled by discovery
+search instead of a human/PRD, at A3's identical gate discipline — and
+`[fansearch] proxy = "off"` (the default) is what makes A3 and A11 differ
+by exactly one config line rather than by an untested assumption. This
+claim is that assumption, gated: `recurvelib`'s core (`loop/`,
+`cli/commands/matrix.py`, `run.py`, …) has zero references to
+`fansearch_proxy`/`PROXY_ADAPTERS` outside the seam's own files
+(`adapters/proxy/`, `fansearch/`, `cli/commands/fansearch.py`,
+`cli/commands/drill.py`, `core/config.py`); a `recurve.toml` with no
+`[fansearch]` table at all parses to `proxy = "off"`; and
+`emit_for_matrix`'s discovery lookup is silently empty for any project
+that has never run a campaign. Negative space (kept RED as a
+counterexample): `probes/fs-9.trap/leaked-coupling/` simulates the core
+loop importing `PROXY_ADAPTERS` directly — caught immediately.
