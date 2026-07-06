@@ -228,7 +228,7 @@ def cmd_drill(args):
                                         f"probe={probe_r.outcome.value} reference={ref_r.outcome.value}")
                         _record_diff_challenge(cfg, g, probe_r, ref_r)
             if args.fansearch:
-                # The proxy audit (F6): a proxy is untrusted precisely because
+                # The proxy audit: a proxy is untrusted precisely because
                 # it CAN be gamed, so drilling it measures -- and bounds -- how
                 # well it still separates a fixed known-good/known-bad set. A
                 # proxy that ranks garbage highly is a bad guide, not a

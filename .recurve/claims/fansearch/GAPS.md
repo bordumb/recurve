@@ -147,3 +147,50 @@ guard is real either way. Negative space (kept RED as a counterexample):
 `probes/fs-5.trap/threshold-collapsed/` sets `DRILL_THRESHOLD = 0.0`, at
 which every known-bad candidate trivially "passes" — caught as 3/3 false
 positives.
+
+## FS-6 — the campaign engine: archive everything, stop on a measure ✓
+
+`recurvelib/fansearch/campaign.py::run_campaign` is the engine F2-F4
+descoped down to: propose a candidate (classical optimization, F0 Stage 2),
+score it, archive it — every round, not just survivors — and halt on
+either a wall-clock budget or `dry_generations` consecutive rounds with no
+new record. Both thresholds are config, not a raw loop-iteration count
+picked out of the air; this is the same "reuse the controller" discipline
+the burndown loop's own `max_consecutive_failures`/`runaway_net_positive_
+cycles` halts already use, applied to a different counter (no new
+gate-confirmed candidate, rather than no ledger progress). A new record
+above the promotion threshold gets checked against the real target repo
+(read-only, a scratch temp file — nothing is written there) before it
+counts as gate-confirmed; without a target repo the campaign still runs
+and archives, it just cannot confirm anything. Negative space (kept RED as
+a counterexample): `probes/fs-6.trap/off-by-one-stop/` loosens the
+dry-generations comparison by one — caught immediately (3 rounds run
+where exactly 2 were configured).
+
+`recurvelib/fansearch/promote.py::promote_candidate` is the one step here
+that mutates another repo's history for good: it appends the compiled
+theorem to the target source, writes a check/trap/probe triple matching
+that repo's own convention, rebuilds, and baselines there — never
+automatic, always one explicit call naming one archived candidate. This
+was verified against the real sibling repo, not just read: a real
+campaign round found a record-scoring `N=4` candidate, `promote_candidate`
+wrote it in as `SHX1`, and the sibling's own gate closed it green (0
+regressions, 42/42 traps still RED) — the same mechanism FS-4 checks in
+isolation, exercised here as part of a full round-trip.
+
+## FS-7 — a discovered claim's receipt says so ✓
+
+An optional `discovery` field (`domain`, `proxy_score`) on the receipt
+schema, populated by `make_receipt` and attached by `emit_for_matrix` only
+when a gap id appears in `<state_dir>/fansearch/promotions.jsonl` — a
+hand-authored claim's receipt carries neither key. Included in
+`self_sha256` (known at receipt-creation time, unlike `signer_fields`,
+which is excluded because it arrives after the hash is fixed). Verified
+against the real sibling repo's own gate run (using this worktree's own
+`recurve`, since the field does not exist on whatever is checked out on
+its default branch yet): `SHX1`'s receipt carries `{"domain":
+"dyadic_lyapunov", "proxy_score": 1.0}`; `SH7`'s, promoted by hand, carries
+neither key; the chain still verifies end to end. Negative space (kept RED
+as a counterexample): `probes/fs-7.trap/leaks-to-all/` falls back to a
+placeholder `discovery` object for every gap instead of `None` — caught
+immediately (a hand-authored gap acquiring a fabricated discovery field).

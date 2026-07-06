@@ -1,7 +1,7 @@
 #!/bin/bash
 # FS-4: compile_to_claim's output actually elaborates through the real
 # gate in the sibling navier_stokes repo -- the promotion bridge itself,
-# automated (F5), not hand-authored (F0 Stage 3 / SH7).
+# automated rather than hand-authored.
 set -u
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

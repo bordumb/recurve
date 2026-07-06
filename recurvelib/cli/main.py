@@ -29,6 +29,7 @@ from .commands.cycle_new import cmd_cycle_new
 from .commands.decide import cmd_decide
 from .commands.demo import cmd_demo
 from .commands.drill import cmd_drill
+from .commands.fansearch import fansearch_app
 from .commands.freshness import cmd_freshness
 from .commands.frontier import cmd_frontier
 from .commands.governor import cmd_governor
@@ -283,7 +284,6 @@ def _pack_install(
 ):
     cmd_pack(_ns("pack", action="install", path=path, suite=suite))
 
-
 app.add_typer(pack_app, name="pack")
 
 
@@ -321,8 +321,8 @@ def _cycle_new(
 ):
     cmd_cycle_new(_ns("cycle", cyclecmd="new", name=name, gaps=gaps, timeout=timeout))
 
-
 app.add_typer(cycle_app, name="cycle")
+app.add_typer(fansearch_app, name="fansearch")
 
 
 @app.command(help="the promotion ceremony: drafts → measured ledger entries")

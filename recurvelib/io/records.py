@@ -114,6 +114,7 @@ def make_receipt(
     oracle_versions: dict[str, str],
     observed_at: str,
     prev: str | None,
+    discovery: dict | None = None,
 ) -> dict:
     probe_sha = ""
     if probe_path is not None and probe_path.exists():
@@ -131,5 +132,7 @@ def make_receipt(
         "observed_at": observed_at,
         "prev": prev,
     }
+    if discovery is not None:
+        receipt["discovery"] = discovery
     receipt["self_sha256"] = receipt_hash(receipt)
     return receipt

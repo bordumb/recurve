@@ -102,3 +102,40 @@
   unlocks: F6's anti-reward-hack teeth for the proxy itself -- a regression in the dyadic_lyapunov
     proxy's discriminative power is now caught mechanically, not just assumed from the Stage
     0-2 validation staying true forever.
+
+- id: FS-6
+  title: the campaign engine archives every candidate and halts on budget or dry-generations,
+    a measured stop
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - FS-6
+  observed: 'GREEN at baseline 2026-07-06: GREEN: dry-generations and budget stops both trigger
+    at their configured threshold; every round archived'
+  smallest_fix: 'add recurvelib/fansearch/campaign.py: run_campaign proposes+scores a candidate
+    per round, archives it, and halts when wall-clock budget is exceeded or K consecutive
+    rounds produce no new record -- both thresholds measured and configurable, never a raw
+    iteration count.'
+  probe: probes/fs-6.sh
+  unlocks: 'a bounded, auditable search: every candidate tried is on record, and the stop
+    is a decision the operator configured, not a vibe.'
+
+- id: FS-7
+  title: a promoted claim's receipt carries which domain proposed it and what the proxy scored
+    it, hand-authored claims carry neither
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - FS-7
+  observed: 'GREEN at baseline 2026-07-06: GREEN: only the promoted gap''s receipt carries
+    discovery provenance; both validate'
+  smallest_fix: add an optional discovery field (domain, proxy_score) to the receipt schema
+    and make_receipt; emit_for_matrix reads <state_dir>/fansearch/promotions.jsonl and attaches
+    the field only to gaps recorded there.
+  probe: probes/fs-7.sh
+  unlocks: recurve receipts can answer "was this claim discovered by search, and what guided
+    it" for any project using this seam, not just this one.

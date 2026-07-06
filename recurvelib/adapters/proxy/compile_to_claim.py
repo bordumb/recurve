@@ -14,8 +14,10 @@ hand you a proof of.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from recurvelib.adapters.proxy.dyadic_lyapunov import Candidate
+if TYPE_CHECKING:
+    from recurvelib.adapters.proxy.dyadic_lyapunov import Candidate
 
 
 @dataclass(frozen=True)

@@ -1,7 +1,6 @@
 #!/bin/bash
-# FS-5: F6's anti-reward-hack teeth -- `recurve drill --fansearch` measures
-# each registered ProxyEvaluator's known-good/known-bad separation and
-# fails the drill on a regression.
+# FS-5: `recurve drill --fansearch` measures each registered ProxyEvaluator's
+# known-good/known-bad separation and fails the drill on a regression.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

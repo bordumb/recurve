@@ -72,12 +72,12 @@ def _make_battery(N: int, seed: int, n_states: int) -> tuple[tuple[float, ...], 
 
 
 class DyadicLyapunovProxy:
-    """`ProxyEvaluator` for the dyadic_lyapunov domain (docs/plans/fansearch.md
-    F5). `nu`/`alpha` are the shell system's own physical parameters, fixed
-    per proxy instance (not part of the candidate) -- a campaign varies the
-    candidate's weights, not the physical regime. The battery is generated
-    once per truncation level `N` from a fixed seed, then reused: pure and
-    deterministic given a candidate, as the port requires."""
+    """A `ProxyEvaluator` for the dyadic_lyapunov domain. `nu`/`alpha` are the
+    shell system's own physical parameters, fixed per proxy instance (not
+    part of the candidate) -- a campaign varies the candidate's weights,
+    not the physical regime. The battery is generated once per truncation
+    level `N` from a fixed seed, then reused: pure and deterministic given
+    a candidate, as the port requires."""
 
     def __init__(self, nu: float = 1.0, alpha: float = 0.5,
                  n_states: int = 60, seed: int = 20260706):
@@ -99,7 +99,7 @@ class DyadicLyapunovProxy:
         return ProxyScore(value=hits / len(values), signal={"worst_violation": max(values)})
 
 
-# `drill --fansearch`'s regression fixture (F6): candidates this proxy has
+# `drill --fansearch`'s regression fixture: candidates this proxy has
 # already been checked to score well/poorly separated on, so a future change
 # to the battery or the scoring rule that erodes that separation is caught
 # mechanically, the same spirit as `--fuzz`/`--iso`'s generated variants.
@@ -115,3 +115,38 @@ DRILL_KNOWN_BAD: tuple[Candidate, ...] = (
     Candidate(N=4, b=(1.0, 0.5, 0.25, 0.125, 0.0625), d=(80.0, 80.0, 80.0, 80.0)),
 )
 DRILL_THRESHOLD = 0.6
+
+
+def propose_candidate(seed: int, N: int, nu: float = 1.0, alpha: float = 0.5,
+                      maxiter: int = 150, popsize: int = 15) -> Candidate:
+    """Proposes a candidate via classical optimization
+    (`differential_evolution`) over the (b, d) parametrization, minimizing
+    the total violation margin on a fixed battery. This robustly recovers
+    or beats the known geometric baseline across seeds, so a search here
+    does not need an LLM-driven generator."""
+    from scipy.optimize import differential_evolution
+
+    battery = _make_battery(N, seed=seed, n_states=60)
+
+    def objective(params):
+        b = params[: N + 1]
+        d = params[N + 1:]
+        candidate = Candidate(N=N, b=tuple(b), d=tuple(d))
+        penalty = 0.0
+        for u in battery:
+            v = dphi_dt(nu, alpha, candidate, list(u))
+            if v > 0:
+                penalty += v
+        return penalty
+
+    bounds = [(0.01, 100.0)] * (N + 1) + [(-50.0, 50.0)] * N
+    result = differential_evolution(objective, bounds, seed=seed, maxiter=maxiter,
+                                    popsize=popsize, tol=1e-10, polish=True, workers=1)
+    b = tuple(float(x) for x in result.x[: N + 1])
+    d = tuple(float(x) for x in result.x[N + 1:])
+    return Candidate(N=N, b=b, d=d)
+
+
+# Re-exported so callers that look up a domain's functions off this module
+# (the campaign engine, drill --fansearch) find the promotion bridge here too.
+from recurvelib.adapters.proxy.compile_to_claim import ClaimDraft, compile_to_claim  # noqa: E402,F401

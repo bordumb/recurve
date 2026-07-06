@@ -1,4 +1,4 @@
-"""The concrete ProxyEvaluator adapters (docs/plans/fansearch.md F1/F5)."""
+"""The concrete ProxyEvaluator adapters."""
 from __future__ import annotations
 
 from recurvelib.adapters.proxy.dyadic_lyapunov import DyadicLyapunovProxy
