@@ -31,6 +31,31 @@ every real matrix actually has -- sw6-smoke itself was 2 models x 2 arms x
 directly -- proving per-cell workspace isolation, correct per-arm dispatch
 within a single run, resumability, and that `analyze.py` aggregates the
 result into the expected 2x2 shape.
+
+Two more real bugs, caught building `cli.py::cmd_run` (the driver that
+actually plans -> materializes -> runs a fresh cell, not just replays
+already-completed ones) -- both only surfaced by trying to drive it, not
+by inspection:
+
+4. `evallib.plan.expand` hardcodes `task["task_id"]` -- exactly right for
+   BigCodeBench, but SWE-bench's own tasks key on `instance_id` instead, so
+   calling it on a SWE-bench task list raises `KeyError` immediately.
+   `test_plan_expand_generalizes_to_swebench_task_id_key` characterizes the
+   original bug (still reproducible against the unmodified `evallib`
+   function) AND proves `core.plan.expand`'s generalization handles it,
+   while staying byte-identical to `evallib.plan.expand`'s own output for
+   the BigCodeBench shape it already got right.
+5. The generic `WorkspacePort["swe_bench_repo"]` dispatcher
+   (`evallib.materialize.materialize`) does not thread a per-instance
+   `environment_image_digest` through to `materialize_swe_repo_workspace`
+   -- real SWE-bench materialization needs the RIGHT environment image per
+   instance, which the generic path silently drops.
+   `make_routed_agent` calls `materialize_swe_repo_workspace` directly
+   instead (never through the generic dispatcher), threading the cell's
+   own lock's digest through by hand.
+   `test_routed_agent_threads_environment_digest_to_materialize` proves
+   that wiring, with the underlying materialize call faked so no real
+   docker/container is needed.
 """
 
 from __future__ import annotations
@@ -305,10 +330,92 @@ def test_full_matrix_two_models_two_arms(tmp_path: Path):
     ok("resume invokes the agent zero times", n2 == 0 and agent_calls == [], (n2, agent_calls))
 
 
+def test_plan_expand_generalizes_to_swebench_task_id_key(tmp_path: Path):
+    """The bug: `evallib.plan.expand` hardcodes `task["task_id"]` -- exactly
+    right for BigCodeBench, but SWE-bench's own tasks key on `instance_id`
+    instead, so calling it on a SWE-bench task list raised `KeyError`
+    immediately (this is what actually running `cmd_run` against
+    sw6-smoke.toml caught -- not code inspection). `core.plan.expand`
+    re-does the ONE hardcoded line, parameterized by `task_id_key`, reusing
+    `cell_id`/`resolved_gate_config` unchanged."""
+    from evallib.plan import expand as old_expand
+    from src.core.plan import expand as new_expand
+
+    manifest = {"matrix": {"models": ["m"], "arms": ["A0"], "budgets": [1], "seeds": [0]}}
+    swe_tasks = [{"instance_id": "pallets__flask-5014", "instruct_prompt": "fix it"}]
+
+    # Characterizes the original bug: the unmodified evallib function still
+    # can't read an instance_id-keyed task list -- if this ever stops
+    # raising, evallib.plan.expand itself changed and the rest of this
+    # test's premise needs re-checking.
+    try:
+        old_expand(manifest, swe_tasks)
+        raise AssertionError("expected KeyError -- evallib.plan.expand is BigCodeBench-specific")
+    except KeyError as e:
+        ok("evallib.plan.expand still can't read instance_id-keyed tasks (characterizes the original bug)",
+           "task_id" in str(e), e)
+
+    cells = new_expand(manifest, swe_tasks, task_id_key="instance_id")
+    ok("core.plan.expand handles instance_id-keyed tasks without raising", len(cells) == 1, cells)
+    ok("the resulting cell's task_id coordinate holds the instance_id value",
+       cells[0]["task_id"] == "pallets__flask-5014", cells[0])
+
+    # The BigCodeBench shape evallib.plan.expand already got right stays
+    # byte-identical -- this is a generalization, not a divergent rewrite.
+    bcb_tasks = [{"task_id": "BigCodeBench/1", "instruct_prompt": "do it"}]
+    old_cells = old_expand(manifest, bcb_tasks)
+    new_cells = new_expand(manifest, bcb_tasks, task_id_key="task_id")
+    ok("core.plan.expand is byte-identical to evallib.plan.expand for BigCodeBench's own shape",
+       old_cells == new_cells, (old_cells, new_cells))
+
+
+def test_routed_agent_threads_environment_digest_to_materialize(tmp_path: Path):
+    """The bug: the generic `WorkspacePort["swe_bench_repo"]` dispatcher
+    (`evallib.materialize.materialize`) does not thread a per-instance
+    `environment_image_digest` through to `materialize_swe_repo_workspace`
+    -- real SWE-bench materialization needs the RIGHT environment image
+    per instance, which the generic path silently drops. `make_routed_agent`
+    calls `materialize_swe_repo_workspace` directly instead, threading the
+    cell's own lock's digest through by hand. Proven here with the
+    underlying materialize call faked (recording what digest it received)
+    so no real docker/container is needed."""
+    import evallib.swebench_workspace as swebench_workspace_mod
+    from src.benchmarks.swebench import make_routed_agent
+
+    seen = {}
+
+    def fake_materialize(dest, task, *, recurve_cmd=None, environment_image_digest=None):
+        seen["environment_image_digest"] = environment_image_digest
+        seen["task"] = task
+        Path(dest, "testbed").mkdir(parents=True, exist_ok=True)
+        return Path(dest)
+
+    original = swebench_workspace_mod.materialize_swe_repo_workspace
+    swebench_workspace_mod.materialize_swe_repo_workspace = fake_materialize
+    try:
+        tasks_by_id = {"t0": {"instance_id": "t0"}}
+        environment_locks = {"t0": {"digest": "sha256:cafef00d", "environment_image_hash": "eih:x"}}
+        agent = make_routed_agent(
+            tasks_by_id, environment_locks,
+            bare_agent=lambda cell, workspace: {"terminated": True},
+        )
+        cell = {"cell_id": "c0", "model": "m", "arm": "A0", "budget": 1, "seed": 0, "task_id": "t0"}
+        agent(cell, tmp_path / "ws")
+    finally:
+        swebench_workspace_mod.materialize_swe_repo_workspace = original
+
+    ok("materialize_swe_repo_workspace was called with THIS cell's own environment digest",
+       seen.get("environment_image_digest") == "sha256:cafef00d", seen)
+    ok("materialize_swe_repo_workspace was called with the real task dict",
+       seen.get("task") == {"instance_id": "t0"}, seen)
+
+
 def main() -> int:
     import tempfile
     for test in (test_prepare_runs_before_done_signal, test_gate_helper_roots_at_testbed,
-                 test_orchestrator_end_to_end_with_gate_arm, test_full_matrix_two_models_two_arms):
+                 test_orchestrator_end_to_end_with_gate_arm, test_full_matrix_two_models_two_arms,
+                 test_plan_expand_generalizes_to_swebench_task_id_key,
+                 test_routed_agent_threads_environment_digest_to_materialize):
         print(test.__name__)
         with tempfile.TemporaryDirectory() as d:
             test(Path(d))
