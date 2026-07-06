@@ -384,9 +384,9 @@ def drill(
     fuzz: bool = typer.Option(False, "--fuzz", help="also run probes/<id>.fuzz.sh generators and measure per-probe fpr"),
     iso: bool = typer.Option(False, "--iso", help="also run probes/<id>.iso.sh generators and measure verdict invariance"),
     diff: bool = typer.Option(False, "--diff", help="also run each claim's declared reference oracle and alarm on disagreement"),
+    fansearch: bool = typer.Option(False, "--fansearch", help="also measure each registered ProxyEvaluator's known-good/known-bad separation"),
 ):
-    cmd_drill(_ns("drill", suite=suite, timeout=timeout, deep=deep, fuzz=fuzz, iso=iso, diff=diff))
-
+    cmd_drill(_ns("drill", suite=suite, timeout=timeout, deep=deep, fuzz=fuzz, iso=iso, diff=diff, fansearch=fansearch))
 
 def main(argv=None, prog: str | None = None, config_path: str | None = None):
     global _PROG, _CONFIG, _CONFIG_DEFAULT

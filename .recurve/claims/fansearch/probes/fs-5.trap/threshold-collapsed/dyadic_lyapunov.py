@@ -114,4 +114,4 @@ DRILL_KNOWN_BAD: tuple[Candidate, ...] = (
     Candidate(N=4, b=(1.0, 4.0, 16.0, 64.0, 256.0), d=(80.0, 80.0, 80.0, 80.0)),
     Candidate(N=4, b=(1.0, 0.5, 0.25, 0.125, 0.0625), d=(80.0, 80.0, 80.0, 80.0)),
 )
-DRILL_THRESHOLD = 0.6
+DRILL_THRESHOLD = 0.0  # BUG: collapsed to 0 -- everything trivially "passes"

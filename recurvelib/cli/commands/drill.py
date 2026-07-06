@@ -76,6 +76,7 @@ def cmd_drill(args):
     oracle_waived = 0
     fuzz_probes, fuzz_fps = 0, 0
     iso_probes, iso_flips = 0, 0
+    fansearch_measured, fansearch_leaks = 0, 0
     diff_checked, diff_disagreements = 0, 0
     try:
         with TreeLock(cfg.tree or cfg.root):
@@ -226,6 +227,41 @@ def cmd_drill(args):
                         failures.append(f"{g.id} diff disagreement "
                                         f"probe={probe_r.outcome.value} reference={ref_r.outcome.value}")
                         _record_diff_challenge(cfg, g, probe_r, ref_r)
+            if args.fansearch:
+                # The proxy audit (F6): a proxy is untrusted precisely because
+                # it CAN be gamed, so drilling it measures -- and bounds -- how
+                # well it still separates a fixed known-good/known-bad set. A
+                # proxy that ranks garbage highly is a bad guide, not a
+                # security hole (the gate still catches the garbage at
+                # baseline), but a regression here means the search itself
+                # would be flying blind.
+                import sys
+                from recurvelib.adapters.proxy import PROXY_ADAPTERS
+                for name, cls in sorted(PROXY_ADAPTERS.items()):
+                    if name == "off":
+                        continue
+                    modname = getattr(cls, "__module__", None)
+                    mod = sys.modules.get(modname) if modname else None
+                    good = getattr(mod, "DRILL_KNOWN_GOOD", None)
+                    bad = getattr(mod, "DRILL_KNOWN_BAD", None)
+                    threshold = getattr(mod, "DRILL_THRESHOLD", None)
+                    if not good or not bad or threshold is None:
+                        print(f"  {C['amber']}·{C['reset']} proxy {name}: no drill fixture "
+                              f"(DRILL_KNOWN_GOOD/DRILL_KNOWN_BAD/DRILL_THRESHOLD) — skipped")
+                        continue
+                    proxy = cls()
+                    fn = sum(1 for c in good if proxy.score(c).value < threshold)
+                    fp = sum(1 for c in bad if proxy.score(c).value >= threshold)
+                    fansearch_measured += 1
+                    leaky = fn > 0 or fp > 0
+                    if leaky:
+                        fansearch_leaks += 1
+                    mark = C["red"] + "▲" if leaky else C["green"] + "●"
+                    print(f"  {mark}{C['reset']} proxy {name}: {fn}/{len(good)} known-good "
+                          f"scored below threshold, {fp}/{len(bad)} known-bad scored at/above it")
+                    if leaky:
+                        failures.append(f"proxy {name} known-good/known-bad separation regressed "
+                                        f"(fn={fn}, fp={fp})")
             if args.deep and cfg.tree is not None:
                 for name, sc in cfg.suites.items():
                     hook = sc.dir / "harness" / "drill.sh"
@@ -258,6 +294,9 @@ def cmd_drill(args):
     if args.iso:
         print(f"iso: {iso_probes} iso-capable probe(s) measured, "
               f"{iso_flips} flip(s)")
+    if args.fansearch:
+        print(f"fansearch: {fansearch_measured} proxy(ies) measured, "
+              f"{fansearch_leaks} separation regression(s)")
     if args.diff:
         print(f"diff: {diff_checked} reference-bearing claim(s) checked, "
               f"{diff_disagreements} disagreement(s)")

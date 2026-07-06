@@ -125,3 +125,25 @@ main branch yet (it landed on a matched feature branch there); the probe
 walks up to find a sibling `navier_stokes/` and SKIPs (non-blocking,
 `oracle_waiver` declared) when `SH7` is not present there — the AB-12/TK-2
 pattern. `$NAVIER_STOKES_REPO` overrides the lookup for a real run.
+
+## FS-5 — drill --fansearch measures a proxy's own discriminative power ✓
+
+`recurve drill --fansearch` is F6's second tooth: for every registered
+`ProxyEvaluator` besides `off`, it looks for `DRILL_KNOWN_GOOD`/
+`DRILL_KNOWN_BAD`/`DRILL_THRESHOLD` on the adapter's own module and
+measures false-negative/false-positive rate, failing the drill on any
+leak — the same spirit as `--fuzz`/`--iso`'s generated-variant regression
+checks, adapted to a scorer rather than a probe. `dyadic_lyapunov`'s
+fixture: two known-good candidates (one of them the plain, unweighted
+energy — Cheskidov's own unconditional dissipation result, not just an
+empirical anchor) and three known-bad ones (flat or steeply-varying
+weights paired with large positive cross terms, which the earlier
+symbolic check already showed pump energy upward). This is a narrower
+adaptation of the PRD's own "known-bad candidates from the archive's
+`refuted_by_trap` set": there is no archive here (F2 is descoped for this
+domain, §2), so the fixture is a fixed, hand-verified set rather than one
+mined from a live campaign's rejects — the discriminative-power regression
+guard is real either way. Negative space (kept RED as a counterexample):
+`probes/fs-5.trap/threshold-collapsed/` sets `DRILL_THRESHOLD = 0.0`, at
+which every known-bad candidate trivially "passes" — caught as 3/3 false
+positives.

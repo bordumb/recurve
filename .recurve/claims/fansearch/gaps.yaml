@@ -80,3 +80,25 @@
     the probe walks up to find a sibling navier_stokes/ and SKIPs (non-blocking) when SH7
     is not present there, exactly the AB-12/TK-2 pattern. $NAVIER_STOKES_REPO overrides the
     lookup for a real run.
+
+- id: FS-5
+  title: drill --fansearch measures a proxy's known-good/known-bad separation and fails on
+    a regression
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - FS-5
+  observed: 'GREEN at baseline 2026-07-06: GREEN: proxy correctly separates 2 known-good
+    and 3 known-bad candidates at threshold 0.6. (An earlier version of this probe also
+    re-invoked `recurve drill --fansearch` as a CLI sanity check; that recursively acquired
+    the tree lock this probe''s own caller already holds and was removed -- the direct-import
+    check above exercises the identical cmd_drill logic.)'
+  smallest_fix: 'add a --fansearch flag to recurve drill: for each registered ProxyEvaluator
+    (besides "off") exposing DRILL_KNOWN_GOOD/DRILL_KNOWN_BAD/DRILL_THRESHOLD on its own module,
+    measure false-negative/false-positive rate and fail the drill on any leak.'
+  probe: probes/fs-5.sh
+  unlocks: F6's anti-reward-hack teeth for the proxy itself -- a regression in the dyadic_lyapunov
+    proxy's discriminative power is now caught mechanically, not just assumed from the Stage
+    0-2 validation staying true forever.
