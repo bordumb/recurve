@@ -104,3 +104,8 @@ harness = []
 dir = ".recurve/claims/swebench"
 rebuild = ""               # eval/evallib SWE-bench workspace/oracle/calibration adapters; nothing to copy
 harness = []
+
+[suites.fansearch]
+dir = ".recurve/claims/fansearch"
+rebuild = ""               # throwaway validation scripts until the real engine lands; nothing to copy
+harness = []
