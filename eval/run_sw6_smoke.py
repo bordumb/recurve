@@ -90,8 +90,10 @@ def main() -> int:
             budget=BUDGET_PER_CELL, recurve_cmd="recurve",
         )
 
-    n = run_cells(cells, run_dir / "results.jsonl", adapter, run_dir / "workspaces", workers=1)
-    print(f"invoked {n} new cell(s) this run; results -> {run_dir / 'results.jsonl'}")
+    workers = int(os.environ.get("SW6_WORKERS", "1"))
+    n = run_cells(cells, run_dir / "results.jsonl", adapter, run_dir / "workspaces", workers=workers)
+    print(f"invoked {n} new cell(s) this run (workers={workers}); "
+          f"results -> {run_dir / 'results.jsonl'}")
     return 0
 
 

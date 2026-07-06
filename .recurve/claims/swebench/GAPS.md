@@ -211,3 +211,77 @@ Negative space (guarded by the trap): a function with the same return
 shape that calls the underlying grader only once and reports that single
 result as an agreed vote — a flaky disagreeing run never gets a chance to
 be outvoted.
+
+## SW-8 — The harness commits the current working-tree state before the governor is consulted
+
+Found running the REAL smoke (SW6), not a hermetic fixture: all 6 A9 cells
+showed `declared_done=False`/`gate_outcome="process_failed"` uniformly —
+regardless of whether the underlying fix was actually correct (3 of the 6
+graded `pass` against the real hidden tests, 3 graded `fail`; the harness
+signal didn't distinguish them at all). Root cause, traced through
+`decide_cli._resolve_governor_status` → `build_cycle_snapshot(tree,
+"HEAD", ...)` → `snapshot._resolve_commit`'s own documented invariant
+("the working tree has uncommitted changes — a snapshot is only ever
+built from a pinned COMMIT"): `default_extract_tree`'s only commit
+happens BEFORE `_recurve_init` scaffolds `.recurve/`, and the gated agent
+prompt never instructs the agent to commit its fix. `HEAD` therefore never
+contains a valid `.recurve/claims/` state, and the working tree always has
+uncommitted changes — the snapshot refuses every single time, for every
+A9 cell, independent of the task.
+
+`commit_snapshot_for_governor` (`swebench_pipeline.py`) fixes this at the
+harness level, not by relying on the agent's behavior: `git add -A` +
+`git commit --no-gpg-sign` in the testbed, unconditionally, right before
+`run_recurve_decide` — a throwaway, internal bookkeeping commit, never
+attributed to a real user. A clean tree (nothing changed since the last
+commit) is a correct no-op, never a spurious empty commit. Negative space
+(guarded by the trap): an implementation that stages but never commits —
+the tree stays dirty, so the snapshot still cannot resolve.
+
+## SW-9 — The governor reviewer reads real content, never a structurally-impossible git diff
+
+A second, deeper bug uncovered fixing SW-8: even once `build_cycle_
+snapshot` can resolve, the reviewer script it hands off to
+(`swebench_governor_reviewer.py`) used `git diff HEAD~1 HEAD` (falling
+back to `git show HEAD`) to build its review prompt. The isolated snapshot
+the reviewer actually runs in is a `git archive` + `tar -x` extraction
+(`snapshot._archive`) — a flat file tree with **no `.git` directory at
+all**, a deliberate isolation property (`ablation-infra.md` AI3), not an
+oversight. A git-diff-based review can therefore only ever see an empty
+diff and silently, vacuously clear everything — confirmed live: after
+fixing SW-8 alone, a real A9 cell's governor check resolved to
+`STOP-SUCCESS`, but the underlying fix used a different convention than
+the benchmark's hidden test expected. That STOP-SUCCESS was hollow, not a
+genuine review — the exact "false-done" failure mode this whole framework
+exists to catch, just relocated into the review step itself.
+
+Fixed by having the reviewer read what genuinely IS present in the
+snapshot: `_closed_claims` discovers every `status: closed` entry across
+`.recurve/claims/*/gaps.yaml`; `_review_context` assembles each claim's
+own `title`/`smallest_fix`/`observed`, its probe script's actual text, and
+any `evidence`-named files' current content into the prompt — real
+substance a reviewer can actually judge, the way a human reads a PR
+description against its diff and tests. Zero closed claims fails closed
+(vetoes without ever calling the model) rather than silently clearing an
+unreviewable cycle.
+
+Found and fixed in the same pass: an earlier, tighter per-item length cap
+(3000 chars) silently truncated a genuinely complete 3497-char probe
+script, and the reviewer model — correctly, given what it was actually
+shown — flagged the truncation itself as "incomplete". The excerpting was
+the real defect, not the file. `_cap` now marks truncation with an
+explicit marker, never silently; negative space (guarded by the trap): a
+cap function that truncates with no marker, indistinguishable from the
+file genuinely being incomplete.
+
+**What this does and does not fix.** The governor can now genuinely
+detect process failures it can actually see from the snapshot — a
+truncated probe, a claim closed with no real evidence, a fix that doesn't
+match its own stated justification. It structurally cannot (and is not
+meant to) detect that a fix's *design choice* differs from a specific
+hidden test's expectation when both are otherwise well-verified and
+self-consistent — that is exactly what quarantine (SW2) protects, and no
+oracle-blind reviewer, human or model, can see past it. A "regression"
+where a well-verified, well-tested fix nonetheless fails the real hidden
+oracle is a legitimate, reportable finding in itself, not evidence the
+governor is broken.

@@ -139,6 +139,25 @@ def configure_governor(testbed: Path, governor: str) -> None:
     toml_path.write_text(text)
 
 
+def commit_snapshot_for_governor(testbed: Path) -> None:
+    """The governor's `build_cycle_snapshot(tree, "HEAD", ...)` reads the
+    claim's files FROM the `HEAD` commit, not the working tree -- and the
+    gated agent prompt never instructs the agent to commit anything (nor
+    could that be relied on structurally even if it did). Left alone, `HEAD`
+    is only ever `default_extract_tree`'s pre-agent commit, which predates
+    `_recurve_init` -- it never contains a `.recurve/claims/` directory at
+    all, so the snapshot can never resolve and the governor permanently
+    reads as unreachable ("pending"), regardless of the actual fix's
+    quality. The harness commits the CURRENT state itself, unconditionally,
+    right before the governor is consulted -- a structural guarantee that
+    does not depend on the agent's behavior. --no-gpg-sign: throwaway,
+    internal bookkeeping, never a real user-authored commit."""
+    subprocess.run(["git", "add", "-A"], cwd=testbed, check=True)
+    subprocess.run(["git", "-c", "user.email=recurve@localhost", "-c", "user.name=recurve",
+                    "commit", "--no-gpg-sign", "-q", "-m", "governor snapshot"],
+                   cwd=testbed)  # no check=True: "nothing to commit" (rc=1) is a fine no-op
+
+
 def run_recurve_decide(testbed: Path, *, actor_model: str, governor_cmd: str,
                         open_: int = 0, regressed: int = 0, broken: int = 0,
                         uncovered: int = 0, timeout: int = 300) -> str:  # pragma: no cover - spawns a real reviewer process
@@ -172,6 +191,7 @@ def make_governed_gate_fn(governor: str, actor_model: str, governor_cmd: str):
         if base != "green" or governor == "off":
             return base
         configure_governor(testbed, governor)
+        commit_snapshot_for_governor(testbed)
         verdict = run_recurve_decide(testbed, actor_model=actor_model, governor_cmd=governor_cmd)
         if verdict == "STOP-SUCCESS":
             return "green"

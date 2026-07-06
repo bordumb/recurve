@@ -2,6 +2,8 @@
 # demand, never committed. The evidence (manifest, matrix.jsonl, results.jsonl,
 # analysis/) IS committed, per the plan's reproducibility rules.
 runs/*/cells/
+# SWE-bench's own per-cell dir name (full repo checkouts per cell)
+runs/*/workspaces/
 runs/*/**/transcript*
 __pycache__/
 *.pyc

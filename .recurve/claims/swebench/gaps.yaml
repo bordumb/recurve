@@ -192,3 +192,68 @@
     being silently smoothed into one boolean.
 
     '
+
+- id: SW-8
+  title: The harness commits the current working-tree state itself before the governor is
+    consulted
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - SW-8
+  evidence:
+  - eval/evallib/swebench_pipeline.py
+  observed: 'GREEN at baseline 2026-07-06: the harness commits the current working-tree state
+    itself before the governor is consulted -- HEAD always contains the real, current state
+    regardless of whether the agent committed anything ⏎ auths: pinned your identity root
+    in .auths/roots (committed with this commit)'
+  smallest_fix: 'commit_snapshot_for_governor (evallib/swebench_pipeline.py) runs git add
+    -A + git commit --no-gpg-sign in the testbed right before run_recurve_decide -- HEAD always
+    genuinely reflects the current .recurve/claims/ state and any fix, regardless of whether
+    the agent itself ever committed anything. A clean tree (nothing changed since the last
+    commit) is a no-op, never an empty commit.
+
+    '
+  probe: probes/sw-8.sh
+  unlocks: 'build_cycle_snapshot(tree, "HEAD", ...) can actually resolve -- found running
+    the real SW6 smoke: all 6 A9 cells showed declared_done=False/gate_outcome=process_failed
+    uniformly, regardless of the fix''s actual correctness, because HEAD was always the pre-.recurve/init
+    baseline commit and the working tree always had uncommitted changes, so snapshot.py''s
+    own require_clean invariant refused every single time.
+
+    '
+
+- id: SW-9
+  title: The governor reviewer reads real claim/probe/evidence content, never a structurally-impossible
+    git diff
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - SW-9
+  evidence:
+  - eval/evallib/swebench_governor_reviewer.py
+  observed: 'GREEN at baseline 2026-07-06: the governor reviewer reads real, current claim/probe/evidence
+    content (never a structurally-impossible git diff), fails closed when there is nothing
+    to review, and marks truncation explicitly, never silently'
+  smallest_fix: '_closed_claims discovers every status:closed entry across .recurve/claims/*/gaps.yaml
+    in the (git-archived, history-free) snapshot; _review_context assembles each claim''s
+    title/smallest_fix/observed, its probe script''s actual text, and any evidence files''
+    current content into the reviewer''s prompt. _cap marks truncation with an explicit marker,
+    never silently. Zero closed claims fails closed (vetoes, never calls the model) rather
+    than silently clearing an unreviewable cycle.
+
+    '
+  probe: probes/sw-9.sh
+  unlocks: 'the governor genuinely reviews something, instead of vacuously clearing every
+    cycle -- found running the real smoke: the original _diff() used git diff HEAD~1 HEAD/git
+    show HEAD, which can only ever be empty inside an archived snapshot (no .git there at
+    all, by design), so every review silently, uninformedly cleared. Also found and fixed
+    along the way: an earlier, tighter per-item length cap silently truncated a genuinely
+    complete 3497-char probe at 3000 chars, and the reviewer correctly (given what it was
+    shown) flagged the truncation itself as "incomplete" -- the excerpting was the actual
+    defect, not the file.
+
+    '
