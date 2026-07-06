@@ -16,10 +16,12 @@ import argparse
 import json
 import sys
 import tomllib
+from datetime import datetime, timezone
 from pathlib import Path
 
 EVAL = Path(__file__).resolve().parents[1]
 REPO = EVAL.parent
+EXPERIMENTS_ROOT = EVAL / "experiments"
 sys.path.insert(0, str(EVAL))
 
 import src.benchmarks.bigcodebench  # noqa: F401,E402 -- registers on import
@@ -28,6 +30,7 @@ from src.core.benchmark import known_names, resolve  # noqa: E402
 from src.core.orchestrate import make_orchestrator  # noqa: E402
 from src.core.runner import run as runner_run  # noqa: E402
 from src.core.schema import ManifestError, validate_manifest  # noqa: E402
+from src.core import run_index, run_manager, run_meta, run_paths  # noqa: E402
 
 
 def _load_manifest(path: Path) -> dict:
@@ -115,15 +118,38 @@ def _make_dry_run_ports():
     return fake_agent, fake_grade, fake_gate_fn
 
 
+def _resolve_run_dir(args, name: str, git_commit: str, oracle_env_hash: str | None):
+    """Pick the run directory for this invocation and report its mode.
+
+    Fresh managed (the default) gets a new timestamped directory that never
+    collides. `--continue <run-id|latest>` extends an existing run under the
+    same experiment, warning if the code or oracle has drifted since it
+    started. `--out` is the unmanaged escape hatch — a plain directory with no
+    audit trail. Returns (run_dir, managed, is_continue, run_id_or_None)."""
+    if args.out and args.continue_run:
+        raise ValueError("--out and --continue are mutually exclusive")
+    if args.out:
+        run_dir = Path(args.out)
+        run_dir.mkdir(parents=True, exist_ok=True)
+        return run_dir, False, False, None
+    if args.continue_run:
+        run_dir = run_manager.resolve_continue_target(EXPERIMENTS_ROOT, name, args.continue_run)
+        meta = run_meta.read(run_dir / "run_meta.json")
+        for w in run_manager.continuation_warnings(meta, git_commit, oracle_env_hash):
+            print(f"warning: {w}", file=sys.stderr)
+        return run_dir, True, True, None
+    run_dir, rid = run_manager.begin_fresh_run(
+        EXPERIMENTS_ROOT, name, datetime.now(timezone.utc), git_commit)
+    return run_dir, True, False, rid
+
+
 def cmd_run(args) -> int:
-    """The missing driver: plan (resolve tasks + oracle env) -> the
-    calibration spend gate -> materialize + the arm-appropriate agent ->
-    orchestrate (grade port + prepare + done_signal) -> the resumable,
-    GC'd runner -- ONE code path for both benchmarks, dispatched through
-    the Benchmark registry the same way `cmd_plan`/`cmd_calibration_status`
-    already do. `--dry-run` swaps every expensive/paid step for the exact
-    fake shape `run_sw6_smoke.py` proved this same wiring with: zero cost,
-    zero docker, zero real agent."""
+    """Drive a manifest's matrix through the cell pipeline, in one of three run
+    modes (fresh managed / --continue / unmanaged --out). Resolving tasks +
+    oracle env, the calibration spend gate, materialize + the arm-appropriate
+    agent, and the grade port are all dispatched through the Benchmark
+    registry, one code path for every benchmark. `--dry-run` swaps every
+    expensive step for a fake agent/grade/gate: zero cost, zero docker."""
     manifest = _load_manifest(args.manifest)
     try:
         validate_manifest(manifest, known_benchmarks=known_names())
@@ -131,19 +157,44 @@ def cmd_run(args) -> int:
         print(f"manifest invalid -- {e}", file=sys.stderr)
         return 2
     bench = _benchmark(manifest)
+    name = manifest["experiment"]["name"]
 
-    run_dir = Path(args.out)
-    run_dir.mkdir(parents=True, exist_ok=True)
-    (run_dir / "manifest.toml").write_text(Path(args.manifest).read_text())   # freeze at launch
+    from evallib import __version__ as adapter_version
+    from evallib.cli import _git_head
+    git_commit = _git_head(REPO)
 
     tasks = bench.load_tasks(manifest, EVAL / "datasets")
     sample = manifest["tasks"].get("sample")
-    if isinstance(sample, dict) and sample.get("n"):
-        tasks = tasks[: int(sample["n"])]
+    sample_n = int(sample["n"]) if isinstance(sample, dict) and sample.get("n") else None
+    if sample_n:
+        tasks = tasks[:sample_n]
     tasks_by_id = {t[bench.task_id_key]: t for t in tasks}
 
-    env = bench.resolve_oracle_env(manifest, repo=REPO) if bench.resolve_oracle_env else None
+    # A dry run grades with a fake port and never touches the oracle, so it must
+    # not probe docker to resolve an oracle env (that would break its zero-docker
+    # promise). A real run resolves the env for the spend gate and grading.
+    env = None
+    if not args.dry_run and bench.resolve_oracle_env:
+        env = bench.resolve_oracle_env(manifest, repo=REPO)
     is_single_lock = isinstance(env, dict) and "oracle_env_hash" in env
+    oracle_env_hash = env["oracle_env_hash"] if is_single_lock else None
+
+    try:
+        run_dir, managed, is_continue, rid = _resolve_run_dir(
+            args, name, git_commit, oracle_env_hash)
+    except FileExistsError:
+        print("cannot start run -- a run for this second and commit already "
+              "exists; wait a moment for a fresh run, or use --continue to "
+              "extend it", file=sys.stderr)
+        return 2
+    except (ValueError, FileNotFoundError) as e:
+        print(f"cannot start run -- {e}", file=sys.stderr)
+        return 2
+
+    # Freeze the manifest for a fresh or unmanaged run; a continuation keeps the
+    # frozen copy its first batch already wrote.
+    if not is_continue:
+        (run_dir / "manifest.toml").write_text(Path(args.manifest).read_text())
 
     if not args.dry_run and bench.admits_spend is not None:
         try:
@@ -157,15 +208,13 @@ def cmd_run(args) -> int:
     cells = expand(manifest, tasks, bench.task_id_key)
     write_matrix(cells, run_dir / "matrix.jsonl")
 
-    from evallib import __version__ as adapter_version
-    from evallib.cli import _git_head
     provenance = {
         "dataset_revision": manifest["tasks"].get("revision") or manifest["tasks"].get("hash"),
-        "recurve_commit": _git_head(REPO),
+        "recurve_commit": git_commit,
         "adapter_version": adapter_version,
     }
     if is_single_lock:
-        provenance["oracle_env_hash"] = env["oracle_env_hash"]
+        provenance["oracle_env_hash"] = oracle_env_hash
 
     budgets = manifest["matrix"]["budgets"]
     budget = budgets[0] if budgets else 0
@@ -184,21 +233,47 @@ def cmd_run(args) -> int:
         agent = bench.make_routed_agent(tasks_by_id, env, budget=budget, recurve_cmd="recurve")
 
     # --dry-run's fake_agent already writes solution.py itself (mirroring
-    # BigCodeBench's agent, which does the same for real) -- a real
-    # benchmark's `prepare` exists to derive that artifact (SWE-bench's
-    # diff extraction), which is exactly the mechanism dry-run is not
-    # testing (and which test_end_to_end_sw6.py/tests/e2e already prove
-    # separately); running it here would need real benchmark-specific
-    # workspace scaffolding (e.g. a git repo under testbed/) inside what is
-    # meant to be a benchmark-agnostic plumbing check.
+    # BigCodeBench's agent, which does the same for real) -- a real benchmark's
+    # `prepare` derives that artifact (SWE-bench's diff extraction), which is
+    # exactly the mechanism dry-run is not testing.
     prepare = None if args.dry_run else bench.prepare
     orchestrate = make_orchestrator(agent, tasks_by_id, provenance,
                                     grade=grade, gate_fn=gate_fn, prepare=prepare)
 
     n = runner_run(cells, run_dir / "results.jsonl", orchestrate, run_dir / "cells",
                    workers=args.workers, keep_workspaces=args.keep_workspaces)
-    print(f"{'[dry-run] ' if args.dry_run else ''}ran {n} cell(s); "
-         f"results -> {run_dir / 'results.jsonl'}")
+
+    # Record the audit trail for a managed run (the unmanaged --out escape hatch
+    # deliberately leaves none).
+    if managed:
+        common = dict(now=datetime.now(timezone.utc), git_commit=git_commit,
+                      oracle_env_hash=oracle_env_hash, sample_n=sample_n, cells_added=n)
+        if is_continue:
+            run_manager.record_continuation(run_dir, EXPERIMENTS_ROOT, name, **common)
+        else:
+            run_manager.record_fresh(
+                run_dir, EXPERIMENTS_ROOT, name, rid, adapter_version=adapter_version,
+                manifest_hash=run_manager.manifest_hash(Path(args.manifest).read_text()),
+                command=list(sys.argv), **common)
+
+    label = "[dry-run] " if args.dry_run else ""
+    mode = "unmanaged" if not managed else ("continued" if is_continue else "fresh")
+    print(f"{label}ran {n} cell(s); results -> {run_dir / 'results.jsonl'}")
+    print(f"  run: {run_dir}  ({mode})")
+    return 0
+
+
+def cmd_run_history(args) -> int:
+    """Print an experiment's whole run history from its index -- run id, event,
+    commit, and cells added per batch -- without opening any run directory."""
+    rows = run_index.read_all(run_paths.index_path(EXPERIMENTS_ROOT, args.experiment))
+    if not rows:
+        print(f"no runs recorded for experiment {args.experiment!r}")
+        return 0
+    print(f"{'run_id':<26} {'event':<10} {'commit':<9} {'cells':>5}  at")
+    for r in rows:
+        print(f"{r.get('run_id', ''):<26} {r.get('event', ''):<10} "
+              f"{str(r.get('git_commit', ''))[:7]:<9} {r.get('cells_added', 0):>5}  {r.get('at', '')}")
     return 0
 
 
@@ -216,13 +291,19 @@ def main(argv=None) -> int:
 
     sr = sub.add_parser("run", help="drive a manifest's matrix through a real (or --dry-run) cell pipeline")
     sr.add_argument("manifest")
-    sr.add_argument("--out", required=True, help="run directory (manifest.toml/matrix.jsonl/results.jsonl land here)")
+    sr.add_argument("--out", help="unmanaged run directory (no audit trail); omit for a fresh managed run")
+    sr.add_argument("--continue", dest="continue_run", metavar="RUN_ID|latest",
+                    help="extend an existing managed run under the same experiment")
     sr.add_argument("--workers", type=int, default=1)
     sr.add_argument("--keep-workspaces", action="store_true",
-                    help="skip post-seal workspace GC (core/runner.py); useful for debugging one cell")
+                    help="skip post-seal workspace GC; useful for debugging one cell")
     sr.add_argument("--dry-run", action="store_true",
-                    help="the exact fake agent/grade/gate wiring run_sw6_smoke.py's own SW6_DRY_RUN=1 uses -- zero cost, zero docker")
+                    help="fake agent/grade/gate wiring -- zero cost, zero docker")
     sr.set_defaults(func=cmd_run)
+
+    sh = sub.add_parser("run-history", help="print an experiment's run history from its index")
+    sh.add_argument("experiment", help="experiment name (matches [experiment].name)")
+    sh.set_defaults(func=cmd_run_history)
 
     args = p.parse_args(argv)
     return args.func(args)

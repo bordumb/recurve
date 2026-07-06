@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""run_sw6_smoke.py — drive the real SW6 smoke (eval/experiments/sw6-smoke.toml).
+"""run_sw6_smoke.py — drive the real SW6 smoke (eval/experiments/sw6-smoke/experiment.toml).
 
 No `eval swebench` CLI verb exists yet (flagged in eval/docs' independent
 architecture review, Epic B) -- this is a one-off driver, not part of
@@ -36,7 +36,11 @@ DATASET = EVAL / "datasets" / "swebench-verified@c104f840cc67f8b6eec6f759ebc8b26
 DATASET_HASH = "076018aaac46ff5a1fb3b584a2e3bc0506a089a929e8bbd9449dd44764213349"
 INSTANCE_IDS = ["pallets__flask-5014", "pylint-dev__pylint-4970", "pylint-dev__pylint-4661"]
 LOCKS_PATH = EVAL / "oracle" / "swebench_locks.json"
-RUN_DIR = EVAL / "runs" / "sw6-smoke"
+# A standalone driver that predates the managed-run layout; it writes to a
+# fixed, clearly-named directory under the experiment rather than a timestamped
+# managed run. `eval run experiments/sw6-smoke/experiment.toml` is the managed
+# path once a SWE-bench run verb lands.
+RUN_DIR = EVAL / "experiments" / "sw6-smoke" / "runs" / "manual-sw6"
 BUDGET_PER_CELL = 4.0
 
 

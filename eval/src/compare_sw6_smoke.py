@@ -4,8 +4,9 @@ port (`src/benchmarks/swebench.py::grade_swe`) reproduce the SAME verdicts
 `evallib`'s own pipeline actually produced during the real, paid smoke?
 
 Zero new API spend: this re-runs GRADING ONLY, against the real, still-
-on-disk workspaces from `eval/runs/sw6-smoke/workspaces/` (gitignored, not
-deleted) — the part that costs real docker/CPU time, never a model call. It
+on-disk workspaces under the sw6-smoke experiment's latest run
+(`workspaces/`, gitignored, not deleted) — the part that costs real
+docker/CPU time, never a model call. It
 never re-invokes an agent. `evallib` itself is not imported or touched; this
 reads its recorded OUTPUT (the committed results file) as the comparison
 baseline, and re-derives each cell's diff from the SAME real workspace
@@ -22,11 +23,13 @@ EVAL = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(EVAL))
 
 from src.benchmarks.swebench import grade_swe, prepare_swe  # noqa: E402
+from src.core.run_manager import resolve_continue_target  # noqa: E402
 
 
 def main() -> int:
+    run_dir = resolve_continue_target(EVAL / "experiments", "sw6-smoke", "latest")
     real_rows = [json.loads(l) for l in
-                (EVAL / "runs" / "sw6-smoke" / "results.jsonl").read_text().splitlines() if l.strip()]
+                (run_dir / "results.jsonl").read_text().splitlines() if l.strip()]
     locks = json.loads((EVAL / "oracle" / "swebench_locks.json").read_text())
     grade = grade_swe(locks)
 
@@ -35,7 +38,7 @@ def main() -> int:
     skipped = []
     for row in real_rows:
         cell_id = row["cell_id"]
-        ws = EVAL / "runs" / "sw6-smoke" / "workspaces" / cell_id
+        ws = run_dir / "workspaces" / cell_id
         if not ws.is_dir():
             skipped.append(cell_id)
             print(f"{cell_id:<58} {'(workspace no longer on disk -- skipped)':>14}")

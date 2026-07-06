@@ -1,11 +1,12 @@
 # Per-cell workspaces and transcripts are large and reproducible — tarballed on
 # demand, never committed. The evidence (manifest, matrix.jsonl, results.jsonl,
-# analysis/) IS committed, per the plan's reproducibility rules.
-runs/*/cells/
+# run_meta.json, index.jsonl, analysis/) IS committed, per the reproducibility rules.
+experiments/*/runs/*/cells/
 # SWE-bench's own per-cell dir name (full repo checkouts per cell)
-runs/*/workspaces/
-runs/*/**/transcript*
+experiments/*/runs/*/workspaces/
+experiments/*/runs/*/**/transcript*
 __pycache__/
+.pytest_cache/
 *.pyc
 .venv/
 datasets/*
