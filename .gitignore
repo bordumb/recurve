@@ -38,3 +38,7 @@ acceptance/originals/
 
 # recurve run state (parked gaps, records, receipts)
 .recurve/state/
+
+# ephemeral agent-isolation worktrees (each is a full nested git checkout) --
+# tooling state, never evidence
+.claude/worktrees/
