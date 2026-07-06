@@ -150,7 +150,8 @@ def admits_spend(manifest: dict, resolved_env: dict, repo) -> None:
 
 
 def make_routed_agent(tasks_by_id: dict, environment_locks: dict, *, bare_agent=None,
-                      gated_agent=None, budget=None, recurve_cmd: str = "recurve"):
+                      gated_agent=None, budget=None, recurve_cmd: str = "recurve",
+                      runtime=None):
     """SWE-bench's routed agent (`evallib.swebench_pipeline.
     make_swebench_pipeline_adapter`'s own `routed_agent`, reused in spirit --
     `materialize_swe_repo_workspace` itself IS reused unchanged): the real
@@ -158,14 +159,18 @@ def make_routed_agent(tasks_by_id: dict, environment_locks: dict, *, bare_agent=
     image, THEN the bare or gated agent runs -- keyed on `done_signal ==
     "gate"`, NOT `.recurve`: SWE_A0/SWE_A9 share the same workspace port
     (`swe_bench_repo`), so the workspace axis can't distinguish them the
-    way BigCodeBench's does."""
-    from evallib.adapters.claude import make_adapter, make_gated_adapter
+    way BigCodeBench's does. `runtime` -- `adapters/runtime.py::
+    resolve_runtime("claude")` by default -- is the ONE indirection point
+    that module exists for: asking for "the runtime" rather than importing
+    `evallib.adapters.claude` by name directly."""
     from evallib.arms import arm_spec
     from evallib.swebench_pipeline import SWE_BARE_PROMPT, SWE_GATED_PROMPT
     from evallib.swebench_workspace import materialize_swe_repo_workspace
+    from src.adapters.runtime import resolve_runtime
 
-    bare_agent = bare_agent or make_adapter(lambda cell: SWE_BARE_PROMPT)
-    gated_agent = gated_agent or make_gated_adapter(lambda cell: SWE_GATED_PROMPT, budget)
+    runtime = runtime or resolve_runtime("claude")
+    bare_agent = bare_agent or runtime.make_adapter(lambda cell: SWE_BARE_PROMPT)
+    gated_agent = gated_agent or runtime.make_gated_adapter(lambda cell: SWE_GATED_PROMPT, budget)
 
     def agent(cell: dict, workspace) -> dict:
         task = tasks_by_id[cell["task_id"]]

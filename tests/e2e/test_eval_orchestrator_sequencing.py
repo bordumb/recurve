@@ -410,12 +410,60 @@ def test_routed_agent_threads_environment_digest_to_materialize(tmp_path: Path):
        seen.get("task") == {"instance_id": "t0"}, seen)
 
 
+class _FakeRuntime:
+    """A `Runtime`-shaped stub: `adapters/runtime.py::Runtime` has exactly
+    `make_adapter`/`make_gated_adapter`, nothing else -- this only needs to
+    match that shape, not the real dataclass."""
+
+    def __init__(self):
+        self.make_adapter_calls = 0
+        self.make_gated_adapter_calls = 0
+
+    def make_adapter(self, prompt_for):
+        self.make_adapter_calls += 1
+        return lambda cell, workspace: {"terminated": True, "via": "fake-bare"}
+
+    def make_gated_adapter(self, prompt_for, budget):
+        self.make_gated_adapter_calls += 1
+        return lambda cell, workspace: {"terminated": True, "via": "fake-gated"}
+
+
+def test_make_routed_agent_uses_the_injected_runtime_not_a_direct_import(tmp_path: Path):
+    """A prior version of both `make_routed_agent`s imported
+    `evallib.adapters.claude` directly, bypassing `adapters/runtime.py::
+    resolve_runtime` entirely -- exactly the indirection that module exists
+    to enforce (`resolve_runtime` is the ONE place that should ever import
+    the real Claude adapter). Proves a caller-supplied `runtime` is what
+    actually gets used, for both benchmarks -- if either one falls back to
+    importing `evallib.adapters.claude` directly again, this fake runtime's
+    `make_adapter`/`make_gated_adapter` would never be called and the
+    resulting agent's `terminated` row would lack the `"via"` marker only
+    the fake produces."""
+    from src.benchmarks.bigcodebench import make_routed_agent as bcb_routed_agent
+    from src.benchmarks.swebench import make_routed_agent as swe_routed_agent
+
+    bcb_runtime = _FakeRuntime()
+    bcb_routed_agent({"t0": {"task_id": "t0"}}, None, runtime=bcb_runtime)
+    ok("bigcodebench.make_routed_agent constructed its bare agent via the injected runtime",
+       bcb_runtime.make_adapter_calls == 1, bcb_runtime.make_adapter_calls)
+    ok("bigcodebench.make_routed_agent constructed its gated agent via the injected runtime",
+       bcb_runtime.make_gated_adapter_calls == 1, bcb_runtime.make_gated_adapter_calls)
+
+    swe_runtime = _FakeRuntime()
+    swe_routed_agent({"t0": {"instance_id": "t0"}}, {"t0": {"digest": "d"}}, runtime=swe_runtime)
+    ok("swebench.make_routed_agent constructed its bare agent via the injected runtime",
+       swe_runtime.make_adapter_calls == 1, swe_runtime.make_adapter_calls)
+    ok("swebench.make_routed_agent constructed its gated agent via the injected runtime",
+       swe_runtime.make_gated_adapter_calls == 1, swe_runtime.make_gated_adapter_calls)
+
+
 def main() -> int:
     import tempfile
     for test in (test_prepare_runs_before_done_signal, test_gate_helper_roots_at_testbed,
                  test_orchestrator_end_to_end_with_gate_arm, test_full_matrix_two_models_two_arms,
                  test_plan_expand_generalizes_to_swebench_task_id_key,
-                 test_routed_agent_threads_environment_digest_to_materialize):
+                 test_routed_agent_threads_environment_digest_to_materialize,
+                 test_make_routed_agent_uses_the_injected_runtime_not_a_direct_import):
         print(test.__name__)
         with tempfile.TemporaryDirectory() as d:
             test(Path(d))

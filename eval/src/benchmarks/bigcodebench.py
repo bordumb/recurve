@@ -101,7 +101,8 @@ def admits_spend(manifest: dict, resolved_env: dict, repo) -> None:
 
 
 def make_routed_agent(tasks_by_id: dict, run_data=None, *, bare_agent=None,
-                      gated_agent=None, budget=None, recurve_cmd: str = "recurve"):
+                      gated_agent=None, budget=None, recurve_cmd: str = "recurve",
+                      runtime=None):
     """The routed agent BigCodeBench's real pipeline uses
     (`evallib.run_pipeline.make_pipeline_adapter`'s own `routed_agent`,
     reused in spirit -- `evallib.materialize.materialize` itself IS reused
@@ -111,14 +112,18 @@ def make_routed_agent(tasks_by_id: dict, run_data=None, *, bare_agent=None,
     anything. `run_data` is accepted (and unused) purely so every
     benchmark's `make_routed_agent` has the same call shape; BigCodeBench's
     materialization needs nothing run-specific the way SWE-bench's
-    per-instance environment digest does."""
-    from evallib.adapters.claude import make_adapter, make_gated_adapter
+    per-instance environment digest does. `runtime` -- `adapters/runtime.py::
+    resolve_runtime("claude")` by default -- is the ONE indirection point
+    that module exists for: asking for "the runtime" rather than importing
+    `evallib.adapters.claude` by name directly."""
     from evallib.arms import arm_spec
     from evallib.materialize import materialize
     from evallib.run_pipeline import BARE_PROMPT, GATED_PROMPT
+    from src.adapters.runtime import resolve_runtime
 
-    bare_agent = bare_agent or make_adapter(lambda cell: BARE_PROMPT)
-    gated_agent = gated_agent or make_gated_adapter(lambda cell: GATED_PROMPT, budget)
+    runtime = runtime or resolve_runtime("claude")
+    bare_agent = bare_agent or runtime.make_adapter(lambda cell: BARE_PROMPT)
+    gated_agent = gated_agent or runtime.make_gated_adapter(lambda cell: GATED_PROMPT, budget)
 
     def agent(cell: dict, workspace) -> dict:
         task = tasks_by_id[cell["task_id"]]
