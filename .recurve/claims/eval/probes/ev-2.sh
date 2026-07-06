@@ -54,7 +54,7 @@ task = {"task_id": "t/add", "instruct_prompt": "write add(a,b) that returns the 
 
 # arm specs: A0 bare, A3 recurve-init'd
 a0, a3 = arm_spec("A0"), arm_spec("A3")
-assert a0["recurve"] is False and a3["recurve"] is True, f"arm specs wrong: {a0} {a3}"
+assert a0.recurve is False and a3.recurve is True, f"arm specs wrong: {a0} {a3}"
 
 # A0 workspace: task present, empty solution, hidden test NOT present, no .recurve
 d0 = pathlib.Path(tempfile.mkdtemp()) / "ws"

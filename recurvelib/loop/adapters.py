@@ -16,7 +16,8 @@ import posixpath
 import subprocess
 from pathlib import Path
 
-from recurvelib.loop.runtime import within_boundary
+from recurvelib.adapters.boundary import BOUNDARY_ADAPTERS
+from recurvelib.adapters.registry import resolve_boundary
 
 
 def _jsonable(obj):
@@ -63,12 +64,18 @@ class GitWorld:
         root: Path to the target repository's working tree (already ``git init``-ed and configured).
         referee_roots: Repo-relative prefixes the actor may never write (e.g. ``["claims/"]``).
         gate_fn: Callable ``root -> Progress`` — the measurement (recurve's gate in production, a fake in tests).
+        boundary: BoundaryPort selection — ``"enforced"`` (default, byte-identical to every prior GitWorld)
+            or ``"open"``, a deliberately dangerous, off-by-default bypass. Resolved through recurvelib's OWN
+            registry (never reimplemented here), so an unknown value fails loud at construction, before the
+            first ``apply()``.
     """
 
-    def __init__(self, root, referee_roots, gate_fn):
+    def __init__(self, root, referee_roots, gate_fn, boundary: str = "enforced"):
         self.root = Path(root)
         self.referee_roots = [str(r) for r in referee_roots]
         self.gate_fn = gate_fn
+        self.boundary = boundary
+        self._boundary_check = resolve_boundary(boundary, BOUNDARY_ADAPTERS)()
 
     def gate(self):
         return self.gate_fn(self.root)
@@ -78,10 +85,12 @@ class GitWorld:
 
         All paths are checked first; if any is out of bounds nothing is written (no partial application) and
         ``BoundaryViolation`` is raised. Relative paths are checked against an empty target root and the
-        repo-relative ``referee_roots``, so ``claims/…``, ``..``-escapes, and absolute paths are all refused.
+        repo-relative ``referee_roots``, so ``claims/…``, ``..``-escapes, and absolute paths are all refused —
+        UNLESS ``boundary="open"``, which bypasses this check entirely and says so loudly (stderr) on every
+        call.
         """
         rels = list(patch)
-        if not within_boundary(rels, "", self.referee_roots):
+        if not self._boundary_check.check(rels, "", self.referee_roots):
             raise BoundaryViolation(f"patch touches the referee surface or escapes the tree: {rels}")
         if not all(isinstance(v, str) for v in patch.values()):
             raise BoundaryViolation("patch values must be strings")

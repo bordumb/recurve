@@ -1,0 +1,259 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: SW-1
+  title: The environment image is built via SWE-bench's OWN instance-building tooling, pinned
+    by digest
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - SW-1
+  evidence:
+  - eval/evallib/swebench_env.py
+  observed: 'GREEN at baseline 2026-07-05: environment image built via SWE-bench''s own instance-building
+    tooling; pinned by a per-instance digest hash; reconciliation catches a same-count, divergent-identity
+    hand-rolled build'
+  smallest_fix: 'build_environment_image calls swebench.harness.test_spec.make_test_spec +
+    docker_build.build_instance_image (namespace=None, a local build from SWE-bench''s own
+    recipe) and pins the result''s content digest; reconcile_test_collection compares the
+    SET of collected test node ids between a built environment and the officially-documented
+    one for a pinned sample instance, refusing a divergent hand-rolled build.
+
+    '
+  probe: probes/sw-1.sh
+  unlocks: 'we own the pin+reconciliation, not the environment construction, exactly the "borrow,
+    don''t reinvent" rule this program already followed for the BigCodeBench oracle image.
+
+    '
+
+- id: SW-2
+  title: The agent's workspace is real and working, but structurally oracle-free
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - SW-2
+  evidence:
+  - eval/evallib/swebench_workspace.py
+  - eval/evallib/materialize.py
+  observed: 'GREEN at baseline 2026-07-05: WorkspacePort[''swe_bench_repo''] registered; a
+    real container tree leaking test_patch content is refused before the agent ever sees it;
+    a clean container materializes TASK.md/testbed/run_tests.sh/container.json'
+  smallest_fix: 'materialize_swe_repo_workspace, registered as WorkspacePort["swe_bench_repo"]
+    in materialize.WORKSPACE_PORTS (one new file, one registry line): starts the agent''s
+    container from the environment image (no test_patch, true by construction), asserts the
+    container''s real tree is quarantined against test_patch (assert_quarantined_swe, per-line
+    signal extraction, not a whole-diff substring check), extracts it to the host, recurve
+    init''s it, writes TASK.md/run_tests.sh.
+
+    '
+  probe: probes/sw-2.sh
+  unlocks: 'a real, working dev environment for the agent, structurally incapable of containing
+    the FAIL_TO_PASS/PASS_TO_PASS tests it will be graded against.
+
+    '
+
+- id: SW-3
+  title: 'Oracle quarantine: a fresh instance, the diff, and nothing else'
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - SW-3
+  evidence:
+  - eval/evallib/swebench_quarantine.py
+  observed: 'GREEN at baseline 2026-07-05: grading refuses to run against the agent''s own
+    container id (or an absent/empty one); get_eval_report reused from SWE-bench''s own harness,
+    never reimplemented'
+  smallest_fix: 'grade_fresh applies the agent''s extracted diff + test_patch to a FRESH --network=none
+    container from the environment image, using SWE-bench''s own get_eval_report (reused,
+    not reimplemented); refuse_reuse_of_agent_container is the enforcement, raising before
+    a single test runs if the grading container id would equal the agent''s own (or is missing/empty).
+
+    '
+  probe: probes/sw-3.sh
+  unlocks: 'state leakage from a working agent session into its own grade is structurally
+    refused, mirroring BigCodeBench''s quarantine architecture exactly.
+
+    '
+
+- id: SW-4
+  title: Calibration against the canonical patch, keyed per environment image
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - SW-4
+  evidence:
+  - eval/evallib/swebench_calibration.py
+  observed: 'GREEN at baseline 2026-07-05: calibration keyed by full environment_image_hash
+    (instance identity + digest, never digest alone); derive_calibration/calibration_admits_spend
+    reused unchanged from the eval suite''s own EV-16'
+  smallest_fix: 'calibration.py''s derive_calibration/calibration_admits_spend reused completely
+    unchanged; calibration_path_for_environment keys the artifact by the FULL environment_image_hash
+    (instance identity + image digest), never one global hash or the digest alone, so two
+    different instances'' calibrations can never collapse onto the same file.
+
+    '
+  probe: probes/sw-4.sh
+  unlocks: 'a SWE-bench sample spanning many distinct environments gets one calibration per
+    environment actually touched, each independently gated by the same EV-16 teeth.
+
+    '
+
+- id: SW-5
+  title: Warm container reuse is per-instance, not per-run
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - SW-5
+  evidence:
+  - eval/evallib/swebench_warm.py
+  observed: 'GREEN at baseline 2026-07-05: warm container reuse is scoped per-instance (WarmOracle
+    reused unchanged); grading a different instance under a stale warm container is refused,
+    not silently run'
+  smallest_fix: 'PerInstanceWarmRegistry reuses warm_oracle.WarmOracle completely unchanged,
+    scoped to one instance''s own 3 oracle-verification runs; grade(instance_id, ...) raises
+    WrongInstanceError rather than ever exec-ing a workload into a container warmed for a
+    different instance.
+
+    '
+  probe: probes/sw-5.sh
+  unlocks: 'the per-instance container-start cost is paid as real (3 grades per task, not
+    per-cell-per-task) without ever risking a silent wrong-environment "pass".
+
+    '
+
+- id: SW-6
+  title: The live smoke (the only spend this PRD allows)
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - SW-6
+  evidence:
+  - eval/evallib/swebench_pipeline.py
+  - eval/evallib/swebench_governor_reviewer.py
+  observed: 'GREEN at baseline 2026-07-05: smoke mechanism sound: 2 models x {A0, A9} x 3
+    instances = 12 cells; both arms seal analyze-complete rows with full provenance; overspend
+    halts rather than warns-and-continues'
+  smallest_fix: 'swebench_pipeline.py composes SW1-SW5 into make_swebench_orchestrator / make_swebench_pipeline_adapter
+    (a sibling to orchestrate.py/run_pipeline.py, never a fork); SWE_A0/SWE_A9 = ArmSpec instances
+    sharing the swe_bench_repo workspace (SWE_A9 = replace(arm_spec("A9"), workspace=...),
+    A9 itself unmodified); expand_smoke_cells builds the 2 models x {A0,A9} x N-instances
+    cross product; assert_within_budget is the spend trip-wire. The REAL smoke (real API calls,
+    real docker) is a separate, actually-executed invocation whose results.jsonl is committed
+    as evidence.
+
+    '
+  probe: probes/sw-6.sh
+  unlocks: 'four (now twelve, across 3 instances) analyze-complete rows with full provenance
+    (repo, base_commit, environment-image digest) before any pilot-scale spend, and A9''s
+    governor=mechanical_review genuinely exercised via a real `recurve decide` call on real
+    SWE-bench data.
+
+    '
+
+- id: SW-7
+  title: Grading aggregates 3 independent verification runs into one majority-vote verdict,
+    never a single run
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - SW-7
+  evidence:
+  - eval/evallib/swebench_majority.py
+  - eval/evallib/swebench_pipeline.py
+  observed: 'GREEN at baseline 2026-07-05: grading aggregates 3 independent verification runs
+    via majority vote; the orchestrator''s default grader genuinely votes, not single-shot;
+    split verdicts stay visible as oracle_agreement/oracle_unanimous'
+  smallest_fix: 'grade_with_majority_vote (evallib/swebench_majority.py) runs the underlying
+    grader num_runs times (default 3) and returns whichever verdict a strict majority agree
+    on, with every individual run preserved (never dropped) and the split itself (agreement,
+    unanimous) surfaced. make_swebench_orchestrator''s default grader is repointed at this
+    function instead of a single-shot grader, and the resulting row carries oracle_agreement/oracle_unanimous
+    as additive-only provenance.
+
+    '
+  probe: probes/sw-7.sh
+  unlocks: 'a single flaky test run can no longer be mistaken for a real pass/fail difference
+    between arms in a small-sample smoke — a split vote stays visible in the row instead of
+    being silently smoothed into one boolean.
+
+    '
+
+- id: SW-8
+  title: The harness commits the current working-tree state itself before the governor is
+    consulted
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - SW-8
+  evidence:
+  - eval/evallib/swebench_pipeline.py
+  observed: 'GREEN at baseline 2026-07-06: the harness commits the current working-tree state
+    itself before the governor is consulted -- HEAD always contains the real, current state
+    regardless of whether the agent committed anything ⏎ auths: pinned your identity root
+    in .auths/roots (committed with this commit)'
+  smallest_fix: 'commit_snapshot_for_governor (evallib/swebench_pipeline.py) runs git add
+    -A + git commit --no-gpg-sign in the testbed right before run_recurve_decide -- HEAD always
+    genuinely reflects the current .recurve/claims/ state and any fix, regardless of whether
+    the agent itself ever committed anything. A clean tree (nothing changed since the last
+    commit) is a no-op, never an empty commit.
+
+    '
+  probe: probes/sw-8.sh
+  unlocks: 'build_cycle_snapshot(tree, "HEAD", ...) can actually resolve -- found running
+    the real SW6 smoke: all 6 A9 cells showed declared_done=False/gate_outcome=process_failed
+    uniformly, regardless of the fix''s actual correctness, because HEAD was always the pre-.recurve/init
+    baseline commit and the working tree always had uncommitted changes, so snapshot.py''s
+    own require_clean invariant refused every single time.
+
+    '
+
+- id: SW-9
+  title: The governor reviewer reads real claim/probe/evidence content, never a structurally-impossible
+    git diff
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - SW-9
+  evidence:
+  - eval/evallib/swebench_governor_reviewer.py
+  observed: 'GREEN at baseline 2026-07-06: the governor reviewer reads real, current claim/probe/evidence
+    content (never a structurally-impossible git diff), fails closed when there is nothing
+    to review, and marks truncation explicitly, never silently'
+  smallest_fix: '_closed_claims discovers every status:closed entry across .recurve/claims/*/gaps.yaml
+    in the (git-archived, history-free) snapshot; _review_context assembles each claim''s
+    title/smallest_fix/observed, its probe script''s actual text, and any evidence files''
+    current content into the reviewer''s prompt. _cap marks truncation with an explicit marker,
+    never silently. Zero closed claims fails closed (vetoes, never calls the model) rather
+    than silently clearing an unreviewable cycle.
+
+    '
+  probe: probes/sw-9.sh
+  unlocks: 'the governor genuinely reviews something, instead of vacuously clearing every
+    cycle -- found running the real smoke: the original _diff() used git diff HEAD~1 HEAD/git
+    show HEAD, which can only ever be empty inside an archived snapshot (no .git there at
+    all, by design), so every review silently, uninformedly cleared. Also found and fixed
+    along the way: an earlier, tighter per-item length cap silently truncated a genuinely
+    complete 3497-char probe at 3000 chars, and the reviewer correctly (given what it was
+    shown) flagged the truncation itself as "incomplete" -- the excerpting was the actual
+    defect, not the file.
+
+    '

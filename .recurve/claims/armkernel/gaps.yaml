@@ -1,0 +1,120 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: AK-1
+  title: ArmSpec replaces the flat dict; A0/A3/A7-A10 unchanged
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AK-1
+  evidence:
+  - eval/evallib/arms.py
+  - eval/evallib/orchestrate.py
+  observed: 'GREEN at baseline 2026-07-05: ArmSpec replaces the flat dict; A0=(bare,self_report,enforced,none,off,off),
+    A3=(recurve_init,gate,enforced,none,off,off), A7-A10 extend A3 by adversary=/governor=
+    only — and A0/A3/A7-A10 cells are byte-identical to the pre-ArmSpec pipeline (regression
+    fixture)'
+  smallest_fix: ArmSpec (frozen dataclass, six port fields) replaces _ARMS's flat {"recurve",
+    "config"} dict; make_orchestrator becomes a fixed pipeline of port lookups keyed on the
+    arm's ArmSpec, never a branch on arm identity.
+  probe: probes/ak-1.sh
+  unlocks: adding a 7th axis later is a new defaulted ArmSpec field, never an edit to an existing
+    arm's literal; the byte-identical regression fixture proves A0/A3/A7-A10 are unchanged,
+    not just unedited.
+
+- id: AK-2
+  title: A0 and A6 share the self_report done-signal port
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AK-2
+  evidence:
+  - eval/evallib/arms.py
+  - eval/evallib/done_signal.py
+  observed: 'GREEN at baseline 2026-07-05: A0 and A6 share the SAME self_report done-signal
+    function object; A6''s real recurve ledger is present but never consulted — the gate is
+    called zero times and a red verdict has zero effect on declared_done'
+  smallest_fix: A6 = replace(A3, done_signal="self_report"); self_report_done_signal reads
+    solution.py alone and never calls gate_fn, regardless of workspace — the same function
+    object serves A0 and A6.
+  probe: probes/ak-2.sh
+  unlocks: a real recurve ledger present in the workspace (A6) has zero effect on the declared-done
+    decision — proven by a zero-call assertion on the gate function, not just a behavioral
+    coincidence.
+
+- id: AK-3
+  title: BoundaryPort["open"] is real, and hard to reach by accident
+  class: security-tradeoff
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AK-3
+  evidence:
+  - recurvelib/loop/boundary.py
+  - recurvelib/adapters/boundary/__init__.py
+  - recurvelib/core/config.py
+  - recurvelib/loop/adapters.py
+  observed: 'GREEN at baseline 2026-07-05, sweep strengthened same day (added a TOML-boolean
+    permutation found by adversarial re-review): BoundaryPort[''open''] is a real bypass of
+    within_boundary(), off by default, reachable ONLY through the exact [gate] boundary="open"
+    key (the sweep holds), and loud (stderr + row provenance) every time it is used — never
+    silently'
+  smallest_fix: Boundary protocol + Enforced/OpenBoundary adapters (recurvelib.loop.boundary),
+    resolved through recurvelib's registry; GitWorld gains a defaulted boundary= arg; Config
+    parses/validates [gate] boundary strictly (enforced|open, ConfigError otherwise); eval's
+    orchestrator records boundary= in the row and prints a loud warning only when non-default.
+  probe: probes/ak-3.sh
+  unlocks: A5 (A3, boundary off) is runnable, and the one dangerous port this PRD's scope
+    intentionally narrows cannot be reached except by its own exact, unambiguous key.
+
+- id: AK-4
+  title: DoneSignalPort["external_ci"] is genuinely CLI-expressed
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - AK-4
+  evidence:
+  - eval/evallib/done_signal.py
+  observed: 'GREEN at baseline 2026-07-05: DoneSignalPort[''external_ci''] is a pure CLI contract:
+    exit 0 = done, any other exit = not yet, bounded by timeout, the command alone decides
+    — a trivial fixture and a completely different command both work with zero new Python'
+  smallest_fix: external_ci_done_signal runs any configured shell command; exit 0 = done,
+    any other exit (or a timeout, mapped to 124) = not yet; an empty command raises ValueError.
+    No benchmark-specific Python needed — the command is the entire mechanism.
+  probe: probes/ak-4.sh
+  unlocks: A1's mechanism gap is closed whenever a benchmark supplies its own grading command
+    (a config string); the design question of what that command means for a repo-less task
+    is separate and still open.
+
+- id: AK-5
+  title: AuditPort can only add columns, never change the outcome
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - AK-5
+  evidence:
+  - eval/evallib/audit.py
+  - eval/evallib/orchestrate.py
+  observed: 'GREEN at baseline 2026-07-05: AuditPort is additive-only: AuditResult is structurally
+    incapable of carrying declared_done/oracle_verdict; drill_hardened invokes the real drill
+    CLI and parses its own real summary lines (a genuine planted disagreement measured as
+    1); A4''s row carries a namespaced ''audit'' column while declared_done/oracle_verdict
+    stay exactly what the done-signal and oracle already decided'
+  smallest_fix: AuditResult (frozen dataclass) has no declared_done/oracle_verdict fields
+    — has_forbidden_field is a structural, reusable guard; drill_hardened_audit invokes the
+    real drill --fuzz --iso --diff CLI and parses its own summary lines; orchestrate.py nests
+    the result under row["audit"], never flattens it.
+  probe: probes/ak-5.sh
+  unlocks: A4 (A3 + fuzz/iso/diff) measures how much harder auditing would have caught, without
+    becoming a second gate — the outcome fields are computed independently and cannot be touched
+    by construction.

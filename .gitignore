@@ -31,5 +31,10 @@ acceptance/originals/
 # macOS
 .DS_Store
 
+# SWE-bench's own official harness writes build-time diagnostic logs here,
+# relative to cwd, whenever build_env_images/build_instance_image runs
+# (eval/evallib/swebench_env.py) -- build-artifact noise, not evidence.
+/logs/
+
 # recurve run state (parked gaps, records, receipts)
 .recurve/state/

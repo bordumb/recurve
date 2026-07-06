@@ -1,0 +1,13 @@
+{
+  "dataset_hash": "468d920fe479df2a1b7ee8561b8fdf37c1dd85b1a7712fe5bd4c60378975e4ab",
+  "exclusion_hash": "exh:4f53cda18c2baa0c",
+  "exclusion_reasons": {},
+  "exclusions": [],
+  "n_tasks": 1,
+  "oracle_env_hash": "eih:1c5962b7ad9fc692c7c74e828da0822b",
+  "raw_pass_rate": 1.0,
+  "resolved_timeout": 88,
+  "verdicts": {
+    "pylint-dev__pylint-4970": "pass"
+  }
+}

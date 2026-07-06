@@ -1,21 +1,25 @@
-"""arms.py — arm name → workspace spec (pure).
+"""arms.py — arm name -> ArmSpec, the tuple of port selections that IS an arm (pure).
 
-An arm is how a cell is set up before the agent runs. The mapping is a pure
-function so the matrix stays data: adding an arm is a table entry, not new code.
-The arm names A0/A3 come from the full program's arm matrix (eval-full.md).
+An arm varies along six independent axes — Workspace, Done-signal, Boundary,
+Audit, Adversary, Governor — and nothing else. `ArmSpec` (one field per axis)
+replaces the old flat `{"recurve": bool, "config": dict}` shape, which only
+fit two of the six. Adding an arm is a new `ArmSpec` literal; adding a new
+axis later is a new, DEFAULTED field, never an edit to an existing arm's
+literal.
 
 A7-A10 (docs/plans/oracle-strength-and-decorrelation.md §3a) resolve their
 `adversary=`/`governor=` config through recurvelib's OWN adapter registry —
-imported here, never reimplemented (docs/plans/ablation-infra.md AI5): this
-module and `/recurve-work`'s own gate config are two callers of one
-implementation, exactly like `AGENT_CMD` already serves both today. `eval/`
-stays a separate uv project (recurvelib is stdlib+PyYAML); the dependency is
+imported here, never reimplemented (docs/plans/ablation-infra.md AI5).
+`boundary=` is a third recurvelib-owned axis (`enforced` default | the
+deliberately dangerous `open`), resolved the same way. `eval/` stays a
+separate uv project (recurvelib is stdlib+PyYAML); the dependency is
 one-directional — `eval` imports `recurvelib`, never the reverse.
 """
 
 from __future__ import annotations
 
 import sys
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 # eval/evallib/arms.py -> eval/evallib -> eval -> the repo root, where
@@ -27,29 +31,81 @@ if str(_REPO_ROOT) not in sys.path:
 
 from recurvelib.adapters.adversary import ADVERSARY_ADAPTERS  # noqa: E402
 from recurvelib.adapters.governor import GOVERNOR_ADAPTERS  # noqa: E402
+from recurvelib.adapters.boundary import BOUNDARY_ADAPTERS  # noqa: E402
 
-# recurve: whether the workspace is `recurve init`-ed before the agent runs.
-# config: extra recurve.toml settings the arm stamps (empty for the POC arms).
-_ARMS: dict[str, dict] = {
+
+@dataclass(frozen=True)
+class ArmSpec:
+    """An arm is a TUPLE OF PORT SELECTIONS — nothing else. Six axes:
+
+      workspace   — WorkspacePort:   "bare" | "recurve_init"
+      done_signal — DoneSignalPort:  "gate" | "self_report" | "external_ci"
+      boundary    — BoundaryPort:    "enforced" | "open"            (recurvelib)
+      audit       — AuditPort:       "none" | "drill_hardened"
+      adversary   — AdversaryPort:   "off" | "same_model" | "cross_model"   (recurvelib, existing)
+      governor    — GovernorPort:    "off" | "mechanical" | "mechanical_review" | "human_required" (recurvelib, existing)
+
+    `boundary`/`audit`/`adversary`/`governor` default to the inert value, so
+    an existing arm literal never has to name axes it doesn't use — arms
+    that only need workspace/done_signal stay byte-identical across every
+    later addition, because they all resolve to the same defaults.
+    """
+
+    workspace: str
+    done_signal: str
+    boundary: str = "enforced"
+    audit: str = "none"
+    adversary: str = "off"
+    governor: str = "off"
+    # The shell command DoneSignalPort["external_ci"] runs; meaningful only
+    # when done_signal == "external_ci" (validated there, not here — an arm
+    # not using that port pays nothing for the field it left blank).
+    external_ci_command: str = ""
+    label: str = ""
+
+    @property
+    def recurve(self) -> bool:
+        """True iff the workspace is recurve-init'd. A derived property, not
+        an independent field — `workspace` is the one source of truth, so
+        `recurve` can never drift from it independently."""
+        return self.workspace == "recurve_init"
+
+
+# A3: 100% recurve, full discipline, every other axis at its default.
+_A3 = ArmSpec(workspace="recurve_init", done_signal="gate", label="100% recurve")
+
+_ARMS: dict[str, ArmSpec] = {
     # 0% recurve: bare workspace, task statement + empty solution.py. The agent
     # solves however it likes; exiting with a non-empty solution = declared done.
-    "A0": {"recurve": False, "config": {}, "label": "0% recurve"},
+    # DoneSignalPort["self_report"] — see A6 below for its sibling.
+    "A0": ArmSpec(workspace="bare", done_signal="self_report", label="0% recurve"),
     # 100% recurve: the same workspace, recurve-init'd. The agent must express the
     # task as a claim with a RED-first probe it authors + at least one trap, then
     # burn down until `recurve matrix --gate` is green. Gate green = declared done.
-    "A3": {"recurve": True, "config": {}, "label": "100% recurve"},
-    # A7-A10: E4/ablation-phase arms (not POC arms — the POC keeps {A0, A3}
-    # unchanged). Each extends A3 by one or two switches, per the PRD's own
-    # ladder-not-factorial design (§3a): marginal detection per layer before
-    # measuring the combination.
-    "A7": {"recurve": True, "config": {"adversary": "cross_model"},
-           "label": "A3 + adversary=cross_model"},
-    "A8": {"recurve": True, "config": {"governor": "mechanical"},
-           "label": "A3 + governor=mechanical"},
-    "A9": {"recurve": True, "config": {"governor": "mechanical_review"},
-           "label": "A3 + governor=mechanical_review"},
-    "A10": {"recurve": True, "config": {"adversary": "cross_model", "governor": "mechanical_review"},
-            "label": "A3 + adversary=cross_model + governor=mechanical_review"},
+    "A3": _A3,
+    # A3's workspace (a real ledger IS present), but done_signal="self_report"
+    # — the SAME port A0 uses, not a bespoke "ignore the gate" special case:
+    # a real ledger existing in the workspace has zero effect on the
+    # declared-done decision under this port.
+    "A6": replace(_A3, done_signal="self_report", label="A3, controller off"),
+    # A3's done_signal (a real gate exists and is consulted normally), but
+    # boundary="open" — the actor may write to the referee surface
+    # (claims/probes/traps) for this arm. A deliberately dangerous,
+    # off-by-default engine capability; used here to MEASURE what the write
+    # boundary is worth, never a default for any other arm.
+    "A5": replace(_A3, boundary="open", label="A3, boundary off"),
+    # A3, plus a post-hoc hardening pass (fuzz/iso/diff) that can only ADD
+    # columns to the row, never change declared_done/oracle_verdict.
+    # Measures how much harder auditing would have caught.
+    "A4": replace(_A3, audit="drill_hardened", label="A3 + fuzz/iso/diff"),
+    # A7-A10: ablation-phase arms (not POC arms — the POC keeps {A0, A3}
+    # unchanged). Each extends A3 by one or two switches: marginal detection
+    # per layer before measuring the combination.
+    "A7": replace(_A3, adversary="cross_model", label="A3 + adversary=cross_model"),
+    "A8": replace(_A3, governor="mechanical", label="A3 + governor=mechanical"),
+    "A9": replace(_A3, governor="mechanical_review", label="A3 + governor=mechanical_review"),
+    "A10": replace(_A3, adversary="cross_model", governor="mechanical_review",
+                   label="A3 + adversary=cross_model + governor=mechanical_review"),
 }
 
 
@@ -57,12 +113,12 @@ def arm_names() -> list[str]:
     return list(_ARMS)
 
 
-def arm_spec(name: str) -> dict:
-    """Return the workspace spec for an arm. Raises KeyError on an unknown arm —
+def arm_spec(name: str) -> ArmSpec:
+    """Return the named arm's ArmSpec. Raises KeyError on an unknown arm —
     an experiment naming an arm that does not exist fails loud, before any run."""
     if name not in _ARMS:
         raise KeyError(f"unknown arm {name!r}; known: {', '.join(_ARMS)}")
-    return dict(_ARMS[name])
+    return _ARMS[name]
 
 
 def resolve_adversary_adapter(name: str):
@@ -77,3 +133,11 @@ def resolve_governor_adapter(name: str):
     registry — never a local reimplementation."""
     from recurvelib.adapters.registry import resolve_governor
     return resolve_governor(name, GOVERNOR_ADAPTERS)
+
+
+def resolve_boundary_adapter(name: str):
+    """Resolve an arm's `boundary=` value through recurvelib's OWN registry —
+    never a local reimplementation. The one resolution this module treats as
+    inherently dangerous when `name == "open"`."""
+    from recurvelib.adapters.registry import resolve_boundary
+    return resolve_boundary(name, BOUNDARY_ADAPTERS)
