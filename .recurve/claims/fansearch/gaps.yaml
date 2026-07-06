@@ -5,13 +5,13 @@
 - id: FS-1
   title: the proxy sanity check recognizes real dissipative structure
   class: missing-surface
-  status: open
+  status: closed
   severity: headline
   reads: none
   covers:
   - FS-1
-  observed: 'RED at baseline 2026-07-06: RED: /Users/bordumb/workspace/repositories/auths-base/recurve/.claude/worktrees/fansearch-burndown/.recurve/claims/fansearch/probes/fs-1_impl/proxy_sanity.py
-    not found'
+  observed: 'GREEN at baseline 2026-07-06: GREEN: dphi_dt matches the closed-form identity
+    on 7 vectors; dissipative avg score 1.000, worst violating score 0.000'
   smallest_fix: add probes/fs-1_impl/proxy_sanity.py exposing dphi_dt(nu, alpha, gamma, N,
     u) and score(nu, alpha, gamma, N, u) that compute the shell-model weighted-energy derivative
     via the closed-form telescoping identity (lam=2), correct against the fixed vector table
