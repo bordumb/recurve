@@ -47,13 +47,6 @@ def _load_tasks(manifest: dict, cache_dir) -> list[dict]:
     return fetch_bigcodebench_hard(t["revision"], cache_dir)
 
 
-def _real_digest_probe(image: str) -> str | None:  # pragma: no cover - real docker
-    import subprocess
-    r = subprocess.run(["docker", "image", "inspect", image, "--format", "{{.Id}}"],
-                       capture_output=True, text=True)
-    return r.stdout.strip() or None
-
-
 def resolve_oracle_env(manifest: dict, *, repo=None, digest_probe=None, python_probe=None) -> dict:
     """A single shared oracle lock for the whole run — the shape a manifest
     with one `[oracle.env]` table has always had. Reuses
@@ -62,11 +55,21 @@ def resolve_oracle_env(manifest: dict, *, repo=None, digest_probe=None, python_p
     `repo` is accepted (and unused here) purely so a caller dispatching on
     the `Benchmark` registry can call every benchmark's `resolve_oracle_env`
     the SAME way, without knowing which one it's actually calling; SWE-bench's
-    own version genuinely needs it (to locate the per-instance locks file)."""
+    own version genuinely needs it (to locate the per-instance locks file).
+
+    The default `digest_probe` matches `evallib.oracle_docker.build_lock`'s
+    OWN wiring exactly: `local_image_digest(image, spec["digest"])`, checked
+    by content digest (`docker image inspect <digest>`, or `<image>@<digest>`
+    for a pulled image) -- NOT by the bare image name (which implicitly means
+    `:latest` and is blind to a real, differently-tagged local image, e.g.
+    `recurve-bcb-oracle:built`). A from-scratch reimplementation of this
+    probe got exactly that wrong once already; reusing `local_image_digest`
+    unchanged is what evallib itself does, and is not optional."""
+    from evallib.oracle_docker import local_image_digest
     from evallib.oracle_env import parse_oracle_env, resolve_oracle_lock
     spec = parse_oracle_env(manifest)
-    return resolve_oracle_lock(spec, digest_probe=digest_probe or _real_digest_probe,
-                               python_probe=python_probe)
+    probe = digest_probe or (lambda image: local_image_digest(image, spec["digest"]))
+    return resolve_oracle_lock(spec, digest_probe=probe, python_probe=python_probe)
 
 
 def calibrate(manifest: dict, repo) -> dict | None:
