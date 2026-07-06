@@ -74,3 +74,23 @@ def resolve_boundary(name: str, registry: dict[str, type]) -> type:
     if name not in registry:
         raise UnknownAdapterError(f"unknown boundary {name!r}; known: {', '.join(sorted(registry))}")
     return registry[name]
+
+
+def build_registry(entries: dict[str, type], protocol: type,
+                   methods: tuple[str, ...]) -> dict[str, type]:
+    """The generic form of `build_adversary_registry`/`build_governor_registry`/
+    `build_boundary_registry`: validate and return a registry for any
+    protocol/method-set pair. New adapter axes (e.g. `ProxyEvaluator`) use
+    this directly rather than adding a fourth hand-copy of the same
+    validate-and-return shape; the existing three may migrate onto it
+    separately."""
+    for name, cls in entries.items():
+        _require_methods(cls, protocol, methods)
+    return dict(entries)
+
+
+def resolve(name: str, registry: dict[str, type], kind: str) -> type:
+    """The generic form of `resolve_adversary`/`resolve_governor`/`resolve_boundary`."""
+    if name not in registry:
+        raise UnknownAdapterError(f"unknown {kind} {name!r}; known: {', '.join(sorted(registry))}")
+    return registry[name]

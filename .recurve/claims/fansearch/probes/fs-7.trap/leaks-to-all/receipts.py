@@ -204,7 +204,7 @@ def emit_for_matrix(config: Config, matrix: Matrix) -> int:
             exit_code=r.exit_code, detail=r.detail[:200],
             probe_path=r.gap.probe, tree_kind=kind, tree_value=value,
             oracle_versions=oracles[suite], observed_at=now, prev=chain.head(),
-            discovery=discovered.get(r.gap.id),
+            discovery=discovered.get(r.gap.id, {"domain": "unknown", "proxy_score": 0.0}),  # BUG: leaks to every gap
         )
         chain.append(_sign(config, receipt))
         count += 1

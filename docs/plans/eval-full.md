@@ -116,6 +116,7 @@ an arm is a `recurve.toml` + flags, reproducible from the results row.
 | Iso pass | `drill --iso` + knobs | **exists** |
 | Differential (reference oracles) | `drill --diff` + per-claim `reference:` | **exists** |
 | Oracle waivers | `oracle_waiver` per claim | **exists** |
+| Discovery search (backlog refill) | `[fansearch] proxy = "off"` (default) vs a registered domain | **exists** |
 | Probes at all (gate → plain agent) | omit recurve entirely (control arm) | trivial |
 | **Write boundary off** (agent may edit probes) | needs a flag on the runtime World boundary | **to build** (one config knob; the boundary lives in `adapters.py`) |
 | **Fresh-agent-per-cycle off** (one long-context agent instead) | needs a burndown-runner mode | **to build** (harness-level, not engine) |
@@ -142,6 +143,7 @@ arms = {
   A9  A3 + governor=mechanical_review  — run-level decorrelated review alone
   A10 A3 + adversary=cross_model
         + governor=mechanical_review  — full decorrelation stack (A7 + A9)
+  A11 A3 + fansearch=<domain>          — backlog refilled by discovery search, not a human/PRD
 }
 ```
 
@@ -155,6 +157,18 @@ arms and is deliberately not attempted). Every arm's resolved `[gate]`
 config is recorded verbatim in its results rows, not just the arm label.
 Not every benchmark runs every arm (cost §7). The POC runs {A0, A3} only;
 A7–A10 are E4/ablation-phase arms.
+
+A11 is a different kind of comparison from A0–A10: those all ask "how
+much does a gate component matter, holding the backlog fixed"; A11 asks
+whether the backlog *itself* needs a human/PRD author at all, at
+identical gate discipline (A3's claims + probes + traps, unchanged) —
+does `recurve fansearch run --domain <name>` refill an exhausted backlog
+with claims that close at a comparable rate to hand-authored ones, or
+does it mostly produce candidates that gate-reject or duplicate what a
+human would have written anyway. `[fansearch] proxy = "off"` (the
+default) is A3 exactly — the switch's inertness is itself a gated claim
+(`FS-9`, `recurve`'s own suite), not an assumption: turning fansearch on
+must be the only thing that changes between A3 and A11's `recurve.toml`.
 
 ## 5 · Provider-agnostic model matrix — what's actually needed
 

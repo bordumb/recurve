@@ -42,3 +42,8 @@ acceptance/originals/
 # ephemeral agent-isolation worktrees (each is a full nested git checkout) --
 # tooling state, never evidence
 .claude/worktrees/
+
+# throwaway exploratory scripts (e.g. fansearch's pre-engine POC checks) --
+# findings get written up in GAPS.md prose; the scripts themselves aren't
+# shipped code and aren't evidence in their own right
+.scratch/

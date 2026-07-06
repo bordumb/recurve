@@ -33,6 +33,16 @@
     "self_sha256": { "type": "string", "description": "SHA-256 over the canonical JSON of this receipt with self_sha256/signature/signer/signer_fields absent." },
     "signature": { "type": "string", "description": "Optional countersignature over self_sha256, produced by the project's pluggable signer. recurve defines the receipt, never the signature scheme." },
     "signer": { "type": "string", "description": "The signer command/identity that produced `signature`." },
-    "signer_fields": { "type": "object", "additionalProperties": true, "description": "Optional annotations the signer added alongside the signature (e.g. signer_did, envelope_ref). Excluded from self_sha256 — the signer runs after the hash is fixed." }
+    "signer_fields": { "type": "object", "additionalProperties": true, "description": "Optional annotations the signer added alongside the signature (e.g. signer_did, envelope_ref). Excluded from self_sha256 — the signer runs after the hash is fixed." },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain", "proxy_score"],
+      "properties": {
+        "domain": { "type": "string", "description": "Which registered proxy/search domain proposed this claim." },
+        "proxy_score": { "type": "number", "description": "The untrusted proxy's score for the promoted candidate, at promotion time. Never used to decide the verdict above — only the gate did that." }
+      },
+      "description": "Present only when this gap's claim was authored by an automated search rather than by hand: which domain proposed it, and what the untrusted proxy scored it. Included in self_sha256 (known at receipt-creation time, unlike signer_fields)."
+    }
   }
 }

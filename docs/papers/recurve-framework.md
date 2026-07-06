@@ -686,6 +686,128 @@ each change proven by the gate before it lands. Self-hosting is the strongest
 evidence available to a framework like this one, and §5 reports what it
 currently shows.
 
+## 3.5 An optional discovery layer: fan-out search (fansearch)
+
+Everything in §2–§3 assumes a claim already has a proposition worth checking.
+Some domains face a prior problem instead: the proposition itself is unknown,
+and the honest work is *searching* a space of candidates for one worth
+proposing. recurve treats this as an optional front end bolted onto the same
+gate, not a different kind of verification — named *fansearch* as an explicit
+homage to FunSearch, which established the pattern being reused here: an
+evolutionary search proposes candidate programs, a fast evaluator scores and
+selects among them, and only the evaluator's surviving output is kept
+[@funsearch]. The discipline generalizes to any domain that can supply a search
+space and a cheap scoring signal; recurve's contribution is where that
+evaluator sits relative to the rest of the framework.
+
+Read against §2.9, the evaluator is a **proxy**, not a referee: a cheap,
+approximate, and explicitly *unsound* signal that may rank or filter candidates
+but never certifies. A proxy's opinion is not admissible evidence, for exactly
+the reason an actor's opinion of its own work is not (§2.9). The only route
+from a proxy-favored candidate to a closed claim is the one every other claim
+takes: compile the candidate into a genuine proposition–probe–trap triple
+(§2.1), baseline it RED-first (§2.4), and let the gate decide — the same
+five-step shape as Figure 1, with one extra proposing stage in front of it:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=Stealth,node distance=6mm and 13mm]
+  \node[comp=gamber] (CAND)
+    {\textcolor{gamber}{\faListOl}\\[1pt]\textcolor{gamber}{\bfseries candidates}\\[-1pt]\scriptsize\textcolor{ink}{a domain's search space}};
+  \node[comp=gamber,right=14mm of CAND] (PROXY)
+    {\textcolor{gamber}{\faBolt}\\[1pt]\textcolor{gamber}{\bfseries proxy score}\\[-1pt]\scriptsize\textcolor{ink}{fast $\cdot$ cheap $\cdot$ unsound}};
+  \node[comp=gblue,right=17mm of PROXY] (COMPILE)
+    {\textcolor{gblue}{\faFileSignature}\\[1pt]\textcolor{gblue}{\bfseries compile}\\[-1pt]\scriptsize\textcolor{ink}{winner $\to$ claim triple}};
+  \node[comp=ggreen,right=15mm of COMPILE] (GATE)
+    {\textcolor{ggreen}{\faBalanceScale}\\[1pt]\textcolor{ggreen}{\bfseries gate}\\[-1pt]\scriptsize\textcolor{ink}{RED-first, exactly \S2}};
+  \node[compsolid=ink,below=9mm of GATE] (PROMOTE)
+    {\textcolor{ink}{\faStamp}\\[1pt]\textcolor{ink}{\bfseries promote}\\[-1pt]\scriptsize\textcolor{ink}{write into target's ledger}};
+  \node[comp=gblue,below=9mm of PROMOTE] (RECEIPT)
+    {\textcolor{gblue}{\faReceipt}\\[1pt]\textcolor{gblue}{\bfseries receipt}\\[-1pt]\scriptsize\textcolor{ink}{discovery: proxy + score}};
+  \begin{scope}[on background layer]
+    \node[zone=gamber!12, fit=(CAND)(PROXY), inner sep=9pt] (ZS) {};
+    \node[zone=zoneblue, fit=(COMPILE)(GATE)(PROMOTE)(RECEIPT), inner sep=10pt] (ZG) {};
+  \end{scope}
+  \node[elabel, anchor=south] at (ZS.north) {\faSearch\ search domain --- proposes};
+  \node[elabel, anchor=south] at (ZG.north) {\faBalanceScale\ recurve --- decides, exactly as \S2--\S3};
+  \draw[flow=gamber] (CAND) -- (PROXY) node[elabel,midway,above=2pt]{fan out};
+  \draw[flow=gamber] (PROXY) -- (COMPILE) node[elabel,midway,above=2pt]{narrows only --- never certifies};
+  \draw[flow=gblue] (COMPILE) -- (GATE) node[elabel,midway,above=2pt]{ordinary claim};
+  \draw[flow=ggreen] (GATE) -- (PROMOTE) node[elabel,midway,right=2pt]{GATE OK};
+  \draw[flow=gblue] (PROMOTE) -- (RECEIPT);
+\end{tikzpicture}
+\caption{Fan-out search as an optional front end to the same gate. A domain's
+candidates (1) are fanned out and ranked by a fast, unsound proxy (2) --- a
+\emph{proposing} step, never a certifying one (\S2.9). The winning candidate is
+compiled (3) into an ordinary claim --- a proposition, a probe, and a trap, in
+the sense of \S2.1 --- and the gate (4) decides it exactly as it decides every
+other claim, burndown included (\S3.1). Only a GATE-OK candidate is promoted
+(5): written into a target's own ledger and verified there by that target's
+own, independently-run gate, with the resulting receipt (\S3.3) recording which
+proxy and what score proposed it.}
+\end{figure}
+
+This front end is deliberately domain- and target-agnostic: a search domain
+supplies the candidate space, the proxy, and the compile step; a target
+supplies how to verify a compiled claim and how to land it — a different
+project's own rebuild and its own gate. Neither side needs to know the other's
+specifics, generalizing the same "bring your own agent" separation §3.3
+already uses for the working agent into "bring your own search domain" and
+"bring your own target." Promotion — writing a compiled claim into a target's
+ledger — is the layer's one irreversible action, and it is gated like
+everything else: a draft is accepted only once the target's *own* gate, run
+independently, returns OK on it, at which point the target's own receipt
+(§3.3) records which proxy and what score proposed the claim — provenance that
+follows a discovered claim forever without changing how it is verified
+relative to a hand-authored one. At the time of writing, this separation is
+being generalized from an initial validation build toward that fully
+domain-and-target-agnostic form; none of the search, scoring, or promotion
+logic is inherently specific to any one domain or target, and completing the
+generalization is scoped as ordinary refactoring rather than new mechanism.
+
+**How it was checked.** A proxy is exactly the kind of authored, unsound check
+§1.4 warns about, so before trusting one to propose anything, the validating
+run put it through the same falsification discipline the rest of the framework
+applies to claims:
+
+- **Proxy sanity.** The proxy is drilled against known-good and known-bad
+  fixtures exactly as a probe is drilled against its traps (§2.4) — one that
+  cannot separate a planted good candidate from a planted bad one is rejected
+  before it ranks anything for real.
+- **Signal check.** On cases cheap enough to check both ways, the proxy's
+  ranking is compared against the real oracle's answer, to confirm the cheap
+  signal actually correlates with the expensive ground truth it stands in for.
+- **A classical-optimization check, and an evidence-based descope.** Rather
+  than assume an elaborate generation loop was warranted, the validating run
+  first measured whether a far cheaper classical search procedure could
+  already find record candidates under the proxy. It could — which is itself
+  the result: for this domain the scarce ingredient was proxy signal, not
+  generation diversity, so a more expensive fan-out engine was descoped on
+  evidence rather than built speculatively.
+- **Promotion-bridge check.** The end-to-end claim: a real, proxy-favored
+  candidate compiles to a genuine claim, clears a real target's own gate, and
+  the resulting receipt carries correct discovery provenance. This was
+  validated against a dyadic shell model of the Navier–Stokes equations, used
+  here strictly as a *validation* domain, chosen because it already sits at
+  the strong end of the oracle spectrum (§2.3) — a sound proof kernel — which
+  lets the promotion bridge be checked against the hardest available target
+  rather than one whose own oracle might be in question. Nothing about the
+  search, scoring, or promotion mechanism is specific to fluid dynamics or to
+  that target's proof assistant; the same interface accepts any domain adapter
+  that can supply a search space, a proxy score, and a compile step, and any
+  target that can supply its own verify-and-gate.
+- **Inertness by default.** The layer ships off by default, and its own
+  absence is checked structurally: with it disabled, the core loop holds zero
+  references to it anywhere outside its own files, so turning it on is
+  provably the only variable that can differ between two otherwise-identical
+  runs — an ablation argument checked with the same rigor as any other claim
+  in the ledger.
+
+The result is a layer that extends what the ledger can *propose* without
+touching what it takes to get *certified*: a discovered claim is exactly as
+trustworthy as a hand-authored one, because it is checked by exactly the same
+mechanism, and by construction it cannot be otherwise.
+
 ---
 
 # 4. What recurve can attack

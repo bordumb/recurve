@@ -29,6 +29,7 @@ from .commands.cycle_new import cmd_cycle_new
 from .commands.decide import cmd_decide
 from .commands.demo import cmd_demo
 from .commands.drill import cmd_drill
+from .commands.fansearch import fansearch_app
 from .commands.freshness import cmd_freshness
 from .commands.frontier import cmd_frontier
 from .commands.governor import cmd_governor
@@ -283,7 +284,6 @@ def _pack_install(
 ):
     cmd_pack(_ns("pack", action="install", path=path, suite=suite))
 
-
 app.add_typer(pack_app, name="pack")
 
 
@@ -321,8 +321,8 @@ def _cycle_new(
 ):
     cmd_cycle_new(_ns("cycle", cyclecmd="new", name=name, gaps=gaps, timeout=timeout))
 
-
 app.add_typer(cycle_app, name="cycle")
+app.add_typer(fansearch_app, name="fansearch")
 
 
 @app.command(help="the promotion ceremony: drafts → measured ledger entries")
@@ -384,9 +384,9 @@ def drill(
     fuzz: bool = typer.Option(False, "--fuzz", help="also run probes/<id>.fuzz.sh generators and measure per-probe fpr"),
     iso: bool = typer.Option(False, "--iso", help="also run probes/<id>.iso.sh generators and measure verdict invariance"),
     diff: bool = typer.Option(False, "--diff", help="also run each claim's declared reference oracle and alarm on disagreement"),
+    fansearch: bool = typer.Option(False, "--fansearch", help="also measure each registered ProxyEvaluator's known-good/known-bad separation"),
 ):
-    cmd_drill(_ns("drill", suite=suite, timeout=timeout, deep=deep, fuzz=fuzz, iso=iso, diff=diff))
-
+    cmd_drill(_ns("drill", suite=suite, timeout=timeout, deep=deep, fuzz=fuzz, iso=iso, diff=diff, fansearch=fansearch))
 
 def main(argv=None, prog: str | None = None, config_path: str | None = None):
     global _PROG, _CONFIG, _CONFIG_DEFAULT
