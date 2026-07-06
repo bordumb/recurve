@@ -139,3 +139,24 @@
   probe: probes/fs-7.sh
   unlocks: recurve receipts can answer "was this claim discovered by search, and what guided
     it" for any project using this seam, not just this one.
+
+- id: FS-8
+  title: the counterexample domain shares zero domain code with dyadic_lyapunov beyond the
+    registration seam
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  covers:
+  - FS-8
+  observed: 'GREEN at baseline 2026-07-06: GREEN: malformed candidates refused; integrator
+    matches analytic decay (rel_err=1.73e-10); proxy separates refuting=1.000 small=0.004
+    diverges=0.000'
+  smallest_fix: 'add recurvelib/adapters/proxy/counterexample.py (Datum, integrate, hnormsq,
+    CounterexampleProxy): a numerically-integrated proxy scoring how strongly a candidate
+    initial datum refutes "large weighted norm forces blowup", independently reimplementing
+    the shell ODE rather than importing dyadic_lyapunov''s. Register it in PROXY_ADAPTERS
+    as "counterexample".'
+  probe: probes/fs-8.sh
+  unlocks: 'proof that F5''s adapter interface is genuinely domain-agnostic: a second, mathematically
+    unrelated domain registers through the exact same seam with no changes to the engine.'

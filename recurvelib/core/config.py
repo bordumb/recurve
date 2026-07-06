@@ -305,8 +305,8 @@ def load(path: Path) -> Config:
 
     fansearch = doc.get("fansearch", {})
     fansearch_proxy = str(fansearch.get("proxy", "off"))
-    if fansearch_proxy not in ("off", "dyadic_lyapunov"):
-        raise ConfigError(f"{path}: [fansearch] proxy must be off|dyadic_lyapunov, "
+    if fansearch_proxy not in ("off", "dyadic_lyapunov", "counterexample"):
+        raise ConfigError(f"{path}: [fansearch] proxy must be off|dyadic_lyapunov|counterexample, "
                           f"got {fansearch_proxy!r}")
 
     commit = doc.get("commit", {})

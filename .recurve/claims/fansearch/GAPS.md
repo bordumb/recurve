@@ -194,3 +194,49 @@ neither key; the chain still verifies end to end. Negative space (kept RED
 as a counterexample): `probes/fs-7.trap/leaks-to-all/` falls back to a
 placeholder `discovery` object for every gap instead of `None` — caught
 immediately (a hand-authored gap acquiring a fabricated discovery field).
+
+## FS-8 — a second domain: counterexample hunting, sharing zero domain code ✓
+
+`recurvelib/adapters/proxy/counterexample.py` grades a candidate initial
+datum by how strongly it refutes "a large weighted norm forces blowup":
+numerically integrate the truncated shell ODE (RK4, its own
+reimplementation of the shell system — not an import of
+`dyadic_lyapunov`'s) forward from the datum, and compare the worst
+weighted norm reached against its starting value. A datum with a large
+starting norm whose trajectory stays comparably sized is a genuine
+refutation; one with too small a norm to matter, or one whose norm
+actually grows without bound, is not. This is the mathematical shape
+behind the sibling `navier_stokes` repo's `FR-SH4Q`/
+`sh4_dissipative_blowup_refuted`, generalized to the extent that matters
+for F5: a second domain plugs into the same `ProxyEvaluator`/registry
+seam with no changes anywhere else.
+
+Two things worth recording plainly rather than glossing over:
+
+- **Numerical stability, not just correctness.** A fixed step count
+  reports spurious "blowup" at high shell indices from ordinary
+  floating-point round-off amplified by the system's own (real, not
+  buggy) upward-transport term — the same mechanism that makes multi-
+  shell states genuinely non-dissipative. The step count now scales with
+  the fastest linear rate and the integration horizon; verified against
+  the *exact* analytic solution for a single-active-shell state (pure
+  linear decay once transport vanishes) to a relative error of `~1.7e-10`,
+  not just "looks stable."
+- **`compile_to_claim` was not attempted for this domain.** Unlike
+  `dyadic_lyapunov`'s single-shell dissipativity — a clean, one-shot
+  algebraic identity that generalizes to *any* weight (`SH7`) — `FR-SH4Q`'s
+  refutation is a specific instance built from several composed lemmas
+  (`dyadic_shell_upper_bound`, an envelope/summability argument, an
+  Archimedean shell-index choice). A fresh instance at different
+  parameters is plausibly reachable by reusing that machinery, but it is
+  real per-instance Lean proof engineering, not a mechanical
+  specialization — attempting it without the time to verify it properly
+  would risk exactly the kind of "looks done" claim this whole tool
+  exists to prevent. The domain adapter (`building_blocks`,
+  `ProxyEvaluator`) is complete and gate-verified; the promotion half is
+  open work, honestly left open.
+
+Negative space (kept RED as a counterexample):
+`probes/fs-8.trap/wrong-dissipation-exponent/` drops a factor of 2 from
+the dissipation exponent — the probe's comparison against the exact
+analytic solution catches the resulting mismatch, RED.
