@@ -10,6 +10,8 @@ question = "Does the full paid path produce analyze-complete rows with real tele
 models  = ["claude-haiku-4-5", "claude-sonnet-5"]
 arms    = ["A0", "A3"]
 budgets = [60000]
+budget_unit = "tokens"   # historical: this run predates the dollar-budget convention
+                         # (see EV-23) -- 60000 is a token cap, not $60,000
 seeds   = [0]
 
 [tasks]

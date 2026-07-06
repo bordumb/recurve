@@ -8,4 +8,9 @@ runs/*/**/transcript*
 __pycache__/
 *.pyc
 .venv/
-datasets/
+datasets/*
+# ...except the pin registry itself -- small, and the one source of truth an
+# experiment manifest's [tasks].dataset name resolves against. (`datasets/*`,
+# not `datasets/`, so git actually recurses in to check this negation --
+# excluding the directory itself would make the exception unreachable.)
+!datasets/registry.toml
