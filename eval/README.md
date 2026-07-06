@@ -50,3 +50,19 @@ cannot be wrong, so any bug in this class drops the rate and blocks the spend.
 
 Each verb has a file between it and the next (`matrix.jsonl` → `results.jsonl` →
 `analysis/`), so every phase boundary is an inspectable, diffable artifact.
+
+## Per-cell disk footprint
+
+Each cell's workspace (`.git`, `.recurve`, generated files) is gitignored but
+not free — size before launching a large run:
+
+| Benchmark | Per-cell workspace | Extra weight | Example run | Peak `cells/` footprint |
+|---|---|---|---|---|
+| BigCodeBench | ~90–220 KB | none | 148 tasks × 2 models × 2 arms = 592 cells | tens of MB |
+| BigCodeBench (ablation) | ~90–220 KB | none | ablation ladder, ~5× arms | ~5× the pilot figure |
+| SWE-bench | ~90–220 KB + a repo checkout | one warm docker container per instance | 500 instances | repo-checkout MB × instances, plus concurrent container count |
+
+`src/core/runner.py`'s `run()` tars and removes each cell's workspace the
+moment its row seals (pass `keep_workspaces=True` to keep it for a post-mortem
+on a specific cell) — peak footprint is bounded by in-flight `workers`, not by
+total cells run.
