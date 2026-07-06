@@ -83,3 +83,20 @@ value is refused at config load. Negative space (kept RED as a
 counterexample): `probes/fs-2.trap/fourth-hand-copy/` reintroduces
 `resolve_proxy`/`build_proxy_registry` as their own hand-copied functions —
 the probe's source-shape check catches it, RED.
+
+## FS-3 — the dyadic_lyapunov proxy is registered, deterministic, and correct ✓
+
+`recurvelib/adapters/proxy/dyadic_lyapunov.py` generalizes the throwaway
+Stage 0–2 scripts into a real, registered `ProxyEvaluator`: `Candidate`
+(a diagonal weight sequence `b` plus cross-term coefficients `d` over a
+truncation level `N`), and `dphi_dt` — the functional's derivative summed
+directly from the shell RHS, valid for *any* state (not only the
+single-shell case `SH7` covers in closed form). `DyadicLyapunovProxy`
+scores a candidate by the fraction of a fixed, seeded battery of
+single- and multi-active-shell states it stays non-positive on — pure and
+deterministic given a candidate, per the port's own requirement.
+`[fansearch] proxy = "dyadic_lyapunov"` is now a valid config value.
+Negative space (kept RED as a counterexample): `probes/fs-3.trap/
+wrong-weight-exponent/` drops a factor of 2 from the dissipation exponent —
+the probe's comparison against the same closed form `FS-1` verified
+catches the resulting mismatch, RED.

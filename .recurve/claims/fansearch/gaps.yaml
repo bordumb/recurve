@@ -38,3 +38,21 @@
   probe: probes/fs-2.sh
   unlocks: the seam a real domain proxy (F5) registers against, without a fourth hand-copy
     of the adversary/governor/boundary registry pattern.
+
+- id: FS-3
+  title: the dyadic_lyapunov proxy is registered, deterministic, and correct against the verified
+    closed form
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - FS-3
+  observed: 'GREEN at baseline 2026-07-06: GREEN: dphi_dt matches the verified closed form
+    on 7 vectors; malformed candidates refused; registered and deterministic'
+  smallest_fix: add recurvelib/adapters/proxy/dyadic_lyapunov.py (Candidate, dphi_dt, DyadicLyapunovProxy)
+    computing the general (not single-shell-restricted) weighted-energy derivative directly
+    from the shell RHS, and register it in PROXY_ADAPTERS as "dyadic_lyapunov".
+  probe: probes/fs-3.sh
+  unlocks: the real proxy a classical-optimizer-driven campaign scores candidates with, in
+    place of the throwaway Stage 0-2 scripts.
