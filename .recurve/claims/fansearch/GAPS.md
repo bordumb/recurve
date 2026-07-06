@@ -1,12 +1,13 @@
-# fansearch — discovery proxy validation
+# fansearch — discovery proxy validation and engine
 
-> Precondition claims for the fan-out discovery search described in
-> `docs/plans/fansearch.md`. Before any engine code lands, these establish
-> that a cheap, untrusted evaluator can genuinely recognize known-good
+> Claims for the fan-out discovery search described in
+> `docs/plans/fansearch.md`. FS-1 establishes, with throwaway validation
+> code, that a cheap evaluator can genuinely recognize known-good
 > mathematical structure and reject known-bad structure in the target
-> shell-model domain (the sibling `navier_stokes` repo). Throwaway
-> validation code, not shipped engine code — the real engine's registered
-> protocol lands as later claims once this holds.
+> shell-model domain (the sibling `navier_stokes` repo). FS-2 onward are the
+> real, shipped engine that validation earns: the `ProxyEvaluator` port and
+> its registration seam, with domain adapters and the rest of the engine
+> landing as later claims.
 
 ## Conventions
 
@@ -66,3 +67,19 @@ nonnegative diagonal weight and *any* cross-term coefficients, not just
 the geometric one — went RED → GREEN through the real gate in the sibling
 `navier_stokes` repo (recorded there as `SH7`, `NavierStokes/Shells/
 Basic.lean`), kernel-clean, no regressions. The bridge works.
+
+## FS-2 — the ProxyEvaluator port resolves through the generalized registry ✓
+
+`ProxyEvaluator`/`ProxyScore` (`recurvelib/core/protocols.py`) are the
+first pluggable port outside the confirmation loop's own `Actor`/`World`
+spine. Registration goes through a new generic `build_registry`/`resolve`
+pair in `recurvelib/adapters/registry.py` — not a fourth hand-copy of the
+adversary/governor/boundary shape, per this PRD's own instruction; the
+existing three may migrate onto it separately. `recurvelib/adapters/proxy/`
+holds the registry (`PROXY_ADAPTERS`) and a trivial `off` scorer (a fixed
+neutral score, so the seam is real before any domain adapter exists).
+`[fansearch] proxy = "off"` (default) is the config knob; an unrecognized
+value is refused at config load. Negative space (kept RED as a
+counterexample): `probes/fs-2.trap/fourth-hand-copy/` reintroduces
+`resolve_proxy`/`build_proxy_registry` as their own hand-copied functions —
+the probe's source-shape check catches it, RED.

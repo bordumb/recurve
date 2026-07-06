@@ -139,6 +139,11 @@ class Config:
     # other config path (adversary/governor typos, partial configs, another
     # arm's whole config all leave this at its default).
     gate_boundary: str = "enforced"
+    # [fansearch] proxy: off (default) — the search-guide scorer a discovery
+    # campaign ranks candidates with. Never trusted: it only orders the
+    # queue a claim gets authored+gated from, same discipline as the other
+    # adapter axes above.
+    fansearch_proxy: str = "off"
     # [commit] — §11.1/§11.2: explicit, never prompting.
     commit_policy: str = "unsigned-per-cycle"   # none | unsigned-per-cycle | signed
     commit_hooks: str = "run"                   # run | gate-supersedes
@@ -298,6 +303,11 @@ def load(path: Path) -> Config:
     if gate_boundary not in ("enforced", "open"):
         raise ConfigError(f"{path}: [gate] boundary must be enforced|open, got {gate_boundary!r}")
 
+    fansearch = doc.get("fansearch", {})
+    fansearch_proxy = str(fansearch.get("proxy", "off"))
+    if fansearch_proxy not in ("off",):
+        raise ConfigError(f"{path}: [fansearch] proxy must be off, got {fansearch_proxy!r}")
+
     commit = doc.get("commit", {})
     commit_policy = str(commit.get("policy", "unsigned-per-cycle"))
     if commit_policy not in ("none", "unsigned-per-cycle", "signed"):
@@ -354,6 +364,7 @@ def load(path: Path) -> Config:
         gate_adversary=gate_adversary,
         gate_governor=gate_governor,
         gate_boundary=gate_boundary,
+        fansearch_proxy=fansearch_proxy,
         quality=str(gate.get("quality", "pre-launch")),
         commit_policy=commit_policy,
         commit_hooks=commit_hooks,

@@ -19,3 +19,22 @@
   probe: probes/fs-1.sh
   unlocks: every later fan-out claim -- the discovery engine is not worth building until this
     scorer can tell real dissipative structure from an impostor.
+
+- id: FS-2
+  title: the ProxyEvaluator port resolves through the generalized registry, never a fourth
+    hand-copy
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  covers:
+  - FS-2
+  observed: 'GREEN at baseline 2026-07-06: GREEN: ProxyEvaluator seam resolves through the
+    generic registry; off proxy scores validly; malformed/unknown adapters refused; no fourth
+    hand-copy in registry.py'
+  smallest_fix: add recurvelib/core/protocols.py (ProxyEvaluator, ProxyScore), a generic build_registry/resolve
+    pair in recurvelib/adapters/registry.py, recurvelib/adapters/proxy/ (PROXY_ADAPTERS with
+    a trivial off adapter), and a [fansearch] proxy config knob defaulting to off.
+  probe: probes/fs-2.sh
+  unlocks: the seam a real domain proxy (F5) registers against, without a fourth hand-copy
+    of the adversary/governor/boundary registry pattern.
