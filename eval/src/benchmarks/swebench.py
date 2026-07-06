@@ -132,6 +132,51 @@ def calibrate(manifest: dict, repo) -> dict | None:
     return json.loads(path.read_text()) if path.exists() else None
 
 
+def admits_spend(manifest: dict, resolved_env: dict, repo) -> None:
+    """The proportionate calibration gate for what SWE-bench actually HAS
+    today: `run_sw6_smoke.py` (the real, proven driver) has no calibration
+    gate at all yet. This adds the check that DOES have data behind it --
+    every instance in this run must have a calibration artifact present --
+    rather than borrowing BigCodeBench's pass-rate bar
+    (`calibration_admits_spend`), which needs a dataset-hash/exclusion-list
+    measurement SWE-bench has no equivalent of."""
+    from evallib.calibration import CalibrationError
+    missing = [instance_id for instance_id, lock in resolved_env.items()
+              if not calibrate({"_resolved_environment_image_hash": lock["environment_image_hash"]}, repo)]
+    if missing:
+        raise CalibrationError(
+            f"no calibration for instance(s) {missing} -- refusing to spend before "
+            f"the oracle is calibrated on the canonical solution for each")
+
+
+def make_routed_agent(tasks_by_id: dict, environment_locks: dict, *, bare_agent=None,
+                      gated_agent=None, budget=None, recurve_cmd: str = "recurve"):
+    """SWE-bench's routed agent (`evallib.swebench_pipeline.
+    make_swebench_pipeline_adapter`'s own `routed_agent`, reused in spirit --
+    `materialize_swe_repo_workspace` itself IS reused unchanged): the real
+    repo checkout is materialized from THIS instance's own environment
+    image, THEN the bare or gated agent runs -- keyed on `done_signal ==
+    "gate"`, NOT `.recurve`: SWE_A0/SWE_A9 share the same workspace port
+    (`swe_bench_repo`), so the workspace axis can't distinguish them the
+    way BigCodeBench's does."""
+    from evallib.adapters.claude import make_adapter, make_gated_adapter
+    from evallib.arms import arm_spec
+    from evallib.swebench_pipeline import SWE_BARE_PROMPT, SWE_GATED_PROMPT
+    from evallib.swebench_workspace import materialize_swe_repo_workspace
+
+    bare_agent = bare_agent or make_adapter(lambda cell: SWE_BARE_PROMPT)
+    gated_agent = gated_agent or make_gated_adapter(lambda cell: SWE_GATED_PROMPT, budget)
+
+    def agent(cell: dict, workspace) -> dict:
+        task = tasks_by_id[cell["task_id"]]
+        lock = environment_locks[cell["task_id"]]
+        materialize_swe_repo_workspace(Path(workspace), task, recurve_cmd=recurve_cmd,
+                                       environment_image_digest=lock["digest"])
+        chosen = gated_agent if arm_spec(cell["arm"]).done_signal == "gate" else bare_agent
+        return chosen(cell, workspace)
+    return agent
+
+
 register(Benchmark(
     name="swebench-verified",
     load_tasks=_load_tasks,
@@ -140,4 +185,7 @@ register(Benchmark(
     resolve_oracle_env=resolve_oracle_env,
     calibrate=calibrate,
     prepare=prepare_swe,
+    make_routed_agent=make_routed_agent,
+    admits_spend=admits_spend,
+    gate_fn=default_gate_fn,
 ))

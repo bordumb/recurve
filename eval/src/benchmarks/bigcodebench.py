@@ -85,6 +85,49 @@ def calibrate(manifest: dict, repo) -> dict | None:
     return json.loads(path.read_text()) if path.exists() else None
 
 
+def admits_spend(manifest: dict, resolved_env: dict, repo) -> None:
+    """The calibration gate WITH TEETH -- reuses `evallib.calibration.
+    calibration_admits_spend` unchanged (pass-rate bar, dataset-hash match,
+    an untouched exclusion list), the SAME check `evallib`'s own `cmd_run`
+    makes first, before any agent runs. Raises `CalibrationError` on
+    refusal; a caller wanting a human-readable message just prints it."""
+    from evallib.calibration import calibration_admits_spend
+    from evallib.cli import load_exclusions
+    oeh = resolved_env["oracle_env_hash"]
+    cal = calibrate({**manifest, "_resolved_oracle_env_hash": oeh}, repo)
+    dataset_hash = manifest["tasks"].get("hash") or ""
+    calibration_admits_spend(cal, oracle_env_hash=oeh, dataset_hash=dataset_hash,
+                             exclusions_content=load_exclusions(manifest, Path(repo)))
+
+
+def make_routed_agent(tasks_by_id: dict, run_data=None, *, bare_agent=None,
+                      gated_agent=None, budget=None, recurve_cmd: str = "recurve"):
+    """The routed agent BigCodeBench's real pipeline uses
+    (`evallib.run_pipeline.make_pipeline_adapter`'s own `routed_agent`,
+    reused in spirit -- `evallib.materialize.materialize` itself IS reused
+    unchanged): a fresh, oracle-quarantined workspace for this (task, arm),
+    THEN the bare or gated agent -- keyed on the arm's `recurve` PROPERTY
+    (workspace-derived), never its name, so a manifest may name a gated arm
+    anything. `run_data` is accepted (and unused) purely so every
+    benchmark's `make_routed_agent` has the same call shape; BigCodeBench's
+    materialization needs nothing run-specific the way SWE-bench's
+    per-instance environment digest does."""
+    from evallib.adapters.claude import make_adapter, make_gated_adapter
+    from evallib.arms import arm_spec
+    from evallib.materialize import materialize
+    from evallib.run_pipeline import BARE_PROMPT, GATED_PROMPT
+
+    bare_agent = bare_agent or make_adapter(lambda cell: BARE_PROMPT)
+    gated_agent = gated_agent or make_gated_adapter(lambda cell: GATED_PROMPT, budget)
+
+    def agent(cell: dict, workspace) -> dict:
+        task = tasks_by_id[cell["task_id"]]
+        materialize(task, cell["arm"], Path(workspace), recurve_cmd=recurve_cmd)
+        chosen = gated_agent if arm_spec(cell["arm"]).recurve else bare_agent
+        return chosen(cell, workspace)
+    return agent
+
+
 register(Benchmark(
     name="bigcodebench-hard",
     load_tasks=_load_tasks,
@@ -92,4 +135,6 @@ register(Benchmark(
     grade=grade_bcb,
     resolve_oracle_env=resolve_oracle_env,
     calibrate=calibrate,
+    make_routed_agent=make_routed_agent,
+    admits_spend=admits_spend,
 ))
