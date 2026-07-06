@@ -13,6 +13,7 @@ run = ["datasets>=2.0"]        # fetch + pin the real benchmark from HuggingFace
 oracle = ["bigcodebench"]      # build the quarantine venv for the hidden suites
 figures = ["matplotlib>=3.6"]  # the deterministic figure renderer
 swebench = ["swebench>=3.0", "docker>=7.0"]  # SWE-bench's own instance-building/grading tooling (SW1-SW3)
+test = ["pytest>=8"]           # the test suite under tests/
 
 [project.scripts]
 eval = "evallib.cli:main"
@@ -23,3 +24,10 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["evallib"]
+
+[tool.pytest.ini_options]
+# Every test lives under tests/; `pythonpath = ["."]` puts eval/ on sys.path so
+# `import src.*` and `import evallib.*` resolve without any per-file path hacks.
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"

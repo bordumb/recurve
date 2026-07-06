@@ -1,0 +1,19 @@
+{
+  "adapter_version": "0.1.0",
+  "command": [
+    "migrated from runs/o6/"
+  ],
+  "continuations": [
+    {
+      "at": "2026-07-05T03:19:31Z",
+      "cells_added": 4,
+      "git_commit": "397c21e",
+      "oracle_env_hash": "oeh:e2903a381e9c00beb71381ab2bc72ea1",
+      "requested_sample_n": 1
+    }
+  ],
+  "created_at": "2026-07-05T03:19:31Z",
+  "git_commit": "397c21e",
+  "manifest_hash": "2ff92eab519d9a1a87c1deaae91d3a166a03ec07b4470434fcb8d653c2ce882b",
+  "run_id": "20260705T031931Z-397c21e"
+}

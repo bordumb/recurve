@@ -1,7 +1,7 @@
 compare_sw6_smoke.py result -- 2026-07-06
 
 Replays the real, still-on-disk workspaces from the actual paid smoke
-(eval/runs/sw6-smoke/results.jsonl) through the new grade_swe port
+(eval/experiments/sw6-smoke/runs/<latest>/results.jsonl) through the new grade_swe port
 (eval/src/benchmarks/swebench.py), re-running GRADING ONLY (zero new API
 spend, real docker only) and diffing each replayed verdict against the
 real, recorded one.
