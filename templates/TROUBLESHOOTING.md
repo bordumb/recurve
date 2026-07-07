@@ -48,7 +48,8 @@ backlog is growing under the loop — more cycles won't fix a scoping problem.
 
 ## "the run halted on consecutive failures"
 **Rule:** repeated failure ≠ try harder forever; per-gap it's ~3 honest
-attempts then park.
+attempts then park. Halting is the circuit breaker working, not a verdict —
+a parked gap is still open and still worth a fresh angle.
 **Do:** read the attempt journals (`{{PROG}} park`), fix the common cause
 (usually harness or scoping), seed the next run's `--parked` list.
 

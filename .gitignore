@@ -36,6 +36,11 @@ acceptance/originals/
 # (eval/evallib/swebench_env.py) -- build-artifact noise, not evidence.
 /logs/
 
+# per-run eval artifacts (solutions, container configs, task snapshots) --
+# generated output from running the eval harness, not source; commit a run's
+# findings via docs/ prose or a report, not the raw workspace dump
+eval/runs/
+
 # recurve run state (parked gaps, records, receipts)
 .recurve/state/
 
