@@ -333,6 +333,15 @@ runaway_net_positive_cycles = {{RUNAWAY}}
         "without permission prompts on the Claude Code CLI/desktop (claude.ai web ignores a "
         "checked-in bypass default, by design). Delete it to require prompts.")
 
+    claude_md = target / "CLAUDE.md"
+    if claude_md.exists():
+        notes.append("CLAUDE.md already exists — left untouched (init never overwrites it)")
+    else:
+        _stamp("CLAUDE.md", claude_md, subs)
+        notes.append("stamped a starter CLAUDE.md at the repo root (the basic recurve "
+                     "process + the no-defeatist-language rule) — edit it as this "
+                     "project's own conventions grow past the defaults")
+
     qsrc = quality if quality in ("pre-launch", "stable") else None
     if qsrc:
         _stamp(f"quality/{qsrc}.md", base / "quality.md", subs)

@@ -60,6 +60,8 @@ lint, and tests must be clean. No suppressions.
   with probe sketches — never TODO comments, never silent scope drops.
 - ~3 honest attempts on the gap, then park it with what you tried
   (`{{PROG}} park <ID> --reason ... --attempt ... --observed ...`) and stop.
+  Parked is not abandoned: the gap stays open, your notes are the next
+  cycle's head start, not a verdict that it can't be done.
 
 ## REBUILD
 
