@@ -41,13 +41,23 @@ def review_gated(g: Gap) -> bool:
     return g.gap_class is GapClass.SECURITY_TRADEOFF
 
 
+def tractability(g: Gap) -> int:
+    """Cheap, mechanical tractability signal (docs/plans/autonomous_solver.md §2.3): a gap
+    already cut down to a leaf of an active decomposition (non-empty `covers_claim`) is a
+    smaller, closer-to-done piece than an undecomposed item — rank it sooner. 0 for every
+    gap outside a decomposition (the whole fleet, until covers_claim is actually used
+    somewhere), so this is a pure additive tiebreak: it reorders nothing until a suite
+    actually has leaves in flight."""
+    return 0 if g.covers_claim else 1
+
+
 def triage(ledger: Ledger, config: Config) -> tuple[list[Gap], list[Gap]]:
     """(auto, gated): open gaps sorted value-first, review-gated split out."""
     rank = severity_rank(config)
     open_gaps = [g for g in ledger.gaps if g.status is Status.OPEN]
     auto = sorted(
         [g for g in open_gaps if not review_gated(g)],
-        key=lambda g: (rank.get(g.severity, 9), _CLS_TIEBREAK[g.gap_class], g.id),
+        key=lambda g: (rank.get(g.severity, 9), _CLS_TIEBREAK[g.gap_class], tractability(g), g.id),
     )
     gated = sorted(
         [g for g in open_gaps if review_gated(g)],

@@ -207,7 +207,14 @@ def _draft_entry_yaml(cut: Cut) -> str:
         "class": "missing-surface",
         "severity": "feature",
         "reads": "none",
-        "covers_claim": [cut.parent_id],
+    }
+    # A cut whose assembly_id is deliberately overridden to equal its own parent_id
+    # (recurvelib.loop.solver's root-completion: the FINAL, unconditional proof of a
+    # decomposition's own root, once every leaf has closed) has no DAG parent above it
+    # — covers_claim would otherwise be a self-reference, which Gap.parse rejects.
+    if cut.parent_id != cut.assembly_id:
+        entry["covers_claim"] = [cut.parent_id]
+    entry.update({
         "evidence": [f"probes/{_slug(cut.assembly_id)}.sh:1"],
         "smallest_fix": (
             f"Prove {cut.theorem_name} (statement pin of probes/{_slug(cut.assembly_id)}.sh): "
@@ -216,7 +223,7 @@ def _draft_entry_yaml(cut: Cut) -> str:
         ),
         "probe": f"probes/{_slug(cut.assembly_id)}.sh",
         "unlocks": f"discharges {cut.parent_id} once every leaf above also closes",
-    }
+    })
     return yaml.safe_dump([entry], sort_keys=False, allow_unicode=True, width=88)
 
 

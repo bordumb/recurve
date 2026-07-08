@@ -114,3 +114,8 @@ harness = []
 dir = ".recurve/claims/sufficiency"
 rebuild = ""               # pure engine module (recurvelib/analysis/sufficiency.py); nothing to copy
 harness = []
+
+[suites.solver]
+dir = ".recurve/claims/solver"
+rebuild = ""               # pure engine module (recurvelib/loop/solver.py); nothing to copy
+harness = []
