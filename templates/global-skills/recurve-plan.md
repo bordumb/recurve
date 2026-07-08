@@ -52,15 +52,18 @@ only when the goal genuinely requires cross-repo work.
 ## 3 · Ensure a PRD exists
 
 Look for `docs/PRD.md` (or ask the user which file is the PRD). If none exists,
-**interview the user** to draft one. Keep it decomposition-oriented — claims get
+**interview the user** to draft one. Keep it goal-and-observable-oriented — claims get
 carved from it, so vague prose is worthless here:
 
-- What is the goal, in one sentence?
+- What is the goal, in one sentence? (It can be *easy or hard* — that's fine.)
 - What does "done" / "better" mean **concretely and observably**?
-- What are the top-level sub-goals, and the named intermediate pieces each needs?
+- What are the top-level sub-goals, and the shape of the approach?
 - If multi-repo: which sub-goals live in the target, and which in a sculpt tree?
 - What must **never** happen (behaviors to forbid)?
 
+You do **not** need to enumerate every leaf of a hard goal here — `/recurve-work` breaks
+big claims down itself (and mechanically checks the breakdown adds up). Capture the goal,
+what "done" observably means, and the top-level shape; let the loop find the rest.
 Propose the shape before writing it out, then draft `docs/PRD.md` from the answers.
 
 ## 4 · Pass the admission gate — the "great PRD" check
@@ -76,8 +79,11 @@ GREEN.
 ## 5 · Stop and hand off
 
 Report: repo initialized, `recurve validate` clean, PRD **admitted** (gate-ready).
-Tell the user the next step is **`/recurve-work`**, which will author the first
-claims from this PRD and start the burndown loop.
+Tell the user the next step is **`/recurve-work`**: point it at the goal (easy or hard)
+and it authors the first claim, then drives to the goal under the gate — closing each
+piece directly when it's small, or breaking it into smaller claims (with a mechanical
+check that they add up) wherever a piece is too big. They don't pre-decompose a hard goal
+by hand; the loop does that.
 
 ## Hard rules
 
