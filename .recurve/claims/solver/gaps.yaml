@@ -71,3 +71,76 @@
     '
   probe: probes/solv-4.sh
   unlocks: an unattended run can never silently drop a genuinely stuck obligation
+
+- id: SOLV-5
+  title: budget exhaustion halts an unbounded recursion
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  evidence:
+  - probes/solv-5.sh:1
+  observed: 'GREEN at baseline 2026-07-08: budget correctly capped the recursion at 6 nodes,
+    not an unbounded chain'
+  smallest_fix: 'solve() checks ctx.budget.exhausted() before spending effort on each obligation
+    and surfaces the node it stopped on as frontier instead of recursing further.
+
+    '
+  probe: probes/solv-5.sh
+  unlocks: an unbounded or misdirected search costs at most the configured budget, never an
+    unbounded run
+
+- id: SOLV-6
+  title: a genuine frontier node is parked with its reason
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/solv-6.sh:1
+  observed: 'GREEN at baseline 2026-07-08: a frontier node is written to the parked store
+    with its reason'
+  smallest_fix: 'solve() writes a surfaced frontier node to loop/parked.py:ParkedStore (when
+    ctx.parked_root is set) with the reason it couldn''t move forward.
+
+    '
+  probe: probes/solv-6.sh
+  unlocks: an unattended run leaves a durable, reconstructable record of exactly where the
+    known part of a problem ends
+
+- id: SOLV-7
+  title: a refuted node is restated, not attempted under its original framing
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/solv-7.sh:1
+  observed: 'GREEN at baseline 2026-07-08: refuted node was restated and closed under its
+    corrected framing, never attempted as originally stated'
+  smallest_fix: 'solve() tries ctx.refute_attempt first; a refuted node recurses into ctx.restate_attempt''s
+    corrected framing instead of CLOSE/DECOMPOSE on the original statement.
+
+    '
+  probe: probes/solv-7.sh
+  unlocks: the loop never spends effort proving a claim that is false or ill-posed as originally
+    stated
+
+- id: SOLV-8
+  title: DISCOVER closes on a gate-confirmed candidate, surfaces frontier on a dry search
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/solv-8.sh:1
+  observed: 'GREEN at baseline 2026-07-08: DISCOVER closes on a gate-confirmed candidate and
+    surfaces frontier on a dry search, never falling through to decompose'
+  smallest_fix: 'solve() tries ctx.discover_attempt; True closes the node without consulting
+    cut_proposer, False surfaces the frontier directly (DISCOVER is terminal, never falls
+    through to decompose).
+
+    '
+  probe: probes/solv-8.sh
+  unlocks: an ∃-shaped obligation with a registered proxy is never mistaken for a decomposable
+    ∀-obligation

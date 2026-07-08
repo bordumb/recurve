@@ -11,8 +11,9 @@
 swapped for an in-memory fake (a direct ledger write instead of a real Lean build) — the
 same swap-the-verifier seam `core/probe.py:ProbeRunner` already gives the rest of the loop.
 This exercises the real recursion, ordering, and ledger bookkeeping without a Lean
-toolchain; the end-to-end Lean path is exercised separately by the Phase 2 acceptance run
-against a scratch navier_stokes copy, not by this suite.
+toolchain; the end-to-end Lean path (Phase 2's close/decompose/root-completion, Phase 3's
+DISCOVER against the real `dyadic_lyapunov` fansearch domain) is exercised separately by
+the acceptance runs against a scratch navier_stokes copy, not by this suite.
 
 ## SOLV-1 — CLOSE is tried before DECOMPOSE
 
@@ -46,3 +47,38 @@ When neither `close_attempt` nor `cut_proposer` returns anything for a node, `so
 it in `frontier` — it is surfaced, not silently dropped or mistaken for closed. Negative
 space: a `solve` that returns an empty frontier for a node with no available move (or raises
 instead of reporting it) must turn the probe RED.
+
+## SOLV-5 — budget exhaustion halts an unbounded recursion
+
+`solve` checks `ctx.budget.exhausted()` before spending effort on each obligation; an
+always-decomposable chain that would otherwise recurse forever stops at the budget's move
+cap, with the node it stopped on surfaced as frontier. This is the "spends within budget
+rather than spinning" guarantee (§2.3, §2.7) — a misdirected or genuinely unbounded search
+costs at most the configured budget, never an unbounded run. Negative space: a budget that
+never reports itself exhausted (or a `solve` that doesn't check it) must turn the probe RED.
+
+## SOLV-6 — a genuine frontier node is parked with its reason
+
+When `ctx.parked_root` is set, a node `solve` surfaces to the frontier is written to
+`loop/parked.py:ParkedStore` with the reason it couldn't move forward — the durable,
+reconstructable record of exactly where the known part of a problem ends (§2.3, §2.7).
+Negative space: a `solve` that reports a node in its in-memory `frontier` result but never
+persists it to the parked store must turn the probe RED.
+
+## SOLV-7 — a refuted node is restated, not attempted under its original framing
+
+When `ctx.refute_attempt` finds a node's current framing is known-false or ill-posed, `solve`
+does not try to CLOSE or DECOMPOSE it as originally stated — `ctx.restate_attempt` supplies a
+corrected framing to recurse into instead (§2.1's `restate_or_abandon`; the historical example
+is the SUB-HEAT-SG → -FWD naming fix). Negative space: a `solve` that ignores
+`refute_attempt`/`restate_attempt` and tries the node's original statement directly must turn
+the probe RED.
+
+## SOLV-8 — DISCOVER closes on a gate-confirmed candidate, surfaces frontier on a dry search
+
+At a node with `ctx.discover_attempt` registered, a `True` outcome (a candidate search found
+and promoted a gate-confirmed witness) closes the node without ever consulting
+`cut_proposer`; a `False` outcome (the search came up dry) surfaces the node to the frontier
+directly — DISCOVER is terminal for that node, never silently retried as a decomposition
+(§2.4). Negative space: a `solve` that ignores `discover_attempt` (or falls through to
+DECOMPOSE after a dry search) must turn the probe RED.

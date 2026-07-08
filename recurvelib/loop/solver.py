@@ -1,20 +1,26 @@
 """The move-typed recursion (`docs/plans/autonomous_solver.md` §2.1, §2.5): given a root
 obligation, close it end-to-end with zero human turns between leaves.
 
-Phase 2 scope only: `CLOSE` and `DECOMPOSE`. `REFUTE`/`DISCOVER`/`RESTATE` need the shape
-detector (`analysis/shape.py`) and the fansearch wiring — that is Phase 3. `solve()` here
-never has to guess a node's ∀/∃ shape; it just tries the two moves it has, in cost order,
-and surfaces a `frontier` node when neither applies.
-
 Every move's output is confirmed the same way Phase 1 already gates a hand-written cut:
 `sufficiency_ok` (`analysis/sufficiency.py`). This module adds no new arbiter — it is pure
 orchestration around that one gated primitive:
 
+  - **REFUTE**, tried first (cheap — falsify before investing): `ctx.refute_attempt(node_id,
+    ctx)` returns `True` when the node's CURRENT framing is known-false or ill-posed. A
+    refuted node is not closed or decomposed — `ctx.restate_attempt` either supplies a
+    corrected node id to recurse into (§2.1's `restate_or_abandon`), or the node is
+    abandoned to the frontier.
   - **CLOSE** a node directly: `ctx.close_attempt(node_id, ctx)` returns a `Cut` with no
     leaves — a bare proof term — when one is already known. `Cut.leaves=()` is a *direct*
     proof; there is no separate "close" code path in `sufficiency.py`, because a proof from
     zero hypotheses is definitionally the same "does `assembly_proof` prove `goal_statement`"
     question `sufficiency_ok` already answers.
+  - **DISCOVER**, for `∃`-shaped nodes with a registered proxy (§2.4): `ctx.discover_attempt`
+    runs a search (`fansearch.campaign.run_campaign`) and promotes a gate-confirmed candidate
+    (`fansearch.promote.promote_candidate`) into a CLOSED leaf, or surfaces the frontier on a
+    dry search. `analysis/shape.py:goal_shape` and "does this node have a proxy" are exactly
+    the caller's business inside this one callable — `solve` itself stays domain-agnostic and
+    just trusts `None` to mean "not applicable here."
   - **DECOMPOSE** a node: `ctx.cut_proposer(node_id, ctx)` returns a `Cut` with 1+ leaves.
     Its assembly is gated exactly like Phase 1 (leaves as HYPOTHESES); once gated GREEN, each
     leaf recurses through `solve`'s own `step`.
@@ -25,55 +31,98 @@ orchestration around that one gated primitive:
     is ledger-driven, not call-stack-driven: it fires regardless of how a leaf came to close,
     which is what lets a root many levels up eventually close from nothing but leaf-level
     events.
+  - **Frontier**, when no move applies (or the budget is spent): the node's precise open
+    statement is surfaced — parked (`loop/parked.py:ParkedStore`) when `ctx.parked_root` is
+    set — the exact socket a human idea or a fitness search plugs into. Never automated.
 
-`close_attempt`/`cut_proposer` are the pluggable "does the math" strategy (`claimify`-style
-proposer, per §1.4) — this module supplies none of its own. A caller wires in whatever
-produces `Cut`s (a hand-authored registry, as the acceptance test below does; eventually an
-LLM- or heuristic-backed proposer); `solver.py` only owns the recursion, the ordering, and
-the gate-mediated bookkeeping.
+`close_attempt`/`cut_proposer`/`discover_attempt`/`refute_attempt`/`restate_attempt` are the
+pluggable "does the math" strategy (`claimify`-style proposer, per §1.4) — this module
+supplies none of its own beyond `analysis/shape.py`'s syntactic shape check. A caller wires
+in whatever produces `Cut`s or search outcomes (a hand-authored registry, as the acceptance
+tests do; eventually an LLM- or heuristic-backed proposer); `solver.py` only owns the
+recursion, the cost order, the tractability ordering, the budget, and the gate-mediated
+bookkeeping. Every pluggable hook defaults to `None` (off) — a caller that only wires
+`close_attempt`/`cut_proposer` (Phase 2's scope) sees no behavior change.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import Callable
 
 from recurvelib.analysis.sufficiency import Cut, Leaf, sufficiency_ok
 from recurvelib.core.config import Config
 from recurvelib.core.model import Status, load_ledger
+from recurvelib.loop.controller import Progress, Verdict, decide
+from recurvelib.loop.parked import ParkedStore
 
 
 class Move(Enum):
-    """docs/plans/autonomous_solver.md §2.1. Only CLOSE/DECOMPOSE are wired in Phase 2;
-    REFUTE/DISCOVER/RESTATE are declared here for API stability but `solve` never emits
-    them yet — Phase 3 wires the shape detector and fansearch in beside these two."""
+    """docs/plans/autonomous_solver.md §2.1 — the cost order `solve` tries them in:
+    REFUTE, CLOSE, DISCOVER, DECOMPOSE, then FRONTIER (not a move; "nothing applied")."""
 
-    CLOSE = "close"
-    DECOMPOSE = "decompose"
     REFUTE = "refute"
+    CLOSE = "close"
     DISCOVER = "discover"
+    DECOMPOSE = "decompose"
     RESTATE = "restate"
 
 
 CutProposer = Callable[[str, "SolveContext"], "Cut | None"]
+RefuteAttempt = Callable[[str, "SolveContext"], bool]
+RestateAttempt = Callable[[str, "SolveContext"], "str | None"]
+DiscoverAttempt = Callable[[str, "SolveContext"], "bool | None"]
+
+
+@dataclass
+class Budget:
+    """docs/plans/autonomous_solver.md §2.3 — checked before `solve` spends effort on each
+    obligation, so a misdirected leg costs at most one budget unit rather than an unbounded
+    search. Both caps are optional; the default (neither set) never exhausts, so a caller
+    that doesn't pass a budget sees no behavior change from Phase 2."""
+
+    max_seconds: float | None = None
+    max_moves: int | None = None
+    _moves_spent: int = field(default=0, repr=False)
+    _start: float = field(default_factory=time.monotonic, repr=False)
+
+    def spend_move(self) -> None:
+        self._moves_spent += 1
+
+    def exhausted(self) -> bool:
+        if self.max_moves is not None and self._moves_spent >= self.max_moves:
+            return True
+        if self.max_seconds is not None and (time.monotonic() - self._start) >= self.max_seconds:
+            return True
+        return False
 
 
 @dataclass(frozen=True)
 class SolveContext:
     """Everything one `solve` recursion needs, threaded unchanged through every `step`.
 
-    `close_attempt`/`cut_proposer` are the only math-aware inputs — see the module
-    docstring. Both take a bare gap id (not a `Gap`): a proposed leaf need not exist as a
-    ledger row yet, so `solve` never requires one to look it up before asking "can this be
-    closed or cut?".
+    `close_attempt`/`cut_proposer`/`discover_attempt`/`refute_attempt`/`restate_attempt` are
+    the only math-aware inputs — see the module docstring. All take a bare gap id (not a
+    `Gap`): a proposed leaf need not exist as a ledger row yet, so `solve` never requires one
+    to look it up before asking "can this be closed, cut, discovered, or refuted?".
+    `refute_attempt`/`restate_attempt`/`discover_attempt` default to `None` — that move is
+    simply never tried, so a Phase 2 caller wiring only `close_attempt`/`cut_proposer` is
+    unaffected.
 
     `sufficiency_check` defaults to the real `sufficiency_ok` (real Lean, real `lake`, real
     gate) — the same swap-the-verifier seam `core/probe.py:ProbeRunner` already gives the
     rest of the loop. Overriding it with an in-memory fake is what lets a dogfooding suite
     exercise `solve`'s own recursion / tractability ordering / root-completion propagation
     in pure Python, fast, with no Lean toolchain in the loop — see
-    `.recurve/claims/solver/GAPS.md`."""
+    `.recurve/claims/solver/GAPS.md`.
+
+    `parked_root`, when set, is the project root `loop/parked.py:ParkedStore` writes
+    `.recurve/parked.yaml` under — a node `solve` surfaces to the frontier is parked there
+    with the reason it couldn't move forward, so an unattended run leaves a reconstructable
+    record of exactly where the known part of the problem ends (§2.3, §2.7)."""
 
     config: Config
     today: str
@@ -81,6 +130,11 @@ class SolveContext:
     cut_proposer: CutProposer
     timeout_s: int = 300
     sufficiency_check: Callable[..., object] = sufficiency_ok
+    refute_attempt: RefuteAttempt | None = None
+    restate_attempt: RestateAttempt | None = None
+    discover_attempt: DiscoverAttempt | None = None
+    budget: Budget = field(default_factory=Budget)
+    parked_root: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -182,16 +236,36 @@ def close_upward(closed_id: str, ctx: SolveContext, closed: list[str], trace: li
 
 
 def solve(root_id: str, ctx: SolveContext) -> SolveResult:
-    """One recursive step per obligation (§2.1), Phase 2 scope: CLOSE, then DECOMPOSE, else
-    surface the frontier. Recurses to every leaf and lets `close_upward` propagate closures
-    back to `root_id` — one call, zero human turns in between."""
+    """One recursive step per obligation (§2.1): REFUTE, CLOSE, DISCOVER, DECOMPOSE, in cost
+    order, else surface the frontier. Recurses to every leaf and lets `close_upward`
+    propagate closures back to `root_id` — one call, zero human turns in between."""
     closed: list[str] = []
     frontier: list[str] = []
     trace: list[str] = []
 
+    def surface(gap_id: str, reason: str) -> None:
+        if gap_id not in frontier:
+            frontier.append(gap_id)
+        trace.append(f"frontier({gap_id}): {reason}")
+        if ctx.parked_root is not None:
+            ParkedStore(ctx.parked_root).park(gap_id, reason, ctx.today)
+
     def step(gap_id: str) -> bool:
         if _is_closed(gap_id, ctx):
             return True
+        if ctx.budget.exhausted():
+            surface(gap_id, "budget exhausted")
+            return False
+        ctx.budget.spend_move()
+
+        if ctx.refute_attempt is not None and ctx.refute_attempt(gap_id, ctx):
+            trace.append(f"{Move.REFUTE.value}({gap_id}): current framing is refuted")
+            restated_id = ctx.restate_attempt(gap_id, ctx) if ctx.restate_attempt else None
+            if restated_id is not None:
+                trace.append(f"{Move.RESTATE.value}({gap_id} -> {restated_id})")
+                return step(restated_id)
+            surface(gap_id, "refuted — no restatement available, abandoned")
+            return False
 
         direct = ctx.close_attempt(gap_id, ctx)
         if direct is not None:
@@ -202,6 +276,19 @@ def solve(root_id: str, ctx: SolveContext) -> SolveResult:
                     closed.append(gap_id)
                 close_upward(gap_id, ctx, closed, trace)
                 return True
+
+        if ctx.discover_attempt is not None:
+            outcome = ctx.discover_attempt(gap_id, ctx)
+            if outcome is not None:
+                if outcome:
+                    trace.append(f"{Move.DISCOVER.value}({gap_id}): gate-confirmed candidate promoted")
+                    if gap_id not in closed:
+                        closed.append(gap_id)
+                    close_upward(gap_id, ctx, closed, trace)
+                    return True
+                trace.append(f"{Move.DISCOVER.value}({gap_id}): search dry")
+                surface(gap_id, "discover search dry")
+                return False
 
         cut = ctx.cut_proposer(gap_id, ctx)
         if cut is not None:
@@ -215,10 +302,41 @@ def solve(root_id: str, ctx: SolveContext) -> SolveResult:
                         closed.append(gap_id)
                     return True
 
-        if gap_id not in frontier:
-            frontier.append(gap_id)
-            trace.append(f"frontier({gap_id}): no move applies")
+        surface(gap_id, "no move applies")
         return False
 
     step(root_id)
     return SolveResult(closed=tuple(closed), frontier=tuple(frontier), trace=tuple(trace))
+
+
+def run_to_completion(root_id: str, ctx: SolveContext, max_cycles: int = 10) -> tuple[Verdict, list[Progress], SolveResult]:
+    """docs/plans/autonomous_solver.md §2.3 — reuse `loop/controller.py:decide`, never
+    reimplement halt logic. One `solve()` call is a single deterministic pass over the
+    obligation tree; it does not retry a frontier node within itself. This wrapper is for
+    the OUTER loop: re-invoke `solve` (e.g. after a human resolves a frontier node's root
+    cause, or a proxy registry gains a new domain) and measure whether the frontier is
+    actually shrinking, so a run that stops making progress halts honestly — via `decide`'s
+    own no-improvement rule — rather than spinning on an unchanged frontier forever.
+
+    Progress is measured directly from `solve`'s own result: `uncovered=len(frontier)` is
+    the completeness signal `decide` needs; `open`/`regressed`/`broken` stay 0 because
+    `solve`'s bookkeeping already IS the gate-mediated truth for the obligations it knows
+    about (each move is confirmed by `sufficiency_check` before counting as closed) — there
+    is no separate, unmeasured "claimed done" state for `decide` to catch here the way there
+    is for an actor proposing diffs blind (`loop/runtime.py:sense_measured`'s heavier
+    surface-tracing is for that different loop shape).
+
+    Returns `(verdict, history, last_result)` — `verdict` is `STOP_SUCCESS` (root closed),
+    `STOP_REVERT` (no progress for `decide`'s window), or `CONTINUE` (max_cycles exhausted
+    without either — the budget, not `decide`, is what should have capped this)."""
+    history: list[Progress] = []
+    result = SolveResult(closed=(), frontier=(), trace=())
+    for _ in range(max_cycles):
+        result = solve(root_id, ctx)
+        history.append(Progress(open=0, regressed=0, broken=0, uncovered=len(result.frontier)))
+        verdict = decide(history)
+        if verdict in (Verdict.STOP_SUCCESS, Verdict.STOP_REVERT):
+            return verdict, history, result
+        if ctx.budget.exhausted():
+            return Verdict.STOP_REVERT, history, result
+    return Verdict.CONTINUE, history, result
