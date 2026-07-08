@@ -3,7 +3,7 @@ export const meta = {
   description: 'Unattended claims burndown: one fresh agent per cycle, ratcheting monotonically',
   phases: [
     { title: 'Preflight', detail: 'validate + gate on the untouched baseline' },
-    { title: 'Burndown', detail: 'sequential cycles: triage → sculpt → gate → promote' },
+    { title: 'Burndown', detail: 'sequential cycles: triage → close or decompose → gate → promote' },
     { title: 'Wrap-up', detail: 'read-only report: ledger delta, parked, review queue' },
   ],
 }
@@ -62,7 +62,11 @@ const RESULT_SCHEMA = {
   required: ['status', 'gap', 'attempts', 'net_new_gaps', 'summary'],
   additionalProperties: true,
   properties: {
-    status: { enum: ['closed', 'parked', 'no-work-left', 'failed'] },
+    // 'decomposed' (docs/plans/autonomous_solver.md): the gap was too big to
+    // close honestly this cycle, so it was RED-first split into sub-claims +
+    // a sufficiency-checked assembly instead — a complete, successful cycle,
+    // the gap just stays open until its children do (see RUN.md §DECOMPOSE).
+    status: { enum: ['closed', 'decomposed', 'parked', 'no-work-left', 'failed'] },
     gap: { type: 'string' },
     attempts: { type: 'integer' },
     files: { type: 'array', items: { type: 'string' } },
@@ -95,7 +99,7 @@ if (!preflight || !preflight.ok) {
 }
 
 phase('Burndown')
-let fails = 0, runaway = 0, closed = 0, waves = 0
+let fails = 0, runaway = 0, closed = 0, decomposed = 0, waves = 0
 let halted = ''
 const cycles = []
 for (let i = 1; i <= CAP; i++) {
@@ -140,10 +144,21 @@ for (let i = 1; i <= CAP; i++) {
     break
   }
   else if (result.status === 'closed') { fails = 0; closed++; log(`cycle ${i}: closed ${result.gap}`) }
+  else if (result.status === 'decomposed') {
+    // A complete, successful cycle — the gap stays open on purpose until its
+    // new children (armed this cycle, RED-first, covers_claim-linked) close
+    // and the assembly composes them. Not runaway scope: see below.
+    fails = 0; decomposed++; log(`cycle ${i}: decomposed ${result.gap} into sub-claims`)
+  }
   else if (result.status === 'parked') { fails = 0; log(`cycle ${i}: parked ${result.gap} — ${result.parked_reason || ''}`) }
   else { fails++; log(`cycle ${i}: failed on ${result.gap} (${fails}/${MAX_FAILS})`) }
 
-  runaway = result && result.net_new_gaps > 0 ? runaway + 1 : 0
+  // A decompose cycle's net_new_gaps is INTENTIONAL growth (its own children),
+  // never scope creep — the watchdog exists to catch a cycle that keeps
+  // finding more work than it closes while trying to CLOSE something, not a
+  // deliberate, gated break-down. Exempt it so a few cycles cutting a deep
+  // tree down don't false-positive the runaway halt.
+  runaway = (result && result.status !== 'decomposed' && result.net_new_gaps > 0) ? runaway + 1 : 0
   if (fails >= MAX_FAILS) { log('consecutive-failure watchdog — halting'); break }
   if (runaway >= RUNAWAY) { log('runaway-scope watchdog — halting to re-scope'); break }
 }
@@ -158,4 +173,4 @@ const wrap = await agent(
   { schema: { type: 'object', required: ['report'], properties: { report: { type: 'string' }, parked: { type: 'array', items: { type: 'string' } } } } }
 )
 
-return { closed, waves, halted: halted || 'cap-or-watchdog', cycles: cycles.filter(Boolean), wrapUp: wrap }
+return { closed, decomposed, waves, halted: halted || 'cap-or-watchdog', cycles: cycles.filter(Boolean), wrapUp: wrap }

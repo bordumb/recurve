@@ -44,7 +44,19 @@ Rules:
 - If the gap's `smallest_fix` says "spike first", this cycle produces a
   design in `plan.md`, not code. That is a complete cycle.
 
-## SCULPT — the smallest honest change
+## MOVE — close it, or break it down
+
+Look at the recommended gap. Make **one move**:
+
+- **Move A — close it** (below, SCULPT): provable honestly, in `{{TREE}}`,
+  this cycle.
+- **Move B — break it down** (below, DECOMPOSE): it isn't provable this
+  cycle. **Do not force it.** An overreaching proof or a weakened probe to
+  make a too-big gap fit one cycle is exactly the dishonesty the quality
+  constitution exists to prevent — decomposing instead is the honest move,
+  not a lesser one.
+
+## SCULPT — the smallest honest change (Move A)
 
 Make the smallest change in `{{TREE}}` that turns the recommended gap's RED
 line GREEN, under the quality constitution (`.recurve/quality.md`). Build,
@@ -62,6 +74,36 @@ lint, and tests must be clean. No suppressions.
   (`{{PROG}} park <ID> --reason ... --attempt ... --observed ...`) and stop.
   Parked is not abandoned: the gap stays open, your notes are the next
   cycle's head start, not a verdict that it can't be done.
+
+## DECOMPOSE — RED-first break-down (Move B)
+
+Cut the recommended gap into the smaller pieces it genuinely needs, and
+mechanically check the cut is *sufficient* before spending effort proving
+any of them (`docs/plans/autonomous_solver.md` §1 — sufficiency vs. taste):
+
+1. Split it into the smaller claims it genuinely needs.
+2. Write the **assembly**: a claim/lemma that derives the recommended gap's
+   goal FROM those sub-claims taken as HYPOTHESES. Arm it RED-first (its own
+   probe + trap) and gate it. **A GREEN here is a mechanical proof that
+   "the sub-claims imply the goal"** — checked *before* you invest in
+   proving any one of them. If it will not go GREEN, the breakdown itself
+   is wrong — revise the cut, don't force the proof.
+3. Arm every sub-claim RED-first (each its own probe + trap), and set
+   `covers_claim: [<this gap's id>]` on every one of them (the assembly
+   included — it is a child too). That is the DAG edge a later cycle — or
+   `recurvelib.analysis.sufficiency` / `recurvelib.loop.solver`, recurve's
+   own decomposition library, once wired to a CLI command in this project —
+   walks to discharge this gap once every child closes.
+4. `{{PROG}} baseline <suite>` arms the new entries for real. `{{PROG}}
+   matrix --gate` must still hold: the assembly promotes to closed; the
+   fresh sub-claims start open — RED is expected and correct for them.
+5. **This gap itself stays OPEN.** It is discharged in a LATER cycle, once
+   every child is closed and the assembly composes them into an
+   unconditional proof (§PROMOTE covers that promotion) — not this one.
+
+Report this cycle's status as `"decomposed"` (§REPORT), never `"closed"` —
+the gap did not close; it was correctly, honestly cut down. That is still a
+complete, successful cycle.
 
 ## REBUILD
 

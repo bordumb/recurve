@@ -44,7 +44,23 @@ permits `--no-verify` — never globally, never to skip a failure.
 ## "the run halted with 'runaway scope'"
 **Rule:** N consecutive cycles filing more gaps than they close means the
 backlog is growing under the loop — more cycles won't fix a scoping problem.
-**Do:** re-scope: split oversized gaps, park speculative ones, re-run.
+A deliberate `decomposed` cycle's own new children are exempted from this
+count (they're intentional, not scope creep) — this watchdog fires on gaps
+filed as a *side effect* of trying to close something, not on a gated
+break-down.
+**Do:** re-scope: split oversized gaps RED-first (RUN.md §DECOMPOSE — the
+mechanical way, not an ad-hoc TODO), park speculative ones, re-run.
+
+## "the recommended gap is too big to close honestly this cycle"
+**Rule:** a too-big claim forced into one cycle produces an overreaching
+proof or a weakened probe — exactly the dishonesty the quality constitution
+exists to prevent. Breaking it down instead is the honest move, not a
+lesser one, and it is still a complete, successful cycle (RUN.md §MOVE).
+**Do:** follow RUN.md §DECOMPOSE: split it into the sub-claims it genuinely
+needs, write an assembly that derives the goal from them as hypotheses, arm
+everything RED-first with `covers_claim:` linking each child back to this
+gap, then `{{PROG}} baseline <suite>`. Report cycle status `"decomposed"`,
+not `"closed"` — the gap stays open until every child does.
 
 ## "the run halted on consecutive failures"
 **Rule:** repeated failure ≠ try harder forever; per-gap it's ~3 honest
