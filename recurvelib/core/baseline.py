@@ -46,7 +46,7 @@ _LEDGER_HEADER = (
 def _entry_yaml(entry: dict) -> str:
     ordered = {}
     for key in ("id", "title", "class", "status", "severity", "reads", "covers",
-                "evidence", "observed", "smallest_fix", "probe", "unlocks",
+                "covers_claim", "evidence", "observed", "smallest_fix", "probe", "unlocks",
                 "trap_waiver", "oracle_waiver", "reference", "min_governor_tier"):
         if key in entry and entry[key] not in (None, "", [], ()):
             ordered[key] = entry[key]

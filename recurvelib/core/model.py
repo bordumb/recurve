@@ -84,6 +84,13 @@ class Gap:
     # means "no floor, use the suite default" — no behavior change for the
     # common case.
     min_governor_tier: str = ""
+    # The decomposition edge (autonomous_solver.md §1.3): parent claim id(s)
+    # this gap is a LEAF of. Distinct from `covers` (GAPS.md prose anchors —
+    # documentation linkage) — this is a claim-to-claim DAG edge a solver
+    # walks to discharge a parent once every child closes (`Ledger.parents_of`
+    # / `.children_of`). Empty means "not part of a decomposition" — no
+    # behavior change for any existing gap.
+    covers_claim: tuple[str, ...] = ()
 
     @property
     def trap_dir(self) -> Path | None:
@@ -173,6 +180,15 @@ class Gap:
             raise GapParseError(f"{source_file}: gap {gid!r} 'covers' must be a list of GAPS.md anchors")
         covers = tuple(str(c) for c in covers_raw)
 
+        covers_claim_raw = raw.get("covers_claim") or []
+        if not isinstance(covers_claim_raw, list):
+            raise GapParseError(
+                f"{source_file}: gap {gid!r} 'covers_claim' must be a list of parent claim ids"
+            )
+        covers_claim = tuple(str(c) for c in covers_claim_raw)
+        if gid in covers_claim:
+            raise GapParseError(f"{source_file}: gap {gid!r} names itself in 'covers_claim' — a claim cannot be its own parent")
+
         probe_field = raw.get("probe")
         probe: Path | None = None
         if probe_field:
@@ -224,6 +240,7 @@ class Gap:
             oracle_waiver=str(raw.get("oracle_waiver", "")).strip(),
             reference=reference,
             min_governor_tier=min_governor_tier,
+            covers_claim=covers_claim,
         )
 
 
@@ -255,6 +272,26 @@ class Ledger:
         if missing:
             raise GapParseError(f"unknown gap id(s): {', '.join(str(m) for m in missing)}")
         return found  # type: ignore[return-value]
+
+    def children_of(self, parent_id: str) -> list[Gap]:
+        """Every gap whose `covers_claim` names `parent_id` — the leaves (and
+        assembly) of a decomposition, in ledger order. Unknown `parent_id`
+        (no gap has it as a parent, or it doesn't exist) yields an empty
+        list — this is a query, not an assertion the id exists."""
+        return [g for g in self.gaps if parent_id in g.covers_claim]
+
+    def parents_of(self, child_id: str) -> list[Gap]:
+        """The claim(s) `child_id` is a decomposition leaf of. A gap with no
+        `covers_claim` (not part of any decomposition) yields an empty list.
+        Raises `GapParseError` only if `child_id` itself is unknown — a
+        *parent* named in `covers_claim` that no longer exists in the ledger
+        is silently skipped, not an error, so a stale edge left after a
+        parent's id changes doesn't crash traversal (`validate` is the place
+        to surface that as advisory debt, not this hot-path query)."""
+        g = self.by_id(child_id)
+        if g is None:
+            raise GapParseError(f"unknown gap id: {child_id!r}")
+        return [p for p in (self.by_id(pid) for pid in g.covers_claim) if p is not None]
 
 
 def load_ledger(config: Config) -> Ledger:
