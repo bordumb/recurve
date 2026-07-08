@@ -84,3 +84,40 @@
     '
   probe: probes/suff-5.sh
   unlocks: a solver can walk the decomposition DAG in either direction reliably
+
+- id: SUFF-6
+  title: the scaffold writer refuses a case-colliding assembly_id
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  evidence:
+  - probes/suff-6.sh:1
+  observed: 'GREEN at baseline 2026-07-09: collision refused before any file was written —
+    the real claim''s probe is untouched'
+  smallest_fix: 'write_lean_assembly_scaffold raises before writing anything when cut.assembly_id''s
+    probe path collides case-insensitively with a DIFFERENT existing claim''s real probe path.
+
+    '
+  probe: probes/suff-6.sh
+  unlocks: re-deriving a real claim can never silently corrupt a different real claim's probe/check/trap
+    files
+
+- id: SUFF-7
+  title: sufficiency_ok promotes an already-ledgered claim on fresh GREEN
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  evidence:
+  - probes/suff-7.sh:1
+  observed: 'GREEN at baseline 2026-07-09: an already-ledgered open claim was promoted to
+    closed on disk after a fresh GREEN'
+  smallest_fix: 'sufficiency_ok rewrites an already-ledgered gap''s status to closed directly
+    once its fresh probe measures GREEN (trap-checked), since run_baseline never touches a
+    row already in gaps.yaml.
+
+    '
+  probe: probes/suff-7.sh
+  unlocks: loop/solver.py can genuinely re-derive and close a real, already-open claim, not
+    only invent fresh ones

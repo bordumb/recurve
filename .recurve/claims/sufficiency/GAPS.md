@@ -4,6 +4,11 @@
 > (`docs/plans/autonomous_solver.md` §1): does a proposed cut's ASSEMBLY —
 > "leaves imply goal" — get generated and gated correctly? Run
 > `./recurve --config recurve.toml matrix --gate` and believe the gate.
+>
+> SUFF-6/7 guard two bugs found empirically while re-deriving the REAL, already-closed
+> `SUB-PROD-YOUNG` in navier_stokes with `loop/solver.py` (a code-review-prompted
+> validation of the Phase 3 acceptance run) — the first time `sufficiency_ok` was pointed
+> at an already-ledgered claim instead of a fresh one.
 
 ## Conventions
 
@@ -65,3 +70,31 @@ two queries are inverses over the same edge set, and a gap with no
 `covers_claim` yields an empty `parents_of`. Negative space: a `children_of`
 that also returns gaps whose `covers_claim` names a DIFFERENT parent (an
 edge-selectivity bug) must turn the probe RED.
+
+## SUFF-6 — the scaffold writer refuses a case-colliding assembly_id
+
+`write_lean_assembly_scaffold` refuses (raises) before writing anything when
+`cut.assembly_id`'s probe path collides, case-insensitively, with a
+DIFFERENT existing claim's real probe path — checked unconditionally, not
+just on an actually-case-insensitive filesystem, so the guard is uniform
+rather than a platform-dependent trap. Writing over `cut.assembly_id`'s OWN
+existing files (an intentional re-derivation — SUFF-7) is not flagged; only
+a collision with SOME OTHER claim is. Found empirically: on macOS's default
+case-insensitive-but-preserving filesystem, re-deriving `SUB-PROD-YOUNG`
+under a differently-cased assembly_id silently overwrote a real, tracked
+claim's probe/check/trap files before this guard existed. Negative space: a
+scaffold writer with no collision check, that clobbers a different claim's
+real probe file, must turn the probe RED.
+
+## SUFF-7 — `sufficiency_ok` promotes an already-ledgered claim on fresh GREEN
+
+When `cut.assembly_id` is ALREADY a real row in `gaps.yaml` (re-deriving or
+re-checking an existing claim, not arming a fresh draft), a fresh GREEN
+measurement rewrites that row's `status` to `closed` directly —
+`run_baseline` only ever processes `gaps.draft.yaml`, so a pre-existing row
+is otherwise invisible to it regardless of what a fresh probe says. Found
+empirically the same way as SUFF-6: `sufficiency_ok` returned `ok=True` for
+the real, already-ledgered `SUB-PROD-YOUNG-ENORM` while its on-disk ledger
+status silently stayed `open`. Negative space: a `sufficiency_ok` that
+reports `ok=True` on an already-ledgered gap's fresh GREEN without rewriting
+its ledger status must turn the probe RED.

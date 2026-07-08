@@ -50,8 +50,8 @@ from typing import Callable
 from recurvelib.core.baseline import BaselineOutcome, run_baseline
 from recurvelib.core.conformance import Matrix, run_matrix
 from recurvelib.core.config import Config
-from recurvelib.core.model import load_ledger
-from recurvelib.core.probe import Outcome
+from recurvelib.core.model import Gap, Status, load_ledger
+from recurvelib.core.probe import Outcome, ShellProbeRunner, run_traps
 
 
 @dataclass(frozen=True)
@@ -227,6 +227,35 @@ def _draft_entry_yaml(cut: Cut) -> str:
     return yaml.safe_dump([entry], sort_keys=False, allow_unicode=True, width=88)
 
 
+def _assert_no_probe_collision(cut: Cut, config: Config, slug: str) -> None:
+    """Refuse to write scaffold files that would silently clobber a DIFFERENT
+    claim's real probe/check/trap — a real risk discovered empirically: on the
+    case-insensitive-but-preserving filesystem this project actually runs on
+    (macOS/Windows default), `_slug`'s case-PRESERVING output (it does not
+    lowercase) can resolve to the SAME on-disk path as an existing claim's
+    differently-cased slug, so writing `cut`'s scaffold there overwrites that
+    claim's real files. Checked case-insensitively regardless of the actual
+    filesystem, so the guard is uniform rather than a platform-dependent trap.
+
+    Writing over `cut.assembly_id`'s OWN existing files (re-deriving or
+    re-checking the SAME claim — see `sufficiency_ok`'s promotion path for an
+    already-ledgered gap) is fine and not flagged; only a collision with SOME
+    OTHER claim's probe path is refused."""
+    ledger = load_ledger(config)
+    sc = config.suite_for(cut.suite)
+    target = str((sc.dir / "probes" / f"{slug}.sh").resolve()).lower()
+    for g in ledger.gaps:
+        if g.id == cut.assembly_id or g.probe is None:
+            continue
+        if str(g.probe.resolve()).lower() == target:
+            raise ValueError(
+                f"refusing to write scaffold files for assembly_id={cut.assembly_id!r} — its "
+                f"probe path collides (case-insensitively) with existing claim {g.id!r}'s own "
+                f"probe ({g.probe}). Choose a different assembly_id, or if you intend to "
+                f"re-derive {g.id!r} itself, set assembly_id={g.id!r} exactly."
+            )
+
+
 def write_lean_assembly_scaffold(cut: Cut, config: Config, build_timeout_s: int = 300) -> None:
     """Materialize `cut` as a real, gateable Lean claim: the theorem module,
     the check/probe/trap triple, and (if not already in the ledger or draft)
@@ -247,6 +276,8 @@ def write_lean_assembly_scaffold(cut: Cut, config: Config, build_timeout_s: int 
     sc = config.suite_for(cut.suite)
     if config.tree is None:
         raise ValueError(f"{config.name}: [target] tree does not resolve to a directory — cannot write Lean source")
+
+    _assert_no_probe_collision(cut, config, _slug(cut.assembly_id))
 
     module_path = config.tree / Path(*cut.lean_module.split(".")).with_suffix(".lean")
     module_path.parent.mkdir(parents=True, exist_ok=True)
@@ -373,6 +404,44 @@ def _append_draft_if_new(cut: Cut, suite_dir: Path) -> None:
 ScaffoldWriter = Callable[[Cut, Config], None]
 
 
+def _promote_existing_gap(gap: Gap, config: Config, today: str, probe_detail: str) -> tuple[bool, str]:
+    """Once an ALREADY-LEDGERED gap's own probe measures fresh GREEN via
+    `sufficiency_ok`'s gate check, rewrite its ledger row open/sculpting ->
+    closed directly. Needed because `run_baseline` only ever processes
+    `gaps.draft.yaml` — a gap already in `gaps.yaml` (re-deriving or
+    re-checking an EXISTING claim, not arming a fresh one) is invisible to
+    it, so without this a `sufficiency_ok(..).ok == True` on such a gap would
+    silently NOT update the ledger at all (discovered empirically: measured
+    GREEN, `gap.status` stayed `open` on disk).
+
+    Requires the SAME trap discipline `run_baseline`'s own GREEN-promotion
+    enforces (`core/baseline.py`: "a probe never seen RED is not yet
+    evidence") — this is a separate promotion path a trap-check could
+    otherwise silently bypass."""
+    if config.traps == "required" and not gap.trap_waiver:
+        traps = run_traps(gap, ShellProbeRunner(), timeout_s=300)
+        bad = [t for t in traps if not t.ok]
+        if not traps:
+            return False, "GREEN but unfalsified — no trap fixture, not yet evidence"
+        if bad:
+            return False, f"GREEN but trap {bad[0].trap} came back {bad[0].outcome.value} — {bad[0].detail[:60]}"
+
+    import yaml
+
+    sc = config.suite_for(gap.suite)
+    ledger_path = sc.dir / "gaps.yaml"
+    entries = yaml.safe_load(ledger_path.read_text()) or []
+    for e in entries:
+        if str(e.get("id")) == gap.id:
+            e["status"] = "closed"
+            e["observed"] = f"GREEN at baseline {today}: {probe_detail or '(no output)'}"
+            break
+    else:
+        return False, f"{gap.id} vanished from the ledger mid-promotion"
+    ledger_path.write_text(yaml.safe_dump(entries, sort_keys=False, allow_unicode=True, width=88))
+    return True, "already-ledgered claim promoted open -> closed"
+
+
 def sufficiency_ok(
     cut: Cut,
     config: Config,
@@ -384,11 +453,18 @@ def sufficiency_ok(
     imply the goal. Pure reuse of the existing arming/gate path: materialize
     the scaffold, arm it RED-first (`run_baseline`), then ask the real
     arbiter (`run_matrix`, scoped to just this one claim) for a fresh
-    verdict. **A cut is accepted exactly when this returns `ok=True`** — the
-    ledger's own `status` field (open vs. closed) is a separate, later
-    bookkeeping step a caller takes once it decides to accept the cut; this
-    function only answers the sufficiency question."""
+    verdict. **A cut is accepted exactly when this returns `ok=True`.**
+
+    For a FRESH `assembly_id` (not yet in the ledger), `run_baseline` itself
+    promotes open/closed via the draft ceremony — `ok=True` here already
+    reflects that. For an ALREADY-LEDGERED `assembly_id` (re-deriving or
+    re-checking an existing claim — `run_baseline` never touches a row
+    already in `gaps.yaml`), a fresh GREEN measurement is promoted directly
+    by `_promote_existing_gap`, under the same trap discipline, so `ok=True`
+    always means the ledger's `status` reflects the claim, not a separate
+    bookkeeping step a caller must remember to take."""
     today = today or date.today().isoformat()
+    pre_existing = load_ledger(config).by_id(cut.assembly_id)
     write_scaffold(cut, config)
     outcomes, _base_ok = run_baseline(config, cut.suite, today, timeout_s=timeout_s)
 
@@ -411,12 +487,22 @@ def sufficiency_ok(
             matrix=matrix,
         )
 
-    ok = result.outcome is Outcome.GREEN and matrix.gate_ok
-    if ok:
+    green = result.outcome is Outcome.GREEN and matrix.gate_ok
+
+    if green and pre_existing is not None and gap.status is not Status.CLOSED:
+        promoted, promote_detail = _promote_existing_gap(gap, config, today, result.detail)
+        return SufficiencyResult(
+            ok=promoted,
+            detail=f"assembly is kernel-clean GREEN — {promote_detail}",
+            baseline_outcomes=tuple(outcomes),
+            matrix=matrix,
+        )
+
+    if green:
         detail = "assembly is kernel-clean GREEN — the leaves imply the goal"
     else:
         detail = (
             f"assembly not sufficient: outcome={result.outcome.value} "
             f"detail={result.detail!r} gate_ok={matrix.gate_ok}"
         )
-    return SufficiencyResult(ok=ok, detail=detail, baseline_outcomes=tuple(outcomes), matrix=matrix)
+    return SufficiencyResult(ok=green, detail=detail, baseline_outcomes=tuple(outcomes), matrix=matrix)
