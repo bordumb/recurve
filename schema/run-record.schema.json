@@ -16,8 +16,8 @@
     "class": { "type": "string" },
     "severity": { "type": "string" },
     "status": {
-      "enum": ["closed", "parked", "no-work-left", "failed"],
-      "description": "The cycle's outcome — never free text the orchestrator must interpret."
+      "enum": ["closed", "decomposed", "parked", "no-work-left", "failed"],
+      "description": "The cycle's outcome — never free text the orchestrator must interpret. 'decomposed' (additive, docs/plans/autonomous_solver.md): the gap was too big to close honestly this cycle, so it was RED-first split into sub-claims plus a sufficiency-checked assembly (covers_claim links each child back to this gap) instead of being force-closed or parked as stuck."
     },
     "attempts": { "type": "integer", "minimum": 0, "description": "Honest attempts made on the gap this cycle." },
     "wall_clock_s": { "type": "number", "minimum": 0 },

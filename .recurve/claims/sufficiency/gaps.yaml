@@ -1,0 +1,123 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: SUFF-1
+  title: the pin call threads explicit free variables before hypotheses
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/suff-1.sh:1
+  observed: 'GREEN at baseline 2026-07-08: pin call threads explicit_args before hypothesis
+    names'
+  smallest_fix: '_check_source''s call line applies cut.theorem_name to cut.explicit_args
+    before the leaves'' hypothesis names, in declaration order.
+
+    '
+  probe: probes/suff-1.sh
+  unlocks: a sufficiency pin never mismatches an auto-generalized explicit variable slot
+
+- id: SUFF-2
+  title: the check file never inlines the assembly theorem
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/suff-2.sh:1
+  observed: 'GREEN at baseline 2026-07-08: check file contains only a statement pin — no inline
+    theorem/def'
+  smallest_fix: '_check_source emits only a statement pin (example := name args), never a
+    theorem/def declaration of theorem_name.
+
+    '
+  probe: probes/suff-2.sh
+  unlocks: the shared _lean_probe.sh trap-splice mechanism works on generated assemblies unmodified
+
+- id: SUFF-3
+  title: the trap shares the real theorem's exact signature
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/suff-3.sh:1
+  observed: 'GREEN at baseline 2026-07-08: trap signature matches the real theorem''s hypotheses
+    + goal exactly'
+  smallest_fix: '_trap_source and _theorem_source render byte-identical hypotheses blocks
+    and goal statements for the same Cut, differing only in the proof body.
+
+    '
+  probe: probes/suff-3.sh
+  unlocks: a trap-spliced check file typechecks against the real theorem's signature
+
+- id: SUFF-4
+  title: a claim cannot name itself as its own decomposition parent
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/suff-4.sh:1
+  observed: 'GREEN at baseline 2026-07-08: covers_claim: [<own id>] is rejected at parse time'
+  smallest_fix: 'Gap.parse raises GapParseError when a gap''s covers_claim names its own id.
+
+    '
+  probe: probes/suff-4.sh
+  unlocks: the covers_claim DAG can never contain a self-loop
+
+- id: SUFF-5
+  title: children_of / parents_of invert each other over covers_claim
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/suff-5.sh:1
+  observed: 'GREEN at baseline 2026-07-08: children_of/parents_of correctly select by exact
+    parent id'
+  smallest_fix: 'Ledger.children_of(parent) returns exactly the gaps whose covers_claim names
+    parent, and Ledger.parents_of(child) inverts it.
+
+    '
+  probe: probes/suff-5.sh
+  unlocks: a solver can walk the decomposition DAG in either direction reliably
+
+- id: SUFF-6
+  title: the scaffold writer refuses a case-colliding assembly_id
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  evidence:
+  - probes/suff-6.sh:1
+  observed: 'GREEN at baseline 2026-07-09: collision refused before any file was written —
+    the real claim''s probe is untouched'
+  smallest_fix: 'write_lean_assembly_scaffold raises before writing anything when cut.assembly_id''s
+    probe path collides case-insensitively with a DIFFERENT existing claim''s real probe path.
+
+    '
+  probe: probes/suff-6.sh
+  unlocks: re-deriving a real claim can never silently corrupt a different real claim's probe/check/trap
+    files
+
+- id: SUFF-7
+  title: sufficiency_ok promotes an already-ledgered claim on fresh GREEN
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  evidence:
+  - probes/suff-7.sh:1
+  observed: 'GREEN at baseline 2026-07-09: an already-ledgered open claim was promoted to
+    closed on disk after a fresh GREEN'
+  smallest_fix: 'sufficiency_ok rewrites an already-ledgered gap''s status to closed directly
+    once its fresh probe measures GREEN (trap-checked), since run_baseline never touches a
+    row already in gaps.yaml.
+
+    '
+  probe: probes/suff-7.sh
+  unlocks: loop/solver.py can genuinely re-derive and close a real, already-open claim, not
+    only invent fresh ones

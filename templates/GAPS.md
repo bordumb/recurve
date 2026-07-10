@@ -13,6 +13,11 @@
 
 - One section per claim, numbered with a stable anchor (`## 3. …` or
   `## T-TOKEN — …`). The anchor never changes once a ledger entry covers it.
+- A claim that's a piece of a larger goal too big for one cycle sets
+  `covers_claim: [<parent id>]` on its ledger entry (`.recurve/RUN.md`
+  §DECOMPOSE) — the claim-to-claim DAG edge a later cycle walks to discharge
+  the parent once every child closes. Distinct from `covers` above (prose ↔
+  ledger anchor linkage, not a claim-to-claim edge).
 - Every claim names its **observable** ("user can X and sees Y"), never its
   implementation ("uses library Z").
 - Every claim states its **negative space**: what a wrong input does

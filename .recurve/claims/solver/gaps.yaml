@@ -1,0 +1,146 @@
+# gaps.yaml — the live ledger: verified observations only.
+# Entries arrive here through `baseline` (the promotion ceremony); the
+# `observed` field quotes actual dated output, never a prediction.
+
+- id: SOLV-1
+  title: CLOSE is tried before DECOMPOSE
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/solv-1.sh:1
+  observed: 'GREEN at baseline 2026-07-08: close_attempt alone resolved ROOT — cut_proposer
+    was never consulted'
+  smallest_fix: 'solve() tries ctx.close_attempt before ctx.cut_proposer; a successful close
+    never consults the proposer at all.
+
+    '
+  probe: probes/solv-1.sh
+  unlocks: the cheap-first cost order from §2.2 actually holds in the implementation
+
+- id: SOLV-2
+  title: decompose recurses through every leaf and root-completion closes the root
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  evidence:
+  - probes/solv-2.sh:1
+  observed: 'GREEN at baseline 2026-07-08: one solve() call closed both leaves and root-completion
+    closed ROOT'
+  smallest_fix: 'One solve() call arms the assembly, recurses into every leaf via close_attempt,
+    and close_upward propagates the closures back to the root — zero calls in between.
+
+    '
+  probe: probes/solv-2.sh
+  unlocks: the Phase 2 acceptance bar (zero human turns between leaves) as a permanent, fast
+    regression guard
+
+- id: SOLV-3
+  title: root-completion never fires on a partial child set
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/solv-3.sh:1
+  observed: 'GREEN at baseline 2026-07-08: correctly NOT ready — LEAF-2 hasn''t closed (or
+    even been armed) yet'
+  smallest_fix: '_ready_to_assemble checks EVERY expected child (cut_proposer''s leaves +
+    assembly id), not ledger.children_of, which only sees whichever children have reached
+    the ledger so far.
+
+    '
+  probe: probes/solv-3.sh
+  unlocks: root-completion cannot fire a doomed assembly attempt mid-recursion
+
+- id: SOLV-4
+  title: a node with no applicable move becomes a frontier point
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/solv-4.sh:1
+  observed: 'GREEN at baseline 2026-07-08: a node with no applicable move is surfaced in frontier,
+    not silently dropped'
+  smallest_fix: 'solve() records a gap id in frontier when neither close_attempt nor cut_proposer
+    returns anything for it.
+
+    '
+  probe: probes/solv-4.sh
+  unlocks: an unattended run can never silently drop a genuinely stuck obligation
+
+- id: SOLV-5
+  title: budget exhaustion halts an unbounded recursion
+  class: missing-surface
+  status: closed
+  severity: headline
+  reads: none
+  evidence:
+  - probes/solv-5.sh:1
+  observed: 'GREEN at baseline 2026-07-08: budget correctly capped the recursion at 6 nodes,
+    not an unbounded chain'
+  smallest_fix: 'solve() checks ctx.budget.exhausted() before spending effort on each obligation
+    and surfaces the node it stopped on as frontier instead of recursing further.
+
+    '
+  probe: probes/solv-5.sh
+  unlocks: an unbounded or misdirected search costs at most the configured budget, never an
+    unbounded run
+
+- id: SOLV-6
+  title: a genuine frontier node is parked with its reason
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/solv-6.sh:1
+  observed: 'GREEN at baseline 2026-07-08: a frontier node is written to the parked store
+    with its reason'
+  smallest_fix: 'solve() writes a surfaced frontier node to loop/parked.py:ParkedStore (when
+    ctx.parked_root is set) with the reason it couldn''t move forward.
+
+    '
+  probe: probes/solv-6.sh
+  unlocks: an unattended run leaves a durable, reconstructable record of exactly where the
+    known part of a problem ends
+
+- id: SOLV-7
+  title: a refuted node is restated, not attempted under its original framing
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/solv-7.sh:1
+  observed: 'GREEN at baseline 2026-07-08: refuted node was restated and closed under its
+    corrected framing, never attempted as originally stated'
+  smallest_fix: 'solve() tries ctx.refute_attempt first; a refuted node recurses into ctx.restate_attempt''s
+    corrected framing instead of CLOSE/DECOMPOSE on the original statement.
+
+    '
+  probe: probes/solv-7.sh
+  unlocks: the loop never spends effort proving a claim that is false or ill-posed as originally
+    stated
+
+- id: SOLV-8
+  title: DISCOVER closes on a gate-confirmed candidate, surfaces frontier on a dry search
+  class: missing-surface
+  status: closed
+  severity: feature
+  reads: none
+  evidence:
+  - probes/solv-8.sh:1
+  observed: 'GREEN at baseline 2026-07-08: DISCOVER closes on a gate-confirmed candidate and
+    surfaces frontier on a dry search, never falling through to decompose'
+  smallest_fix: 'solve() tries ctx.discover_attempt; True closes the node without consulting
+    cut_proposer, False surfaces the frontier directly (DISCOVER is terminal, never falls
+    through to decompose).
+
+    '
+  probe: probes/solv-8.sh
+  unlocks: an ∃-shaped obligation with a registered proxy is never mistaken for a decomposable
+    ∀-obligation

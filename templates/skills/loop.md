@@ -64,9 +64,15 @@ Repeat until a halt condition (below). Each pass:
    sub-agent / task tool. Hand it only: the recommended gap id, and the
    instruction to *read `.recurve/RUN.md` and follow it exactly for ONE cycle,
    then stop*. Do not paste earlier cycles' context — the ledger is its memory.
-   The sub-agent sculpts the smallest honest change in `{{TREE}}`, rebuilds,
-   gates, promotes open→closed, snapshots, commits per policy, writes its run
-   record, and STOPS. **One cycle = one sub-agent.**
+   The sub-agent makes **one move** on the gap (RUN.md §MOVE): **closes** it —
+   sculpts the smallest honest change in `{{TREE}}`, rebuilds, gates, promotes
+   open→closed — or, if it is too big to close honestly this cycle, **breaks
+   it down** RED-first (smaller sub-claims + a sufficiency-checked assembly,
+   each linked back via `covers_claim:` — RUN.md §DECOMPOSE); either way it
+   snapshots, commits per policy, writes its run record, and STOPS. **One
+   cycle = one sub-agent**, and a decompose is a complete, successful cycle
+   even though the gap itself stays open — it closes later, once every child
+   does.
 
 3. **Judge by the gate, never the sub-agent's word (you):**
 
@@ -74,14 +80,17 @@ Repeat until a halt condition (below). Each pass:
     {{PROG}} matrix --gate           # the arbiter — the sub-agent's summary is not evidence
     ```
 
-    - Green *and* the gap closed → good cycle; continue.
-    - Gate red / gap not closed → the cycle failed. The sub-agent should have
-      reverted to the last green per RUN.md; verify the tree is clean
-      (`git status`). If a half-cycle was left behind, restore the last
-      per-cycle commit's state — never `git reset` shared state by hand. Count a
-      failed cycle.
-    - Un-greenable after ~3 honest attempts → the sub-agent parks it
-      (`{{PROG}} park`); you continue past it.
+    - Green *and* (the gap closed, OR it was decomposed and the new sub-claims
+      are armed RED with the assembly GREEN) → good cycle; continue. A
+      decomposed gap reappears via `{{PROG}} next` later, once its children
+      close, to be discharged then — do not treat it as stuck.
+    - Gate red / neither closed nor decomposed → the cycle failed. The
+      sub-agent should have reverted to the last green per RUN.md; verify the
+      tree is clean (`git status`). If a half-cycle was left behind, restore
+      the last per-cycle commit's state — never `git reset` shared state by
+      hand. Count a failed cycle.
+    - Un-greenable after ~3 honest attempts, and not decomposable either →
+      the sub-agent parks it (`{{PROG}} park`); you continue past it.
 
 4. **Never touch the referee surface.** Neither you nor the sub-agent may edit
    claims / probes / traps / the gate to make a cycle pass — that is the one move

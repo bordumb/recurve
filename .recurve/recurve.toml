@@ -109,3 +109,13 @@ harness = []
 dir = ".recurve/claims/fansearch"
 rebuild = ""               # throwaway validation scripts until the real engine lands; nothing to copy
 harness = []
+
+[suites.sufficiency]
+dir = ".recurve/claims/sufficiency"
+rebuild = ""               # pure engine module (recurvelib/analysis/sufficiency.py); nothing to copy
+harness = []
+
+[suites.solver]
+dir = ".recurve/claims/solver"
+rebuild = ""               # pure engine module (recurvelib/loop/solver.py); nothing to copy
+harness = []

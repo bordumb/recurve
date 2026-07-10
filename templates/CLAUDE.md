@@ -41,6 +41,10 @@ This is a hard rule, not a style preference:
   Parking a claim after a few honest attempts (see `.recurve/RUN.md`) records
   what was tried so the next cycle doesn't repeat it; it does not close the
   door.
+- **A claim too big for one cycle isn't a verdict either.** Break it down
+  RED-first — sub-claims plus a mechanically-checked assembly proving they
+  add up to the goal (`.recurve/RUN.md` §DECOMPOSE) — rather than forcing an
+  overreaching proof, weakening a probe, or parking it as merely stuck.
 - **The fix for language that reads as defeatist is more concrete work, not
   less honesty.** Never manufacture a false sense of "basically done," and
   never fake a probe to feel better about progress — that is exactly the

@@ -20,10 +20,15 @@ guards, and each keeps a **trap** — a counterexample it must turn RED — so a
 weakened probe is caught mechanically.
 
 The loop: one fresh agent per cycle takes the highest-value RED line and
-turns it GREEN without breaking any guarded other (`{{PROG}} matrix --gate`
-is the arbiter). What it can't prove, it parks for human triage. What
-machines shouldn't judge (`security-tradeoff`) routes to an adversarial
-review protocol instead (REVIEW.md).
+makes one move — turns it GREEN, or (when it's too big to close honestly
+this cycle) breaks it down RED-first into smaller claims plus a
+mechanically-checked assembly that proves they add up to the original goal
+— without breaking any guarded other (`{{PROG}} matrix --gate` is the
+arbiter). Easy goals never trigger the break-down; hard ones fan out as deep
+as the problem demands, same loop either way. What it can't prove or cut
+down, it parks for human triage. What machines shouldn't judge
+(`security-tradeoff`) routes to an adversarial review protocol instead
+(REVIEW.md).
 
 ## The pieces
 

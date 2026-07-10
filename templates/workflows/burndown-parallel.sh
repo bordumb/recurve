@@ -20,6 +20,19 @@
 # NOTE on rebuilds: if a suite's probes read built artifacts, set its
 # `rebuild` and run it between landing and gate (the stale check will
 # otherwise rightly refuse the verdict). Engine-from-source projects skip it.
+#
+# NOTE on decompose (docs/plans/autonomous_solver.md): landing here checks
+# `probe --gap $GAP` for READY→close — i.e. it only recognizes a lane that
+# closed its own gap directly. A lane that instead broke $GAP down RED-first
+# (RUN.md §DECOMPOSE: new sub-claims + a sufficiency-checked assembly,
+# covers_claim-linked) will NOT show READY→close for $GAP itself, so its
+# diff is discarded here even if the decomposition itself is sound — safe
+# (nothing false lands), just not yet recognized as a valid parallel landing.
+# Decompose is supported by the SEQUENTIAL loop (burndown.sh/burndown.js,
+# RUN.md, the `loop`/`cycle` skills); a lane wanting to break a gap down
+# should report `failed` here and let a sequential cycle pick it up instead,
+# until this runner's landing check learns to recognize an assembly-GREEN
+# decomposition as its own kind of landing.
 
 set -u
 PROG="${RECURVE_BIN:-{{PROG}}}"
@@ -71,8 +84,13 @@ for round in $(seq 1 "$CAP"); do
 Your gap: $GAP  (details: \`$PROG show $GAP\`)
 Sculpt ONLY inside \$LANE_TREE — it is your isolated worktree; the real tree
 is the orchestrator's. Do NOT edit any ledger or prose: promotion happens at
-the gated landing, not in your lane. Hard rules: no resets, no sacred paths,
-no loop vocabulary in product code, ~3 honest attempts then report failed.
+the gated landing, not in your lane. Close \$GAP directly this round — this
+runner's landing check does not yet recognize a RED-first break-down as a
+valid landing, so if \$GAP is too big to close honestly here, report failed
+(with what you tried) rather than decomposing; a sequential cycle
+(RUN.md/burndown.sh) will pick it up and can break it down instead. Hard
+rules: no resets, no sacred paths, no loop vocabulary in product code, ~3
+honest attempts then report failed.
 Write your run record JSON to \$RECURVE_RESULT_FILE, then STOP."
     echo "$PROMPT" | LANE_GAP="$GAP" LANE_TREE="$WT" RECURVE_RESULT_FILE="$RES" $AGENT_CMD &
     GAPS[$i]="$GAP"; DIRS[$i]="$DIR"; WTS[$i]="$WT"; RESULTS[$i]="$RES"

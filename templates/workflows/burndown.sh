@@ -133,6 +133,7 @@ m=re.search(r"divergent\s+(\w+)", sys.argv[1]); print("1" if m and m.group(1)=="
 fails=0
 runaway=0
 closed=0
+decomposed=0
 cycle=0
 waves=0
 while [ "$cycle" -lt "$CAP" ]; do
@@ -185,7 +186,10 @@ Hard rules (non-negotiable, embedded because you are stateless):
 - never sculpt review-gated gaps; ~3 honest attempts then park with the journal
 - rebuild before trusting any probe; the gate is \`$PROG matrix --gate\`
 - commit policy: {{COMMIT_POLICY}} (never run a command that can prompt)
-Write your run record JSON to: $RESULT_FILE  (status closed|parked|failed; never free text)
+Write your run record JSON to: $RESULT_FILE  (status closed|decomposed|parked|failed; never free
+text — 'decomposed' means the gap was too big to close honestly this cycle, so you RED-first
+split it into sub-claims + a sufficiency-checked assembly instead, per {{RUN_CONTRACT}} §DECOMPOSE;
+it stays open, that is still a complete cycle)
 Then STOP."
 
   echo "$PROMPT" | RECURVE_RESULT_FILE="$RESULT_FILE" $AGENT_CMD
@@ -208,6 +212,16 @@ except Exception: print("")' "$RESULT_FILE")"
           echo "  cycle $cycle: agent claimed closed but the GATE disagrees → failed cycle"
           fails=$((fails+1))
         fi ;;
+      decomposed)
+        # The gap itself stays open on purpose — only the fleet gate (assembly
+        # GREEN, fresh children armed RED) is checked here, never $GAP's own probe.
+        if $PROG matrix --gate >/dev/null 2>&1; then
+          echo "  cycle $cycle: decomposed $GAP into sub-claims, gate green"
+          fails=0; decomposed=$((decomposed+1))
+        else
+          echo "  cycle $cycle: agent claimed decomposed but the GATE disagrees → failed cycle"
+          fails=$((fails+1))
+        fi ;;
       parked)
         echo "  cycle $cycle: parked $GAP (journal recorded)"
         fails=0 ;;
@@ -218,7 +232,14 @@ except Exception: print("")' "$RESULT_FILE")"
     NET="$(py 'import json,sys
 try: print(json.load(open(sys.argv[1])).get("net_new_gaps",0))
 except Exception: print(0)' "$RESULT_FILE")"
-    if [ "${NET:-0}" -gt 0 ]; then runaway=$((runaway+1)); else runaway=0; fi
+    # A decompose's net_new_gaps is intentional (its own children), never scope
+    # creep — exempt it so cutting a deep tree down doesn't false-positive the
+    # runaway watchdog below.
+    if [ "$STATUS" != "decomposed" ] && [ "${NET:-0}" -gt 0 ]; then
+      runaway=$((runaway+1))
+    else
+      runaway=0
+    fi
   fi
 
   # Post the cycle's report — observability, never control flow: the loop
@@ -238,7 +259,7 @@ if [ "$cycle" -ge "$CAP" ]; then
   echo "burndown: cycle cap ($CAP) reached. Halting; restart to continue."
 fi
 
-echo "burndown $RUN_ID wrap-up: closed=$closed, waves armed=$waves"
+echo "burndown $RUN_ID wrap-up: closed=$closed, decomposed=$decomposed, waves armed=$waves"
 $PROG matrix || true
 $PROG park || true
 echo "human queue: adjudications first, then review-gated promotions, then parked triage."
