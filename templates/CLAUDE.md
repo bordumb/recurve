@@ -16,7 +16,9 @@ without anyone having to take an agent's word for it.
   skills.
 - The arbiter is `{{PROG}} matrix --gate`. **Believe the gate — not yourself,
   not an agent's summary.** A claim is closed when its probe is GREEN and the
-  fleet-wide gate holds, never because someone believes it is.
+  fleet-wide gate holds, never because someone believes it is. (`--cache` runs the
+  same gate faster by skipping probes whose inputs are unchanged — sound; use it
+  freely, but run one uncached gate before a PR/report/`baseline`. See RUN.md.)
 - **Never fake a check:** no weakened probes, no skipped traps, no editing
   anything under `.recurve/claims/` to make the gate pass. A GREEN must mean
   the claim is genuinely true.

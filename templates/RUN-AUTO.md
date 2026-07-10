@@ -24,7 +24,13 @@ Your stop condition: the loop halts itself.
 
 - `{{PROG}} validate && {{PROG}} matrix --gate` must both be green. An
   unattended run started on a broken baseline burns every cycle on the same
-  rock.
+  rock. (Keep this *baseline* gate **uncached** — ground truth.)
+- **Speed knob for the run:** the per-cycle gate may use `{{PROG}} matrix --gate
+  --cache` (see RUN.md — a sound, faster full gate that skips probes whose inputs
+  are unchanged). On a long unattended run this is the single biggest lever on
+  wall-clock, since each probe otherwise cold-loads its whole build environment.
+  Keep the baseline gate above and **one final uncached `{{PROG}} matrix --gate`
+  before the run reports** — the definitive verdict the run is recorded against.
 - `{{PROG}} lock status` must say unlocked. Two loops on one tree corrupt
   both; the loop refuses to start if a lock is held. If the holder is
   confirmed dead, a human runs `{{PROG}} lock steal` — never automate this.

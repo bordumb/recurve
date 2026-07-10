@@ -119,6 +119,18 @@ tree's build output — an un-rebuilt {{LABEL}} makes every verdict a lie.
 
 Then the {{LABEL}}'s behavioral harness if it has one. All of it, every cycle.
 
+**Fast gate (`--cache`).** `{{PROG}} matrix --gate --cache` is the *same* fleet-wide gate,
+only faster: it skips any probe whose check file and the project sources it imports are
+unchanged since that probe's last verdict, reusing the stored GREEN/RED. It is **sound** — a
+probe whose inputs moved is always re-run, so it catches regressions exactly as the full gate
+does — and the node you just sculpted always re-runs (its source changed). Use it for fast
+iteration and the per-cycle gate. **Run the plain uncached `{{PROG}} matrix --gate` where the
+verdict must be ground-truth fresh: before a PR/merge, before `{{PROG}} baseline`, before a
+published report, and any time you doubt the built artifacts.** The cache is off by default —
+nothing changes unless you pass `--cache` — and its store lives in `.recurve/cache/` (gitignore
+it). It does **not** replace the rebuild: an un-rebuilt {{LABEL}} is still a lie; `--cache` only
+skips re-*measuring* what provably cannot have changed, never re-*building*.
+
 ## PROMOTE
 
 Edit the ledger entry `open → closed`. Rewrite its GAPS.md section to
