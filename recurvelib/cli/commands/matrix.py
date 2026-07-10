@@ -39,7 +39,8 @@ def cmd_matrix(args):
             rebuild_ok = rebuild_ok and ok
             if not ok:
                 failed_rebuilds.add(sname)
-    matrix = run_matrix(list(_load(cfg).gaps), cfg, timeout_s=args.timeout)
+    matrix = run_matrix(list(_load(cfg).gaps), cfg, timeout_s=args.timeout,
+                        use_cache=getattr(args, "cache", False))
     print(render.matrix_table(matrix))
     gate_ok = matrix.gate_ok and rebuild_ok
     if getattr(args, "receipts", False):
@@ -55,7 +56,8 @@ def cmd_matrix(args):
             fledger = load_ledger(fcfg)
         except GapParseError as e:
             _fail(f"\033[31m✗ federated ledger parse error:\033[0m {e}")
-        fmatrix = run_matrix(list(fledger.gaps), fcfg, timeout_s=args.timeout)
+        fmatrix = run_matrix(list(fledger.gaps), fcfg, timeout_s=args.timeout,
+                            use_cache=getattr(args, "cache", False))
         print(f"\n── federated: {fcfg.name} ({fed}) ──")
         print(render.matrix_table(fmatrix))
         gate_ok = gate_ok and fmatrix.gate_ok

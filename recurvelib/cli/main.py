@@ -178,9 +178,10 @@ def matrix(
     gate: bool = typer.Option(False, "--gate", help="exit nonzero on regression/broken/stale/failed-trap"),
     timeout: int = typer.Option(120, "--timeout"),
     receipts: bool = typer.Option(False, "--receipts", help="chain an evidence receipt per verdict"),
+    cache: bool = typer.Option(False, "--cache", help="skip probes whose check-file + imported oleans are unchanged since the last GREEN/RED (sound; run the full uncached gate before merge/report/baseline)"),
     federate: Optional[List[str]] = typer.Option(None, "--federate", metavar="RECURVE_TOML", help="also gate another project's suites; repeatable"),
 ):
-    cmd_matrix(_ns("matrix", gate=gate, timeout=timeout, receipts=receipts, federate=federate))
+    cmd_matrix(_ns("matrix", gate=gate, timeout=timeout, receipts=receipts, cache=cache, federate=federate))
 
 
 @app.command(help="run the stopping controller on a measured progress vector")

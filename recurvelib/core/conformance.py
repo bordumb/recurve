@@ -115,6 +115,7 @@ def run_matrix(
     runner: ProbeRunner | None = None,
     timeout_s: int = 120,
     workers: int = 4,
+    use_cache: bool = False,
 ) -> Matrix:
     runner = runner or ShellProbeRunner()
     measurable = [g for g in gaps if g.needs_probe]
@@ -128,15 +129,52 @@ def run_matrix(
         if key not in fresh:
             fresh[key] = gap_freshness(config, g.suite, g.reads, cache)
 
+    # Opt-in verdict cache. A probe's GREEN/RED is a deterministic function of
+    # its check file and the oleans it imports; an unchanged (check, oleans) pair
+    # cannot change verdict, so it need not re-run — the biggest lever on gate
+    # wall-clock, since every probe cold-loads Mathlib. Keys are precomputed
+    # single-threaded and verdicts stored AFTER the pools (never inside a worker),
+    # so there is no write race. Off by default: with use_cache=False the gate is
+    # the old full, uncached re-run, byte for byte. See core/probe_cache.py.
+    vcache = None
+    pkeys: dict[str, str | None] = {}
+    tkeys: dict[str, str | None] = {}
+    _root = _shas = None
+    if use_cache and measurable:
+        from recurvelib.core.probe_cache import (
+            VerdictCache, build_source_shas, probe_key, target_root)
+        _root = next((target_root(g) for g in measurable if target_root(g) is not None), None)
+        if _root is not None:
+            _shas = build_source_shas(_root)
+            vcache = VerdictCache(_root / ".recurve" / "cache" / "gate-verdicts.json")
+            for g in measurable:
+                pkeys[g.id] = probe_key(g, _root, _shas)
+
     def measure(g: Gap) -> ProbeResult:
         report = fresh[(g.suite, g.reads)]
         if report.state is Freshness.STALE:
             # Do not run the probe — its verdict would be untrustworthy.
             return ProbeResult(g, Outcome.STALE, None, 0.0, report.detail)
+        # Cache hit is honoured ONLY when the suite is FRESH — the source-keyed
+        # verdict is trustworthy exactly when the oleans are current with the
+        # sources (UNKNOWN freshness could hide a stale/missing olean).
+        if vcache is not None and report.state is Freshness.FRESH:
+            k = pkeys.get(g.id)
+            if k is not None:
+                hit = vcache.get(g.id, k)
+                if hit is not None:
+                    return ProbeResult(g, Outcome(hit["outcome"]), hit.get("exit_code"),
+                                       0.0, "cached ⏎ " + hit.get("detail", ""))
         return runner.run(g, timeout_s)
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         results = list(pool.map(measure, measurable))
+
+    if vcache is not None:
+        for r in results:
+            k = pkeys.get(r.gap.id)
+            if k is not None and r.outcome in (Outcome.GREEN, Outcome.RED):
+                vcache.put(r.gap.id, k, r.outcome.value, r.exit_code, r.detail)
 
     # The trap pass (§ probe contract): closed gaps' probes are regression
     # guards forever — re-prove each can still FAIL by running its kept
@@ -151,9 +189,38 @@ def run_matrix(
                   if g.status is Status.CLOSED
                   and fresh[(g.suite, g.reads)].state is not Freshness.STALE
                   and g.id not in skipped_ids]
+        if vcache is not None:
+            from recurvelib.core.probe_cache import trap_batch_key
+            for g in guards:
+                tkeys[g.id] = trap_batch_key(g, _root, _shas)
+
+        def guarded(g: Gap) -> list[TrapResult]:
+            if vcache is not None and fresh[(g.suite, g.reads)].state is Freshness.FRESH:
+                k = tkeys.get(g.id)
+                if k is not None:
+                    # Distinct entry-id from the probe verdict (same gap.id) so the
+                    # two never overwrite each other in the store.
+                    cached = vcache.get_traps(g.id + "::traps", k)
+                    if cached is not None:
+                        return [TrapResult(g, t["trap"], Outcome(t["outcome"]),
+                                           "cached ⏎ " + t.get("detail", "")) for t in cached]
+            return run_traps(g, runner, timeout_s)
+
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            for batch in pool.map(lambda g: run_traps(g, runner, timeout_s), guards):
+            for batch in pool.map(guarded, guards):
                 trap_results.extend(batch)
+
+        if vcache is not None:
+            for g in guards:
+                k = tkeys.get(g.id)
+                if k is None:
+                    continue
+                batch = [{"trap": t.trap, "outcome": t.outcome.value, "detail": t.detail}
+                         for t in trap_results if t.gap.id == g.id]
+                vcache.put_traps(g.id + "::traps", k, batch)
+
+    if vcache is not None:
+        vcache.save()
 
     results.sort(key=lambda r: (not r.is_regression, r.outcome is not Outcome.STALE,
                                 not r.is_ready_to_close, r.gap.id))

@@ -12,7 +12,8 @@ condition. The short form: `{{PROG}} validate && {{PROG}} matrix` (clean baselin
 `{{PROG}} next` (triage the highest-value RED claim), then make **one move**:
 
 - **Close it** — when it's small enough to prove honestly this cycle. Sculpt the smallest
-  honest change, rebuild, `{{PROG}} matrix --gate` (the arbiter), promote open→closed +
+  honest change, rebuild, `{{PROG}} matrix --gate` (the arbiter — add `--cache` for a sound,
+  much faster gate that skips unchanged probes; see RUN.md), promote open→closed +
   rewrite the prose, snapshot, commit per policy, `{{PROG}} record append`.
 - **Break it down** — when it's *too big to close honestly this cycle*. **Do not force
   it.** Decompose it RED-first: the smaller claims it genuinely needs, plus an **assembly**
