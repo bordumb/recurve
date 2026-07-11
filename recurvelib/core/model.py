@@ -91,6 +91,18 @@ class Gap:
     # / `.children_of`). Empty means "not part of a decomposition" — no
     # behavior change for any existing gap.
     covers_claim: tuple[str, ...] = ()
+    # The logical/proof dependency edge (issue #24): claim id(s) this claim's
+    # proof (or implementation) *uses*. Orthogonal to `covers_claim`: that is
+    # decomposition (a parent is a fan-out of its leaves), this is the
+    # load-bearing spine (A cannot close until B does). Agnostic — recurve
+    # stores ids and never asks how the dependency was derived. Empty means
+    # "no declared dependency" — no behavior change for any existing gap.
+    depends_on: tuple[str, ...] = ()
+    # An opaque grouping label (issue #24) — a project's phase/layer/taxonomy
+    # tag that recurve stores and echoes but NEVER interprets. Deliberately
+    # NOT `tier` (that is the derived oracle tier and is refused, see parse).
+    # Empty means "ungrouped".
+    group: str = ""
 
     @property
     def trap_dir(self) -> Path | None:
@@ -189,6 +201,21 @@ class Gap:
         if gid in covers_claim:
             raise GapParseError(f"{source_file}: gap {gid!r} names itself in 'covers_claim' — a claim cannot be its own parent")
 
+        depends_on_raw = raw.get("depends_on") or []
+        if not isinstance(depends_on_raw, list):
+            raise GapParseError(
+                f"{source_file}: gap {gid!r} 'depends_on' must be a list of claim ids"
+            )
+        depends_on = tuple(str(d) for d in depends_on_raw)
+        if gid in depends_on:
+            raise GapParseError(
+                f"{source_file}: gap {gid!r} names itself in 'depends_on' — a claim cannot depend on itself"
+            )
+
+        # `group` is an opaque passthrough — any string. It is NOT `tier`
+        # (refused above); recurve stores it and never interprets it.
+        group = str(raw.get("group", "")).strip()
+
         probe_field = raw.get("probe")
         probe: Path | None = None
         if probe_field:
@@ -241,6 +268,8 @@ class Gap:
             reference=reference,
             min_governor_tier=min_governor_tier,
             covers_claim=covers_claim,
+            depends_on=depends_on,
+            group=group,
         )
 
 

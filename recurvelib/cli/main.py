@@ -29,6 +29,7 @@ from .commands.cycle_new import cmd_cycle_new
 from .commands.decide import cmd_decide
 from .commands.demo import cmd_demo
 from .commands.drill import cmd_drill
+from .commands.export import cmd_export
 from .commands.fansearch import fansearch_app
 from .commands.freshness import cmd_freshness
 from .commands.frontier import cmd_frontier
@@ -300,6 +301,27 @@ def coverage(
     gate: bool = typer.Option(False, "--gate", help="exit nonzero if any prose gap has no ledger entry"),
 ):
     cmd_coverage(_ns("coverage", gate=gate))
+
+
+export_app = typer.Typer(rich_markup_mode=None,
+                         help="export the claim graph as data (renderers depend on this contract)")
+
+
+@export_app.command("graph", help="export the claim graph (covers_claim + depends_on + "
+                                  "ingested edges) as JSON, or run a graph query")
+def _export_graph(
+    json: bool = typer.Option(True, "--json/--no-json", help="emit JSON (the only format today)"),
+    edges: Optional[str] = typer.Option(None, "--edges", metavar="FILE.json",
+                                        help="merge external edges (any provenance); every id must exist in the ledger"),
+    query: Optional[str] = typer.Option(None, "--query", metavar="NAME",
+                                        help="run a graph query: frontier | critical-path | reachability | metrics"),
+    node: Optional[str] = typer.Option(None, "--node", metavar="ID",
+                                       help="the claim a reachability/critical-path query is anchored at"),
+):
+    cmd_export(_ns("export", fmt="json", edges=edges, query=query, node=node))
+
+
+app.add_typer(export_app, name="export")
 
 
 @app.command(name="import", help="seed a draft ledger from GAPS.md")

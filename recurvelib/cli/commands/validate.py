@@ -38,6 +38,16 @@ def cmd_validate(args):
                             f"gaps.draft.yaml until the baseline ceremony promotes them")
         if cfg.traps == "required" and g.reads in ("none",) and g.probe is not None:
             greps.append(g)
+
+    # The claim graph (covers_claim + depends_on) must be a DAG — a circular
+    # prerequisite (A must close before B and B before A) can never be
+    # discharged, and every graph-theory query assumes acyclicity (issue #24).
+    from recurvelib.analysis.graph import build_graph, find_cycle
+    cyc = find_cycle(build_graph(ledger))
+    if cyc is not None:
+        problems.append(
+            "claim graph has a cycle (covers_claim/depends_on must form a DAG): "
+            + " → ".join(cyc))
     if problems:
         print("\033[31m✗ validation failed:\033[0m")
         for p in problems:
