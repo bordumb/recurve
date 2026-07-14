@@ -35,7 +35,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -273,3 +272,22 @@ def _verdict(results: tuple[FalsifierResult, ...]) -> ConjectureResult:
         )
     profile = SurvivalProfile(survivors)
     return ConjectureResult(ConjectureVerdict.SURVIVING, results, profile, profile.render())
+
+
+# --- explore frontier (Milestone 3/4): ranking + promotion ------------------
+
+def frontier_rank(result: ConjectureResult) -> tuple[int, int]:
+    """Sort key for the explore frontier — the strongest, most-survived leads
+    first (higher is more promising). This IS the reward gradient: a lead that
+    survived a partial-proof outranks one that only survived a numeric proxy."""
+    return (result.profile.strength, result.profile.count)
+
+
+def promotion_status(probe_green: bool, result: ConjectureResult | None) -> str:
+    """The explore-frontier status of a conjecture. PROMOTED when its probe is
+    kernel-clean GREEN — it is *proven*, leaves the survival axis, and becomes an
+    ordinary closed claim for the closure loop (the jackpot). Otherwise its
+    survival verdict (SURVIVING / FALSIFIED / BROKEN)."""
+    if probe_green:
+        return "PROMOTED"
+    return result.verdict.value if result is not None else ConjectureVerdict.BROKEN.value

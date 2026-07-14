@@ -154,10 +154,17 @@ lead left un-retested drifts back toward `proposed` and must earn its profile ag
    falsifier battery is admissible only after KILLing its seeded decoy; an uncalibrated (or empty) battery is
    `BROKEN`, never `SURVIVING`; uncalibrated falsifiers are inert and cannot pad a survival profile;
    falsification dominates survival. The load-bearing §2 invariant, built first and covered by the tests.
-3. **Graded profile in the matrix** — `survival_profile` (count · strength · by-kind) is computed and
-   rendered by the engine; still to do is surfacing it in `matrix`/`gate` rows and marking numerics
-   unsound-proxy at the report layer.
-4. **`recurve explore` loop** — the reward rule (§5), promotion path to the closure loop.
+3. **Graded profile, surfaced** — ✅ **landed**. `survival_profile` (count · strength · by-kind, numerics
+   marked unsound-proxy in `render()`) is surfaced by the `recurve explore` view (below). A claim is a
+   conjecture iff it carries a `probes/<name>.falsifiers/` battery — `Gap.is_conjecture` / `Gap.falsifier_dir`,
+   no new `GapClass`. (Still optional: an inline conjecture row inside the closure `matrix` output; the
+   dedicated `explore` view is the primary surface, keeping the two gradients visually separate.)
+4. **`recurve explore`** — ✅ **landed** (`recurvelib/cli/commands/explore.py`). The deterministic exploration
+   matrix: for every conjecture it reports PROMOTED (probe GREEN → hand to closure loop) / SURVIVING (ranked by
+   `frontier_rank` — strength then count, *the reward gradient*) / FALSIFIED (dead lead) / BROKEN (uncalibrated
+   battery), with `--strict` exiting nonzero on any BROKEN battery. The *actor* that proposes conjectures and
+   authors falsifiers stays BYO-agent, exactly as the closure loop's sculptor does — `explore` is the spine
+   that scores it, never the agent.
 5. **Worked example** — the open depletion / coherence-ratio estimate from the `navier_stokes` suite: propose
    a candidate monotone quantity, calibrate + run the battery, land a graded survival profile — RED, surviving,
    honestly a lead. This is the acceptance test: exploration made legible on a genuinely-open target.
