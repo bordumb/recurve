@@ -572,6 +572,94 @@ refereeing, but it does not manufacture ground truth from nothing. Something at
 the base is asserted — the discipline is to keep it small, executable, and
 explicit.
 
+## 2.10 Exploration: the second gradient, by inverting the trap
+
+The gate scores a single gradient — GREEN, is a claim proven? — and §2.4's law is
+what makes it trustworthy. But one gradient carries a cost that surfaces exactly
+at the research frontier: an agent optimizing inside recurve will always route
+*around* a genuinely-open problem — decomposing to the already-provable, closing
+that, and parking the hard remainder as "not known" — because the unknown space
+contains no GREEN to chase. The same discipline that guarantees honesty also
+guarantees the agent stops at the wall.
+
+recurve recovers a *second* gradient — one that rewards moving *into* the unknown
+— by **inverting the trap**, keeping the falsification discipline that makes the
+first gradient sound. Where a **trap** is a known-bad a probe must reject (§2.4),
+a **falsifier** is a genuine attempt to construct a counterexample to a
+**conjecture** — an as-yet-unknown claim. A conjecture earns standing not by being
+proven but by *surviving* a battery of falsifiers.
+
+The admissibility condition is the mirror image of §2.4, and it is load-bearing.
+Let a conjecture $\kappa$ carry a battery $\Phi_\kappa$, each falsifier $\varphi$
+shipping a **decoy** $d_\varphi$ — a known-false neighbour it must refute. Call
+$\varphi$ *calibrated* iff it kills its decoy, $\varphi(d_\varphi)=\textsf{KILLED}$;
+then
+$$
+\mathrm{surviving}(\kappa) \iff
+\underbrace{\big(\exists\,\varphi\!\in\!\Phi_\kappa:\ \mathrm{calibrated}(\varphi)\big)}_{\text{the battery has teeth}}
+\ \wedge\
+\underbrace{\forall\,\varphi\!\in\!\Phi_\kappa:\ \mathrm{calibrated}(\varphi)\Rightarrow\varphi(\kappa)=\textsf{SURVIVED}}_{\text{every potent attempt missed}},
+$$
+with $\mathrm{falsified}(\kappa)$ when some calibrated $\varphi$ kills $\kappa$,
+and a battery carrying no calibrated falsifier reported \textsf{BROKEN} — never
+surviving. As a probe is trusted only once its trap has been seen RED, a survival
+is trusted only once its falsifier has been seen to KILL. "Survived $n$
+falsifiers" is admissible shorthand only for "survived $n$ falsifiers *that
+provably kill things*"; without the calibration, a conjecture nobody seriously
+attacked would masquerade as a lead — the exact self-deception (§1.3) the
+framework exists to prevent, re-emerging on the exploration axis.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=Stealth, node distance=6mm and 12mm]
+  % LEFT — closure: is it TRUE?
+  \node[comp=gblue] (C)
+    {\textcolor{gblue}{\faClipboardList}\\[1pt]\textcolor{gblue}{\bfseries claim}\\[-1pt]\scriptsize\textcolor{ink}{believed true}};
+  \node[chip=gred, below=9mm of C] (K) {trap $k\Rightarrow$ RED};
+  \node[compsolid=ggreen, below=8mm of K] (G)
+    {\textcolor{ggreen}{\faCheckCircle}\ \textcolor{ggreen}{\bfseries GREEN}\\[-1pt]\scriptsize\textcolor{ink}{proven}};
+  \draw[flow=gblue] (C) -- (K) node[elabel,midway,left=2pt]{$\pi$ must \emph{reject}};
+  \draw[flow=ggreen] (K) -- (G) node[elabel,midway,left=2pt]{then $\pi(c)$};
+  % RIGHT — exploration: is it ALIVE?
+  \node[comp=gamber, right=42mm of C] (Q)
+    {\textcolor{gamber}{\faLightbulb}\\[1pt]\textcolor{gamber}{\bfseries conjecture}\\[-1pt]\scriptsize\textcolor{ink}{not yet known}};
+  \node[chip=gred, below=9mm of Q] (D) {decoy $d\Rightarrow$ KILLED};
+  \node[compsolid=gamber, below=8mm of D] (S)
+    {\textcolor{gamber}{$\circ$}\ \textcolor{gamber}{\bfseries SURVIVING}\\[-1pt]\scriptsize\textcolor{ink}{a graded lead}};
+  \draw[flow=gamber] (Q) -- (D) node[elabel,midway,right=2pt]{$\varphi$ must \emph{kill}};
+  \draw[flow=gamber] (D) -- (S) node[elabel,midway,right=2pt]{then $\varphi(\kappa)$};
+  \begin{scope}[on background layer]
+    \node[zone=zoneblue, fit=(C)(K)(G), inner sep=10pt] (ZL) {};
+    \node[zone=zonegreen, fit=(Q)(D)(S), inner sep=10pt] (ZR) {};
+  \end{scope}
+  \node[elabel, anchor=south] at (ZL.north) {closure — \emph{is it true?}};
+  \node[elabel, anchor=south] at (ZR.north) {exploration — \emph{is it alive?}};
+  \draw[<->, >=Stealth, dashed, draw=ink, line width=0.8pt] (K.east) -- (D.west)
+    node[elabel, midway, fill=white, inner sep=1.5pt]{invert};
+\end{tikzpicture}
+\caption{The exploration gradient mirrors the closure gate. \textbf{Left:} a claim
+is trusted \emph{true} only after its probe $\pi$ rejects a known-bad trap
+($\Rightarrow$ RED, calibration), then passes on the claim ($\pi(c)$ GREEN).
+\textbf{Right:} a conjecture is trusted \emph{alive} only after a falsifier
+$\varphi$ kills a known-false decoy ($\Rightarrow$ KILLED, calibration), then
+misses it ($\varphi(\kappa)$ SURVIVED). The two red steps are the same discipline
+— a check demonstrated able to fail — inverted: a bullet the probe must dodge,
+versus a bullet fired at the claim. A survival is a graded lead, never a proof.}
+\end{figure}
+
+Two properties keep the second gradient honest rather than a guess-amplifier.
+First, survival is **graded** on the same oracle spectrum as the rest of recurve
+(§1.4, §2.3): a survival against a numeric proxy is a hint, against a
+kernel-checked partial refutation it is strong evidence, so a conjecture reports a
+*profile* — how many falsifiers of what strength it survived — never a single
+"safe" bit. Only a probe going GREEN promotes a conjecture off the survival axis
+into a proven claim, handed back to the closure loop. Second, a conjecture is
+scored on **two independent axes** — its probe answers *proven?*, its battery
+answers *alive?* — and the battery is invisible to the gate of §2.5, so
+exploration can never dilute closure. A lead is exactly a graded, honestly-labeled
+hypothesis that resisted destruction; the fan-out discovery layer of §3.5 supplies
+candidate mechanisms, and this is the falsification discipline that scores them.
+
 ---
 
 # 3. Architecture
