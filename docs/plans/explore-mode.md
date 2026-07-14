@@ -165,6 +165,11 @@ lead left un-retested drifts back toward `proposed` and must earn its profile ag
    battery), with `--strict` exiting nonzero on any BROKEN battery. The *actor* that proposes conjectures and
    authors falsifiers stays BYO-agent, exactly as the closure loop's sculptor does — `explore` is the spine
    that scores it, never the agent.
-5. **Worked example** — the open depletion / coherence-ratio estimate from the `navier_stokes` suite: propose
-   a candidate monotone quantity, calibrate + run the battery, land a graded survival profile — RED, surviving,
-   honestly a lead. This is the acceptance test: exploration made legible on a genuinely-open target.
+5. **Worked example** — ✅ **landed**. The open coherence-ratio bound (`R8-RATIO`) in the `navier_stokes`
+   regularity suite now carries `probes/r8-ratio.falsifiers/coherence-ode/` — a calibrated adversarial numeric
+   falsifier on the projection-ratio depletion dynamics (whose decomposition + attracting fixed point are
+   already kernel-clean GREEN). Its decoy (no depletion) is genuinely KILLed; the depletion-dominant regime
+   SURVIVES. `recurve explore` scores it `SURVIVING · strength 1 · 1×numeric (unsound-proxy only)` — the crux
+   the closure gate parks at is now a **live, honestly-graded lead** sitting next to its still-RED pin, and the
+   closure gate is untouched (`falsifiers/` is invisible to `matrix`/`validate`). The acceptance test:
+   exploration made legible, and un-fabricated, on a genuinely-open target.
