@@ -73,6 +73,14 @@ a lead.
 
 A new claim `class: conjecture`, in the same ledger as provable claims.
 
+> **Implementation note (2026-07-14).** The falsifier **engine** (`recurvelib/core/conjecture.py`, Milestone 2)
+> is deliberately **decoupled from the `Gap` model** — it operates on a `falsifiers/` directory path, not on a
+> ledger entry. `GapClass` is the *"closed six"* and must not be diluted (a conjecture is a different axis — a
+> lead to test, not a defect to fix — so it does not belong there anyway). How a conjecture is *declared* in the
+> ledger — a sibling entity vs. a `probes/<name>.falsifiers/` attachment beside a normal open claim's probe —
+> is settled in a later milestone; the engine works either way. The exit contract is `0 KILLED · 1 SURVIVED ·
+> other BROKEN`, with the decoy handed over via `RECURVE_FALSIFY_TARGET`.
+
 - **`gaps.yaml`**: `class: conjecture`, a precise `statement` (a Prop / estimate / inequality), `status`
   (§6), a `survival_profile`, and `covers`/`unlocks` edges like any claim (a lead must lead *somewhere* — §8).
 - **`falsifiers/`** — the structural inverse of `traps/`. Each subdirectory is one kill-attempt:
@@ -142,9 +150,13 @@ lead left un-retested drifts back toward `proposed` and must earn its profile ag
 
 1. **Spec + schema** — this doc lands; `conjecture` class and `falsifiers/` layout specified in the developer
    guide.
-2. **Calibration gate** — a falsifier battery is admissible only after KILLing its seeded decoys; else
-   `BROKEN`. (The load-bearing invariant, §2 — build this first, prove it can't be bypassed.)
-3. **Graded profile in the matrix** — `survival_profile` surfaced; numerics marked unsound-proxy.
+2. **Calibration gate** — ✅ **landed** (`recurvelib/core/conjecture.py`, `tests/e2e/test_conjecture.py`). A
+   falsifier battery is admissible only after KILLing its seeded decoy; an uncalibrated (or empty) battery is
+   `BROKEN`, never `SURVIVING`; uncalibrated falsifiers are inert and cannot pad a survival profile;
+   falsification dominates survival. The load-bearing §2 invariant, built first and covered by the tests.
+3. **Graded profile in the matrix** — `survival_profile` (count · strength · by-kind) is computed and
+   rendered by the engine; still to do is surfacing it in `matrix`/`gate` rows and marking numerics
+   unsound-proxy at the report layer.
 4. **`recurve explore` loop** — the reward rule (§5), promotion path to the closure loop.
 5. **Worked example** — the open depletion / coherence-ratio estimate from the `navier_stokes` suite: propose
    a candidate monotone quantity, calibrate + run the battery, land a graded survival profile — RED, surviving,
