@@ -120,6 +120,26 @@ class Gap:
         return tuple(sorted(p for p in d.iterdir() if p.is_dir()))
 
     @property
+    def falsifier_dir(self) -> Path | None:
+        """probes/<name>.sh may ALSO pair with probes/<name>.falsifiers/ — the
+        structural inverse of .trap/, a battery of kill-attempts for a conjecture
+        (docs/plans/explore-mode.md). A trap guards a claim believed true; a
+        falsifier battery tests whether an open lead is still alive. Presence of
+        this dir marks the claim as an explore-mode conjecture, scored on the
+        survival gradient in ADDITION to its probe — no new GapClass, no dilution
+        of the closed six."""
+        if self.probe is None:
+            return None
+        return self.probe.parent / (self.probe.stem + ".falsifiers")
+
+    @property
+    def is_conjecture(self) -> bool:
+        """An open claim carrying a non-empty falsifier battery is a conjecture —
+        a lead being explored, not just a defect being closed."""
+        d = self.falsifier_dir
+        return d is not None and d.is_dir() and any(p.is_dir() for p in d.iterdir())
+
+    @property
     def suite_dir(self) -> Path:
         """The suite directory — gaps.yaml lives at its root."""
         return self.source_file.parent

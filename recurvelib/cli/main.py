@@ -29,6 +29,7 @@ from .commands.cycle_new import cmd_cycle_new
 from .commands.decide import cmd_decide
 from .commands.demo import cmd_demo
 from .commands.drill import cmd_drill
+from .commands.explore import cmd_explore
 from .commands.export import cmd_export
 from .commands.fansearch import fansearch_app
 from .commands.freshness import cmd_freshness
@@ -183,6 +184,15 @@ def matrix(
     federate: Optional[List[str]] = typer.Option(None, "--federate", metavar="RECURVE_TOML", help="also gate another project's suites; repeatable"),
 ):
     cmd_matrix(_ns("matrix", gate=gate, timeout=timeout, receipts=receipts, cache=cache, federate=federate))
+
+
+@app.command(help="the exploration matrix — score conjectures on the survival gradient (invert the trap)")
+def explore(
+    timeout: int = typer.Option(120, "--timeout"),
+    strict: bool = typer.Option(False, "--strict",
+                                help="exit nonzero if any conjecture battery is BROKEN (uncalibrated)"),
+):
+    cmd_explore(_ns("explore", timeout=timeout, strict=strict))
 
 
 @app.command(help="run the stopping controller on a measured progress vector")

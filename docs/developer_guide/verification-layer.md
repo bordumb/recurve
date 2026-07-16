@@ -82,6 +82,29 @@ becomes a kept **trap** (the capture rule) before the loop trusts it — RED on 
 wrong implementation, GREEN on the real one. Each module here is itself guarded by
 its own claims suite, hardened the same way the toolkit is.
 
+## The exploration gradient: inverting the trap
+
+Everything above scores one gradient — **GREEN**, is the claim *proven*? That is
+what makes closure trustworthy, and it is also why an agent inside recurve will
+route around a genuinely-open problem: it decomposes to the provable, closes
+that, and parks the hard remainder, because the unknown has no GREEN in it.
+
+`recurve explore` (`recurvelib.core.conjecture`) adds a **second gradient** by
+inverting the trap. A trap is a known-bad a probe must *reject*; a **falsifier**
+is a kill-attempt fired at a **conjecture** — an open claim carrying a
+`probes/<name>.falsifiers/` battery (the structural inverse of `.trap/`). The
+conjecture earns standing not by being proven but by **surviving** a battery of
+falsifiers. The soundness invariant is the mirror of the RED-first law, and it is
+load-bearing: **a survival counts only from falsifiers that have demonstrably
+KILLed a seeded calibration decoy** — as a probe is trusted only once its trap
+has been seen RED, a survival is trusted only once its falsifier has been seen to
+kill. An uncalibrated (or empty) battery is `BROKEN`, never `SURVIVING`. Survival
+is graded (numeric proxy → kernel partial-proof) and reported as a profile, never
+a single bit; only a probe GREEN promotes a conjecture out of the survival axis
+into a proof. The battery is invisible to the closure gate, so a claim is scored
+on two independent axes — *proven?* and *alive?*. See the
+[user guide](../user_guide/explore.md).
+
 ## On the CLI
 
 Two pieces of the layer are surfaced as verbs; the rest are importable from
@@ -93,6 +116,9 @@ Two pieces of the layer are surfaced as verbs; the rest are importable from
   ranked uncovered surface: what no claim covers, so a green gate can't hide a
   hole. Coverage is what a probe *actually runs* (traced), not what a claim
   declares.
+- **`recurve explore`** (`recurvelib.core.conjecture`) — the exploration matrix:
+  score every conjecture on the survival gradient (PROMOTED / SURVIVING /
+  FALSIFIED / BROKEN). The second gradient beside `matrix`.
 - **Admission** (`recurvelib.admission`), **fidelity** (`recurvelib.fidelity`), and
   **the runtime** (`recurvelib.runtime` + `recurvelib.adapters`) compose the rest.
 
@@ -111,6 +137,10 @@ Two pieces of the layer are surfaced as verbs; the rest are importable from
 | **Revert-to-last-green** | `STOP-REVERT` | Restore the last state the gate certified green; the actor's damage is rolled back, never shipped. |
 | **Interview** | `REFUSE` → human | On a non-ADMIT verdict, the human is asked "what would *wrong* look like?" until each vague assertion has a check — or the goal is declared un-gateable. |
 | **Capture rule** | the adversary | An adversary's finding counts only once it is a re-runnable trap — RED on the wrong impl, GREEN on the real. |
+| **Conjecture** | `explore` | An open claim carrying a `falsifiers/` battery — a lead being tested, scored on *alive?* in addition to its probe's *proven?*. |
+| **Falsifier** | `explore` | A kill-attempt fired at a conjecture — the inverse of a trap. `KILLED` / `SURVIVED` / `BROKEN`. |
+| **Calibration decoy** | `explore` | A known-false variant a falsifier must KILL to be admissible — the mirror of a trap seen RED. No survival without a demonstrated kill. |
+| **Survival profile** | `explore` | The graded evidence a conjecture accrued: count · strength · by-kind. A lead, never a proof. |
 
 For the base loop these sit under and the ceremonies that keep the ledger honest,
 see [Architecture](architecture.md).

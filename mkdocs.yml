@@ -91,6 +91,7 @@ nav:
       - Multi-repo: user_guide/multi-repo.md
       - Claim packs: user_guide/packs.md
       - Fan-out search (fansearch): user_guide/fansearch.md
+      - Exploring the unknown (explore): user_guide/explore.md
   - Developer guide:
       - The verification layer: developer_guide/verification-layer.md
       - Evidence & receipts: developer_guide/evidence.md
