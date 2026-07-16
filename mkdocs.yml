@@ -84,6 +84,7 @@ nav:
       - Usage:
           - Claude skill: user_guide/usage-claude-skill.md
           - Provider-agnostic: user_guide/usage-provider-agnostic.md
+      - The claim graph: user_guide/claim-graph.md
       - Reports & status: user_guide/reports-and-status.md
       - Hardening your probes: user_guide/hardening.md
       - Run data & trajectories: user_guide/run-data.md
